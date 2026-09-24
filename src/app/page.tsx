@@ -23,13 +23,13 @@ const NO_PLAYERS: string[] = [];
 
 // fanned out above the bowl so every word stays readable; back row first, smaller
 const HERO = [
-  { w: "Schoggi", tilt: -6, x: "left-[3%] top-0", size: "text-xl", d: "0s" },
-  { w: "Gipfeli", tilt: 6, x: "right-[3%] top-[1%]", size: "text-xl", d: "0.08s" },
-  { w: "Aare", tilt: -3, x: "left-[27%] top-[40%]", size: "text-xl", d: "0.16s" },
-  { w: "Rösti", tilt: 5, x: "right-[25%] top-[41%]", size: "text-xl", d: "0.22s" },
-  { w: "Fondue", tilt: -9, x: "left-0 top-[27%]", size: "text-[1.6rem]", d: "0.3s" },
-  { w: "Velo", tilt: 9, x: "right-1 top-[26%]", size: "text-[1.6rem]", d: "0.38s" },
-  { w: "Matterhorn", tilt: 2, x: "left-1/2 -translate-x-1/2 top-[6%]", size: "text-[1.7rem]", d: "0.46s" },
+  { w: "Schoggi", tilt: -6, x: "left-[3%] top-0", size: "text-lg", d: "0s" },
+  { w: "Gipfeli", tilt: 6, x: "right-[3%] top-[1%]", size: "text-lg", d: "0.08s" },
+  { w: "Aare", tilt: -3, x: "left-[27%] top-[42%]", size: "text-lg", d: "0.16s" },
+  { w: "Rösti", tilt: 5, x: "right-[25%] top-[43%]", size: "text-lg", d: "0.22s" },
+  { w: "Fondue", tilt: -9, x: "left-0 top-[28%]", size: "text-2xl", d: "0.3s" },
+  { w: "Velo", tilt: 9, x: "right-1 top-[27%]", size: "text-2xl", d: "0.38s" },
+  { w: "Matterhorn", tilt: 2, x: "left-1/2 -translate-x-1/2 top-[6%]", size: "text-[1.55rem]", d: "0.46s" },
 ];
 
 export default function Home() {
@@ -78,20 +78,20 @@ export default function Home() {
       <header className="flex justify-end">
         <TopControls />
       </header>
-      <div className="relative mt-2 h-56" aria-hidden>
+      <div className="relative mt-1 h-44" aria-hidden>
         {HERO.map((h) => (
           <Slip key={h.w} tilt={h.tilt} className={`unfold absolute px-3.5 pt-1.5 ${h.x}`} style={{ animationDelay: h.d }}>
             <span className={`font-hand font-bold whitespace-nowrap ${h.size}`}>{h.w}</span>
           </Slip>
         ))}
-        <Bowl className="absolute bottom-0 left-1/2 w-44 -translate-x-1/2" />
+        <Bowl className="absolute bottom-0 left-1/2 w-36 -translate-x-1/2" />
       </div>
 
-      <h1 translate="no" className="mt-4 text-[3.25rem] leading-[0.95] font-extrabold tracking-tight text-hi">Zettelispiil</h1>
-      <p className="mt-3 max-w-[34ch] text-lg text-muted">{t.tagline}</p>
+      <h1 translate="no" className="mt-3 text-[2.75rem] leading-[0.95] font-extrabold tracking-tight text-hi">Zettelispiil</h1>
+      <p className="mt-2 max-w-[36ch] text-muted">{t.tagline}</p>
 
       <form
-        className="mt-7 flex flex-col gap-4"
+        className="mt-5 flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (!ready) return;

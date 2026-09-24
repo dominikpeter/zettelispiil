@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, ArrowLeft, ArrowLeftRight, Check, Eraser, Loader2, Sparkles, Home, Pause, Play, ChevronDown, ChevronUp, Crown, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { pickOne } from "@/lib/i18n";
 import { aiPref, langPref, useHints, useT } from "@/lib/prefs";
 import { funnyName } from "@/lib/roomClient";
@@ -450,6 +450,33 @@ export function Write({ v, send, busy }: P) {
   };
   const dupes = new Set(draft.map((d) => norm(d.word)).filter((w, i, all) => w && all.indexOf(w) !== i));
 
+  // "In die Schüssel": a bowl takes the button's place, the slips fold and fly into it, then we send
+  const [tossing, setTossing] = useState(false);
+  const [paths, setPaths] = useState<{ dx: number; dy: number }[] | null>(null);
+  const slipEls = useRef<(HTMLDivElement | null)[]>([]);
+  const bowlEl = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!tossing || !bowlEl.current) return;
+    const b = bowlEl.current.getBoundingClientRect();
+    setPaths(
+      slipEls.current.map((el) => {
+        const r = el?.getBoundingClientRect();
+        return r ? { dx: b.left + b.width / 2 - (r.left + r.width / 2), dy: b.top + b.height * 0.35 - (r.top + r.height / 2) } : { dx: 0, dy: 300 };
+      }),
+    );
+  }, [tossing]);
+  const [caught, setCaught] = useState(0);
+  const submit = async () => {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return send({ type: "words", words: draft });
+    setTossing(true);
+    const flight = 700 + (draft.length - 1) * 110;
+    draft.forEach((_, i) => setTimeout(() => setCaught((n) => n + 1), 650 + i * 110)); // the bowl bounces as each one lands
+    await new Promise((r) => setTimeout(r, flight + 150));
+    await send({ type: "words", words: draft });
+    setTossing(false);
+    setPaths(null);
+  };
+
   const words = draft.map((d) => d.word.trim());
   useEffect(() => {
     const todo = aiOn ? [...new Set(words.filter((w) => w.length >= 2 && !(w in checks)))] : [];
@@ -482,7 +509,7 @@ export function Write({ v, send, busy }: P) {
           {[0, 1, 2].map((i) => (
             <span
               key={i}
-              className="fall absolute top-6 h-10 w-8 rounded-sm bg-paper"
+              className="fall mini-slip absolute top-6 h-8 w-12"
               style={{ left: `${30 + i * 18}%`, animationDelay: `${i * 0.5}s`, "--r0": `${-20 + i * 15}deg`, "--r1": `${10 - i * 12}deg` } as CSSProperties}
             />
           ))}
@@ -502,7 +529,7 @@ export function Write({ v, send, busy }: P) {
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        send({ type: "words", words: draft });
+        if (!tossing) submit();
       }}
       className="enter flex flex-1 flex-col gap-5"
     >
@@ -519,14 +546,26 @@ export function Write({ v, send, busy }: P) {
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-hi" aria-hidden /> {t.cancelled(w)}
         </p>
       ))}
-      <div className="flex flex-col gap-5">
+      {/* few Zetteli: each one grows into the free space; many: comfortable fixed size */}
+      <div className="flex flex-1 flex-col gap-5">
         {draft.map((d, i) => {
           const c = checks[d.word.trim()];
           const r = c && c !== "loading" ? c : null;
           const fix = r?.corrected && r.corrected !== d.word.trim() ? r.corrected : "";
           return (
-            <div key={i}>
-              <Slip tilt={i % 2 ? 1.2 : -1.2} className="unfold relative px-4 pt-2 focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-accent" style={{ animationDelay: `${i * 0.06}s` }}>
+            <div
+              key={i}
+              ref={(el) => {
+                slipEls.current[i] = el;
+              }}
+              className={`${draft.length <= 3 ? "flex max-h-72 min-h-40 flex-1 flex-col" : ""} ${paths ? "into-bowl pointer-events-none" : ""}`}
+              style={paths?.[i] ? ({ "--dx": `${paths[i].dx}px`, "--dy": `${paths[i].dy}px`, "--spin": `${i % 2 ? -30 : 25}deg`, animationDelay: `${i * 110}ms` } as CSSProperties) : undefined}
+            >
+              <Slip
+                tilt={i % 2 ? 1.2 : -1.2}
+                className={`unfold relative @container flex flex-col justify-center px-5 pt-5 pb-8 focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-accent ${draft.length <= 3 ? "flex-1" : ""}`}
+                style={{ animationDelay: `${i * 0.06}s` }}
+              >
                 <input
                   autoComplete="off"
                   maxLength={40}
@@ -534,7 +573,8 @@ export function Write({ v, send, busy }: P) {
                   aria-label={t.slip(i + 1)}
                   placeholder={t.slip(i + 1)}
                   onChange={(e) => edit(i, { word: e.target.value })}
-                  className="font-hand w-full bg-transparent pr-7 text-3xl font-bold outline-none placeholder:text-paper-ink/30"
+                  className="font-hand w-full bg-transparent pr-7 leading-tight font-bold outline-none placeholder:text-paper-ink/30"
+                  style={fitLine(d.word || t.slip(i + 1), "3rem")}
                 />
                 {c === "loading" && <Loader2 className="absolute top-4 right-3 size-4 animate-spin text-paper-ink/40" aria-label={t.checking} />}
                 <input
@@ -544,7 +584,7 @@ export function Write({ v, send, busy }: P) {
                   aria-label={`${t.slip(i + 1)}: ${t.hintPh}`}
                   placeholder={t.hintPh}
                   onChange={(e) => edit(i, { hint: e.target.value })}
-                  className="w-full bg-transparent pb-1 text-sm text-paper-ink/70 outline-none placeholder:text-paper-ink/30"
+                  className="mt-2 w-full bg-transparent pb-1 text-base text-paper-ink/70 outline-none placeholder:text-paper-ink/30"
                 />
               </Slip>
               {dupes.has(norm(d.word)) && <p className="mt-2 text-sm font-medium text-hi">{t.twice(d.word)}</p>}
@@ -567,9 +607,19 @@ export function Write({ v, send, busy }: P) {
         })}
       </div>
       <Cta>
-        <button disabled={busy || draft.some((d) => !norm(d.word)) || dupes.size > 0} className={btn}>
-          {t.intoBowl}
-        </button>
+        {tossing ? (
+          <div className="flex justify-center">
+            <div ref={bowlEl} className="pop w-32">
+              <div key={caught} className={caught ? "catch" : ""}>
+                <Bowl />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <button disabled={busy || draft.some((d) => !norm(d.word)) || dupes.size > 0} className={btn}>
+            {t.intoBowl}
+          </button>
+        )}
         <p className="mt-2 text-center text-sm text-muted tabular-nums">{t.done(v.done, v.players.length)}</p>
       </Cta>
     </form>

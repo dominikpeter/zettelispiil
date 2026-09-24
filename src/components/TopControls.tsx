@@ -50,17 +50,25 @@ export function SettingsPanel() {
   const icon = { auto: SunMoon, light: Sun, dark: Moon };
   return (
     <>
-      <section className="flex flex-col gap-2">
-        <h3 className="flex items-center gap-2 font-semibold">
-          <Sparkles className="size-4 text-accent" aria-hidden /> {t.aiHelp}
-        </h3>
-        <Segmented options={[{ id: "on" as const, label: t.on }, { id: "off" as const, label: t.off }]} value={ai} onChange={aiPref.set} />
-        <p className="text-sm text-muted">{t.aiHelpNote}</p>
+      <section className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="flex items-center gap-2 font-semibold">
+            <Sparkles className="size-4 shrink-0 text-accent" aria-hidden /> {t.aiHelp}
+          </h3>
+          <p className="text-sm leading-snug text-muted">{t.aiHelpNote}</p>
+        </div>
+        <div className="w-36 shrink-0">
+          <Segmented options={[{ id: "on" as const, label: t.on }, { id: "off" as const, label: t.off }]} value={ai} onChange={aiPref.set} />
+        </div>
       </section>
-      <fieldset disabled={ai !== "on"} className={`flex flex-col gap-2 transition-opacity ${ai === "on" ? "" : "opacity-40"}`}>
-        <legend className="mb-2 font-semibold">{t.showHints}</legend>
-        <Segmented options={[{ id: "on" as const, label: t.on }, { id: "off" as const, label: t.off }]} value={ai === "on" ? hints : "off"} onChange={hintPref.set} />
-        <p className="text-sm text-muted">{t.showHintsNote}</p>
+      <fieldset disabled={ai !== "on"} className={`flex items-center justify-between gap-4 transition-opacity ${ai === "on" ? "" : "opacity-40"}`}>
+        <div className="min-w-0">
+          <h3 className="font-semibold">{t.showHints}</h3>
+          <p className="text-sm leading-snug text-muted">{t.showHintsNote}</p>
+        </div>
+        <div className="w-36 shrink-0">
+          <Segmented options={[{ id: "on" as const, label: t.on }, { id: "off" as const, label: t.off }]} value={ai === "on" ? hints : "off"} onChange={hintPref.set} />
+        </div>
       </fieldset>
 
           <section className="flex flex-col gap-2">
@@ -134,7 +142,7 @@ export function TopControls() {
       <dialog
         ref={sheet}
         onClick={(e) => e.target === sheet.current && sheet.current.close()} // tap outside closes
-        className="sheet mx-auto mt-auto mb-0 w-full max-w-md overscroll-contain rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
+        className="sheet mx-auto mt-auto mb-0 max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
       >
         <div className="flex flex-col gap-5 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between">

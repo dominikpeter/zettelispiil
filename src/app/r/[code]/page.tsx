@@ -3,11 +3,12 @@
 import { useParams, useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { BackButton, GameMenu, Lobby, Phase, Score, Waiting } from "@/components/Game";
+import { AiNameButton, BackButton, GameMenu, Lobby, Phase, Score, Waiting } from "@/components/Game";
 import { TopControls } from "@/components/TopControls";
-import { useT } from "@/lib/prefs";
+import { DICT, pickOne } from "@/lib/i18n";
+import { langPref, useT } from "@/lib/prefs";
 import type { Action, Stroke, View } from "@/lib/room";
-import { api, errKey, loadIdentity, loadName, saveIdentity, saveName, type Identity } from "@/lib/roomClient";
+import { api, errKey, funnyName, loadIdentity, loadName, saveIdentity, saveName, type Identity } from "@/lib/roomClient";
 import { Bowl, btn, btn2, field } from "@/lib/ui";
 import { useCountdown } from "@/lib/useCountdown";
 
@@ -24,7 +25,8 @@ export default function Room() {
   const [id, setId] = useState<Identity | null>(() => (typeof window === "undefined" ? null : loadIdentity(code)));
   const [v, setV] = useState<View | null>(null);
   const [err, setErr] = useState("");
-  const [name, setName] = useState(() => (typeof window === "undefined" ? "" : loadName()));
+  // saved name, or a funny one to start from (only runs on the client: the page renders nothing before hydration)
+  const [name, setName] = useState(() => (typeof window === "undefined" ? "" : loadName() || pickOne(DICT[langPref.get()].funnyPlayers)));
   const [busy, setBusy] = useState(false);
   const [qr, setQr] = useState("");
   const [copied, setCopied] = useState(false);
@@ -154,7 +156,15 @@ export default function Room() {
             }}
             className="mt-2 flex flex-col gap-3"
           >
-            <input value={name} maxLength={24} autoComplete="nickname" placeholder={t.yourName} aria-label={t.yourName} onChange={(e) => setName(e.target.value)} className={`${field} text-center font-semibold`} />
+            <div className="flex gap-2">
+              <input value={name} maxLength={24} autoComplete="nickname" placeholder={t.yourName} aria-label={t.yourName} onChange={(e) => setName(e.target.value)} className={`${field} min-w-0 flex-1 text-center font-semibold`} />
+              <AiNameButton
+                label={t.aiName}
+                make={() => funnyName("player", langPref.get(), [name], t.funnyPlayers)}
+                onName={setName}
+                className="grid size-[3.4rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent"
+              />
+            </div>
             <button disabled={busy || !name.trim()} className={btn}>
               {t.join}
             </button>

@@ -8,7 +8,7 @@ export const aiEnabled = () => !!process.env.OPENAI_API_KEY;
 // always the real API: a shell-wide OPENAI_BASE_URL (e.g. a local proxy) must not leak into the game
 const openai = createOpenAI({ baseURL: "https://api.openai.com/v1" });
 const model = () => openai(process.env.OPENAI_MODEL ?? "gpt-6-luna");
-const LANG_NAME: Record<Lang, string> = { de: "German (Swiss German words are fine)", en: "English", fr: "French" };
+const LANG_NAME: Record<Lang, string> = { de: "Swiss Standard German (always \"ss\", never \"ß\"; Swiss German words are fine)", en: "English", fr: "French" };
 
 const Check = z.object({
   results: z.array(
