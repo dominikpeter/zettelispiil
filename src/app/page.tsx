@@ -69,7 +69,7 @@ export default function Home() {
     await newLocalGame(named, lang);
     router.push("/local");
   };
-  const ready = !busy && (play === "local" ? players.length >= 4 : !!name.trim() && (mode === "create" || code.length === 4));
+  const ready = !busy && (play === "local" ? players.length >= 4 : !!name.trim() && (mode === "create" || code.length >= 4));
 
   const choice = (on: boolean) => `flex flex-col items-start gap-1 rounded-2xl border-2 p-3 text-left ${press} ${on ? "border-accent bg-raised" : "border-line"}`;
 
@@ -167,7 +167,7 @@ export default function Home() {
               <div key="join" className="enter flex items-center gap-2">
                 <input
                   value={code}
-                  maxLength={4}
+                  maxLength={5}
                   autoCapitalize="characters"
                   autoComplete="off"
                   spellCheck={false}

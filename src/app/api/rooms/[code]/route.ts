@@ -1,7 +1,7 @@
 import { act, joinRoom, view } from "@/lib/room";
 import { handle } from "../handle";
 
-const clean = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+const clean = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); // 5 letters today, 4 for rooms made before
 
 // GET (x-pid / x-token headers, kept out of URLs and logs) → this player's view, polled by every phone
 export async function GET(req: Request, { params }: { params: Promise<{ code: string }> }) {

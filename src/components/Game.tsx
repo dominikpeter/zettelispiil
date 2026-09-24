@@ -275,7 +275,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
           )}
           <div className="flex min-w-0 flex-col items-start gap-1">
             <p className="text-sm text-muted">{t.scanOrCode}</p>
-            <p className="text-4xl font-extrabold tracking-[0.25em] text-hi">{v.code}</p>
+            <p translate="no" className="text-3xl font-extrabold tracking-[0.18em] text-hi">{v.code}</p>
             <button onClick={share.onShare} className={`${ghost} -ml-3 flex items-center gap-2 text-accent`}>
               {share.copied ? <Check className="size-4" aria-hidden /> : <Share2 className="size-4" aria-hidden />}
               {share.copied ? t.copied : t.share}

@@ -1,7 +1,7 @@
 import { pullStrokes, pushStrokes } from "@/lib/room";
 import { handle } from "../../handle";
 
-const clean = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+const clean = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); // 5 letters today, 4 for rooms made before
 
 // GET ?sheet=N&from=M → { sheet, from, strokes }: only the lines a watching phone doesn't have yet
 export async function GET(req: Request, { params }: { params: Promise<{ code: string }> }) {

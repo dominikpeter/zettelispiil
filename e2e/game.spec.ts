@@ -68,7 +68,7 @@ test("every phone: only the describer sees the Zetteli, one skip with swap back,
   await host.getByRole("button", { name: /Jedes Handy/ }).click();
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
-  await host.waitForURL(/\/r\/[A-Z0-9]{4}$/);
+  await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
   const code = host.url().split("/").pop()!;
   await expect(host.getByAltText(`QR ${code}`)).toBeVisible();
 
@@ -155,7 +155,7 @@ test("drawing round: lines drawn on one phone show up on the others", async ({ b
   await host.getByRole("button", { name: /Jedes Handy/ }).click();
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
-  await host.waitForURL(/\/r\/[A-Z0-9]{4}$/);
+  await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
   const code = host.url().split("/").pop()!;
   const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
   for (const [i, p] of others.entries()) {
@@ -266,7 +266,7 @@ test("the same word on two phones is cancelled for both, who each write a new on
   await host.getByRole("button", { name: /Jedes Handy/ }).click();
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
-  await host.waitForURL(/\/r\/[A-Z0-9]{4}$/);
+  await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
   const code = host.url().split("/").pop()!;
   const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
   for (const [i, p] of others.entries()) {

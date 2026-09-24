@@ -3,6 +3,7 @@ import type { Store } from "./store.ts";
 
 const TTL = 60 * 60 * 24; // rooms vanish a day after the last write
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I lookalikes
+export const CODE_LEN = 5; // 32^5 ≈ 33 million codes: hard to guess a live room; older 4-letter rooms keep working
 const GRACE = 1500; // a "got" tapped at 0:00 still counts while it travels to the server
 const MAX_SHEET = 3000; // strokes per drawing sheet; a wipe or the next Zetteli starts a new one
 const MIN_CARRY = 5000; // less time left than this when the bowl empties → next player starts the new round
@@ -108,7 +109,7 @@ export async function createRoom(db: Store, hostName: unknown, lang: unknown = "
   const name = cleanName(hostName);
   if (!name) throw new RoomError("bad_request");
   for (let attempt = 0; attempt < 10; attempt++) {
-    const code = Array.from({ length: 4 }, () => CODE_CHARS[pick(CODE_CHARS.length)]).join("");
+    const code = Array.from({ length: CODE_LEN }, () => CODE_CHARS[pick(CODE_CHARS.length)]).join("");
     const room: Room = {
       code, hostId: "", settings: cleanSettings({}), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de"), phase: "lobby", ids: [], teams: [], words: [], hints: [], authors: [],
       bowl: [], current: null, held: [], shownAt: 0, round: 0, team: 0, next: [0, 0], turnStart: 0, endsAt: 0, pausedAt: 0, drawNo: 0, carryMs: 0,

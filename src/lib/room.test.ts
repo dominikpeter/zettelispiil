@@ -32,6 +32,14 @@ const describerView = async (see: (i: number) => Promise<View>) => {
   return { i: v.active!, v: await see(v.active!) };
 };
 
+test("room codes have 5 characters without lookalikes", async () => {
+  const db = store();
+  for (let i = 0; i < 20; i++) {
+    const { code } = await createRoom(db, "Lisa");
+    assert.match(code, /^[A-HJ-NP-Z2-9]{5}$/);
+  }
+});
+
 test("teams fill alternately and start needs two per team", async () => {
   const db = store();
   const host = await createRoom(db, "Lisa");

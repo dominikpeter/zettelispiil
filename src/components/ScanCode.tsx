@@ -3,9 +3,9 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { press } from "@/lib/ui";
 
-/** Pulls a room code out of a scanned QR: our join link (…/r/AB3K) or a bare 4-char code. */
+/** Pulls a room code out of a scanned QR: our join link (…/r/AB3KX) or a bare 4–6 character code. */
 export function codeFromQr(text: string): string | null {
-  const m = text.match(/\/r\/([A-Za-z0-9]{4})\b/) ?? text.trim().match(/^([A-Za-z0-9]{4})$/);
+  const m = text.match(/\/r\/([A-Za-z0-9]{4,6})\b/) ?? text.trim().match(/^([A-Za-z0-9]{4,6})$/);
   return m ? m[1].toUpperCase() : null;
 }
 
