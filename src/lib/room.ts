@@ -248,6 +248,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
     if (!ok) throw new RoomError("forbidden");
   };
   settle(room, now);
+  const wasTurn = room.phase === "turn";
 
   switch (a.type) {
     case "settings":
@@ -411,7 +412,8 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       throw new RoomError("bad_request");
   }
   await save(db, room);
-  if (room.settings.rounds.includes("draw")) await syncDrawer(db, room, members);
+  // the drawer record only matters around drawing turns
+  if (room.settings.rounds.includes("draw") && (wasTurn || room.phase === "turn")) await syncDrawer(db, room, members);
 }
 
 export type View = {

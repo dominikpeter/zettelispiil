@@ -201,9 +201,27 @@ test("drawing round: lines drawn on one phone show up on the others", async ({ b
   await expect.poll(inked, { timeout: 5_000 }).toBeGreaterThan(50);
   await expect(watcher.getByTestId("word")).toHaveCount(0);
 
-  // wiping clears it for everyone
+  // after a pause the drawer still sees their drawing
+  const ink = (p: Page) =>
+    p.locator("canvas").evaluate((c: HTMLCanvasElement) => {
+      const px = c.getContext("2d")!.getImageData(0, 0, c.width, c.height).data;
+      let n = 0;
+      for (let i = 3; i < px.length; i += 4) if (px[i] > 0) n++;
+      return n;
+    });
+  await d.getByRole("button", { name: "Pause" }).click();
+  await d.getByRole("button", { name: "Weiterspielen" }).click();
+  await expect.poll(() => ink(d), { timeout: 5_000 }).toBeGreaterThan(50);
+
+  // wiping clears it for everyone, and lines drawn right after the wipe still arrive
   await d.getByRole("button", { name: "Alles löschen" }).click();
   await expect.poll(inked, { timeout: 5_000 }).toBe(0);
+  const b2 = (await paper.boundingBox())!;
+  await d.mouse.move(b2.x + 40, b2.y + 150);
+  await d.mouse.down();
+  for (let i = 1; i <= 8; i++) await d.mouse.move(b2.x + 40 + i * 20, b2.y + 150 + (i % 2) * 40);
+  await d.mouse.up();
+  await expect.poll(inked, { timeout: 5_000 }).toBeGreaterThan(50);
 });
 
 /** one-phone game with 1 Zetteli each, written by `write(i)`, up to the first "Los" */

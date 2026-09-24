@@ -537,10 +537,17 @@ export function Write({ v, send, busy }: P) {
         <h2 className="text-3xl font-extrabold tracking-tight">{t.writeTitle(draft.length)}</h2>
         <p className="mt-1 text-muted">{t.writeHelp}</p>
       </div>
-      {aiOn && <Ideas lang={lang} avoid={words.filter(Boolean)} onPick={(w) => {
-        const i = draft.findIndex((d) => !d.word.trim());
-        edit(i >= 0 ? i : draft.length - 1, { word: w });
-      }} />}
+      {aiOn && (
+        <Ideas
+          lang={lang}
+          avoid={words.filter(Boolean)}
+          full={draft.every((d) => d.word.trim())}
+          onPick={(w) => {
+            const i = draft.findIndex((d) => !d.word.trim());
+            if (i >= 0) edit(i, { word: w }); // never over a word the player wrote
+          }}
+        />
+      )}
       {v.myWrite?.cancelled.map((w) => (
         <p key={w} role="alert" className="pop flex items-start gap-2 rounded-2xl bg-raised px-4 py-3 font-medium">
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-hi" aria-hidden /> {t.cancelled(w)}
@@ -627,7 +634,7 @@ export function Write({ v, send, busy }: P) {
 }
 
 /** topic in, three AI suggestions out; tapping one puts it on the next empty Zetteli */
-function Ideas({ lang, avoid, onPick }: { lang: string; avoid: string[]; onPick: (w: string) => void }) {
+function Ideas({ lang, avoid, full, onPick }: { lang: string; avoid: string[]; full: boolean; onPick: (w: string) => void }) {
   const t = useT();
   const [topic, setTopic] = useState("");
   const [ideas, setIdeas] = useState<string[] | null>(null);
@@ -636,7 +643,7 @@ function Ideas({ lang, avoid, onPick }: { lang: string; avoid: string[]; onPick:
     setLoading(true);
     try {
       const r = await fetch("/api/ai/ideas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic, lang, avoid }) }).then((x) => x.json());
-      setIdeas(r?.ai && Array.isArray(r.words) ? r.words : []);
+      setIdeas(r?.ai && Array.isArray(r.words) && r.words.length ? r.words : []);
     } catch {
       setIdeas([]);
     } finally {
@@ -665,10 +672,11 @@ function Ideas({ lang, avoid, onPick }: { lang: string; avoid: string[]; onPick:
           {loading ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <Sparkles className="size-5" aria-hidden />}
         </button>
       </div>
+      {ideas && ideas.length === 0 && <p className="mt-2 px-1 text-sm text-muted">{t.noIdeas}</p>}
       {ideas && ideas.length > 0 && (
         <div aria-live="polite" className="mt-3 flex flex-wrap gap-2">
           {ideas.map((w, i) => (
-            <button key={w} type="button" onClick={() => { onPick(w); setIdeas((xs) => xs && xs.filter((x) => x !== w)); }} aria-label={t.pickIdea(w)} className={`${press}`}>
+            <button key={w} type="button" disabled={full} onClick={() => { onPick(w); setIdeas((xs) => xs && xs.filter((x) => x !== w)); }} aria-label={t.pickIdea(w)} className={`${press} disabled:opacity-50`}>
               <Slip tilt={i % 2 ? 2 : -2} className="pop px-3 pt-1 pb-1">
                 <span className="font-hand text-2xl font-bold">{w}</span>
               </Slip>
@@ -898,8 +906,8 @@ export function Turn({ v, left, send, live, mode }: P & { left: number }) {
         )}
         {/* the paper takes what's left of the screen, never more: no scrolling while drawing */}
         <div className="mx-auto w-full" style={{ maxWidth: "min(100%, calc(100dvh - 24rem))" }}>
-          {word && sheet !== null && (
-            <DrawPad key={`${sheet}-${wipes}`} ink={ink} label={t.drawHere} onFlush={up ? undefined : (strokes) => live?.draw(sheet, strokes)} />
+          {word && sheet !== null && live && (
+            <DrawPad key={word.id} code={live.code} sheet={sheet} wipeNo={wipes} ink={ink} label={t.drawHere} onFlush={up ? undefined : live.draw} />
           )}
         </div>
         <div className="flex items-center justify-between gap-2">

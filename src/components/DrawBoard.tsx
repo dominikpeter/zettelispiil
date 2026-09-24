@@ -5,7 +5,7 @@ import type { Stroke } from "@/lib/room";
 
 export const INKS = ["#03071e", "#d62828", "#00679f", "#0a8a3a"];
 const FLUSH_MS = 120; // drawer: how often new line pieces go out
-const FAST_MS = 180; // watcher: poll interval while lines are coming in
+const FAST_MS = 250; // watcher: poll interval while lines are coming in (tracing hides the gaps)
 const IDLE_MS = 700; // watcher: poll interval once the drawer pauses
 const IDLE_AFTER = 8; // empty polls before slowing down
 
@@ -55,15 +55,49 @@ function useFit(draw: (c: HTMLCanvasElement) => void) {
 
 const paper = "slip block aspect-square h-auto w-full touch-none rounded-md";
 
-/** drawer: lines show at once and go out in small pieces; remount (new `key`) for a fresh sheet */
-export function DrawPad({ ink, onFlush, label }: { ink: number; onFlush?: (s: Stroke[]) => void; label: string }) {
+/**
+ * drawer: lines show at once and go out in small pieces. Remount (new `key`) for the next Zetteli.
+ * On mount it reloads what's already on the sheet (after a pause or a reload).
+ * `wipeNo` going up clears the paper at once; new lines wait until the room's `sheet` has moved on, so none get lost.
+ */
+export function DrawPad({ ink, onFlush, label, code, sheet, wipeNo }: { ink: number; onFlush?: (sheet: number, s: Stroke[]) => void; label: string; code: string; sheet: number; wipeNo: number }) {
   const mine = useRef<Stroke[]>([]);
   const current = useRef<Stroke | null>(null);
   const pending = useRef<Stroke[]>([]);
   const lastFlushed = useRef(0); // coordinates of `current` already sent
+  const target = useRef({ sheet, wipeNo, hold: false }); // where new lines go; `hold` while a wipe is on its way
   const { canvas, redraw } = useFit((c) => paint(c.getContext("2d")!, [...mine.current, ...(current.current ? [current.current] : [])], c.width));
+  const repaint = useEffectEvent(() => redraw());
 
-  const send = useEffectEvent((batch: Stroke[]) => onFlush?.(batch));
+  // back after a pause or a reload: what the others already see
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/rooms/${code}/draw?sheet=${sheet}&from=0`, { cache: "no-store" })
+      .then((x) => x.json())
+      .then((r) => {
+        if (!alive || r?.sheet !== sheet || !Array.isArray(r.strokes) || !r.strokes.length) return;
+        mine.current = [...r.strokes, ...mine.current];
+        repaint();
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- once per sheet mount
+
+  // wipe: clear now, hold new lines until the room has opened the next sheet
+  useEffect(() => {
+    if (wipeNo === target.current.wipeNo) return;
+    target.current = { sheet: target.current.sheet, wipeNo, hold: true };
+    mine.current = [];
+    pending.current = [];
+    repaint();
+  }, [wipeNo]);
+  useEffect(() => {
+    if (sheet !== target.current.sheet) target.current = { ...target.current, sheet, hold: false };
+  }, [sheet]);
+
+  const send = useEffectEvent((batch: Stroke[]) => onFlush?.(target.current.sheet, batch));
   const drawer = !!onFlush;
   useEffect(() => {
     if (!drawer) return;
@@ -73,7 +107,7 @@ export function DrawPad({ ink, onFlush, label }: { ink: number; onFlush?: (s: St
         pending.current.push([cur[0], ...cur.slice(Math.max(1, lastFlushed.current - 1))]); // overlap one point so pieces join
         lastFlushed.current = cur.length - 1;
       }
-      if (pending.current.length) {
+      if (pending.current.length && !target.current.hold) {
         send(pending.current);
         pending.current = [];
       }
@@ -131,14 +165,14 @@ export function DrawPad({ ink, onFlush, label }: { ink: number; onFlush?: (s: St
 export function DrawView({ code, sheet, label }: { code: string; sheet: number; label: string }) {
   const strokes = useRef<Stroke[]>([]);
   const shown = useRef(0); // points on screen so far
-  const at = useRef({ sheet, from: 0 });
+  const at = useRef({ sheet, from: 0, gen: 0 }); // gen bumps on every reset, so late answers for an old sheet are dropped
   const { canvas, redraw } = useFit((c) => paint(c.getContext("2d")!, strokes.current, c.width, shown.current));
   const repaint = useEffectEvent(() => redraw());
 
   // a newer sheet from the room (wipe, next Zetteli): start over there
   useEffect(() => {
     if (sheet <= at.current.sheet) return;
-    at.current = { sheet, from: 0 };
+    at.current = { sheet, from: 0, gen: at.current.gen + 1 };
     strokes.current = [];
     shown.current = 0;
   }, [sheet]);
@@ -149,15 +183,16 @@ export function DrawView({ code, sheet, label }: { code: string; sheet: number; 
     let timer: ReturnType<typeof setTimeout>;
     const pull = async () => {
       try {
-        const { sheet: s, from } = at.current;
+        const { sheet: s, from, gen } = at.current;
         const r = await fetch(`/api/rooms/${code}/draw?sheet=${s}&from=${from}`, { cache: "no-store" }).then((x) => x.json());
         if (!alive || !Array.isArray(r?.strokes)) throw 0;
-        if (r.sheet !== at.current.sheet) {
+        if (gen !== at.current.gen) throw 0; // the sheet changed while this was on its way
+        if (r.sheet !== s) {
           strokes.current = [];
           shown.current = 0;
         }
         strokes.current.push(...r.strokes);
-        at.current = { sheet: r.sheet, from: r.from + r.strokes.length };
+        at.current = { sheet: r.sheet, from: r.from + r.strokes.length, gen: r.sheet !== s ? gen + 1 : gen };
         idle = r.strokes.length ? 0 : idle + 1;
       } catch {
         idle++;

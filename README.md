@@ -2,7 +2,7 @@
 
 The Swiss party game with paper slips, as a mobile web app. Everyone writes words on *Zetteli*, they go into a bowl, and two teams race to guess them over four rounds that keep getting harder.
 
-**Play:** [zettelispiil.vercel.app](https://zettelispiil.vercel.app)
+**Play:** [zettelispiil.ch](https://zettelispiil.ch) (also [zettelispiil.vercel.app](https://zettelispiil.vercel.app))
 
 ## How it's played
 
@@ -57,7 +57,7 @@ src/app/r/[code]       every-phone room, polls /api/rooms/[code]
 src/app/local          one-phone game
 ```
 
-Server functions run in Frankfurt (`fra1`), next to the Redis database: there is no Swiss region on Vercel or Upstash, and Frankfurt is about 10 ms from Zurich.
+Server functions run in Frankfurt (`fra1`, set as the project's function region in Vercel), next to the Redis database: there is no Swiss region on Vercel or Upstash, and Frankfurt is about 10 ms from Zurich.
 
 Drawing has its own channel: the drawer's phone appends strokes to a per-Zetteli Redis list every 120 ms (checked against a small `drawer` record instead of loading the room), and watching phones fetch only the strokes after the last one they have, polling faster while lines arrive and tracing them in smoothly.
 
