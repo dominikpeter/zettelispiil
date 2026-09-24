@@ -1,0 +1,402 @@
+@import "tailwindcss";
+
+/* palette: note 100 = darkest, 900 = lightest (reverse of Tailwind default) */
+@theme {
+  --color-deep-indigo: #3d0066;
+  --color-deep-indigo-100: #0c0014;
+  --color-deep-indigo-200: #180029;
+  --color-deep-indigo-300: #25003d;
+  --color-deep-indigo-400: #310052;
+  --color-deep-indigo-500: #3d0066;
+  --color-deep-indigo-600: #6e00b8;
+  --color-deep-indigo-700: #9d0aff;
+  --color-deep-indigo-800: #be5cff;
+  --color-deep-indigo-900: #deadff;
+
+  --color-indigo: #5c0099;
+  --color-indigo-100: #12001f;
+  --color-indigo-200: #25003d;
+  --color-indigo-300: #37005c;
+  --color-indigo-400: #49007a;
+  --color-indigo-500: #5c0099;
+  --color-indigo-600: #8700e0;
+  --color-indigo-700: #a929ff;
+  --color-indigo-800: #c670ff;
+  --color-indigo-900: #e2b8ff;
+
+  --color-mauve-magic: #c86bfa;
+  --color-mauve-magic-100: #2e0245;
+  --color-mauve-magic-200: #5b058a;
+  --color-mauve-magic-300: #8907cf;
+  --color-mauve-magic-400: #ae26f7;
+  --color-mauve-magic-500: #c86bfa;
+  --color-mauve-magic-600: #d389fb;
+  --color-mauve-magic-700: #dea6fc;
+  --color-mauve-magic-800: #e9c4fd;
+  --color-mauve-magic-900: #f4e1fe;
+
+  --color-school-bus-yellow: #fdc500;
+  --color-school-bus-yellow-100: #332800;
+  --color-school-bus-yellow-200: #665000;
+  --color-school-bus-yellow-300: #997800;
+  --color-school-bus-yellow-400: #cca000;
+  --color-school-bus-yellow-500: #fdc500;
+  --color-school-bus-yellow-600: #ffd333;
+  --color-school-bus-yellow-700: #ffde66;
+  --color-school-bus-yellow-800: #ffe999;
+  --color-school-bus-yellow-900: #fff4cc;
+
+  --color-gold: #ffd500;
+  --color-gold-100: #332b00;
+  --color-gold-200: #665500;
+  --color-gold-300: #998000;
+  --color-gold-400: #ccaa00;
+  --color-gold-500: #ffd500;
+  --color-gold-600: #ffdd33;
+  --color-gold-700: #ffe666;
+  --color-gold-800: #ffee99;
+  --color-gold-900: #fff6cc;
+
+  --color-bright-lemon: #ffee32;
+  --color-bright-lemon-100: #3d3800;
+  --color-bright-lemon-200: #7a7000;
+  --color-bright-lemon-300: #b8a800;
+  --color-bright-lemon-400: #f5e000;
+  --color-bright-lemon-500: #ffee32;
+  --color-bright-lemon-600: #fff15c;
+  --color-bright-lemon-700: #fff585;
+  --color-bright-lemon-800: #fff8ad;
+  --color-bright-lemon-900: #fffcd6;
+
+  --color-ink-black: #03071e;
+  --color-ink-black-100: #010106;
+  --color-ink-black-200: #01030b;
+  --color-ink-black-300: #020411;
+  --color-ink-black-400: #020516;
+  --color-ink-black-500: #03071e;
+  --color-ink-black-600: #0b1b73;
+  --color-ink-black-700: #142fca;
+  --color-ink-black-800: #5068ee;
+  --color-ink-black-900: #a8b4f6;
+
+  /* the slips look the same in every theme */
+  --color-paper: #fffcd6;
+  --color-paper-edge: #fff585;
+  --color-paper-ink: #03071e;
+
+  --font-sans: var(--font-bricolage);
+  --font-hand: var(--font-caveat);
+  --ease-spring: cubic-bezier(0.2, 0.9, 0.3, 1.25);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+
+/* ---- color themes: each palette sets --d-* (dark) and --l-* (light); the mode picks one set ---- */
+:root, :root[data-palette="night"] {
+  --d-canvas: #0c0014;
+  --d-surface: #180029;
+  --d-raised: #25003d;
+  --d-line: #37005c;
+  --d-ink: #f4e1fe;
+  --d-muted: #b79bc9;
+  --d-accent: #c86bfa;
+  --d-hi: #ffd500;
+  --d-cta: #ffd500;
+  --d-cta-ink: #03071e;
+  --d-cta-edge: #998000;
+  --d-team-a: #c86bfa;
+  --d-team-b: #ffd500;
+  --d-chart-a: #ae26f7;
+  --d-chart-b: #cca000;
+  --l-canvas: #f8f0fe;
+  --l-surface: #ffffff;
+  --l-raised: #f4e1fe;
+  --l-line: #e9c4fd;
+  --l-ink: #180029;
+  --l-muted: #6e4a85;
+  --l-accent: #8907cf;
+  --l-hi: #5c0099;
+  --l-cta: #ffd500;
+  --l-cta-ink: #03071e;
+  --l-cta-edge: #cca000;
+  --l-team-a: #8907cf;
+  --l-team-b: #997800;
+  --l-chart-a: #ae26f7;
+  --l-chart-b: #cca000;
+}
+:root[data-palette="ink"] {
+  --d-canvas: #03071e;
+  --d-surface: #0a1030;
+  --d-raised: #111a45;
+  --d-line: #1d2a66;
+  --d-ink: #eef1ff;
+  --d-muted: #a8b4f6;
+  --d-accent: #a8b4f6;
+  --d-hi: #ffee32;
+  --d-cta: #ffee32;
+  --d-cta-ink: #03071e;
+  --d-cta-edge: #b8a800;
+  --d-team-a: #c86bfa;
+  --d-team-b: #ffd500;
+  --d-chart-a: #ae26f7;
+  --d-chart-b: #cca000;
+  --l-canvas: #eef1fd;
+  --l-surface: #ffffff;
+  --l-raised: #e2e7fd;
+  --l-line: #c9d1fa;
+  --l-ink: #03071e;
+  --l-muted: #3a4580;
+  --l-accent: #142fca;
+  --l-hi: #0b1b73;
+  --l-cta: #ffee32;
+  --l-cta-ink: #03071e;
+  --l-cta-edge: #b8a800;
+  --l-team-a: #8907cf;
+  --l-team-b: #997800;
+  --l-chart-a: #ae26f7;
+  --l-chart-b: #cca000;
+}
+:root[data-palette="gold"] {
+  --d-canvas: #120f00;
+  --d-surface: #1f1a00;
+  --d-raised: #332b00;
+  --d-line: #4d4100;
+  --d-ink: #fff6cc;
+  --d-muted: #d6c27a;
+  --d-accent: #ffd500;
+  --d-hi: #ffd500;
+  --d-cta: #c86bfa;
+  --d-cta-ink: #0c0014;
+  --d-cta-edge: #8907cf;
+  --d-team-a: #c86bfa;
+  --d-team-b: #ffd500;
+  --d-chart-a: #ae26f7;
+  --d-chart-b: #cca000;
+  --l-canvas: #fffbe8;
+  --l-surface: #ffffff;
+  --l-raised: #fff4cc;
+  --l-line: #ffe999;
+  --l-ink: #1f1a00;
+  --l-muted: #6b5a00;
+  --l-accent: #997800;
+  --l-hi: #665000;
+  --l-cta: #5c0099;
+  --l-cta-ink: #ffffff;
+  --l-cta-edge: #25003d;
+  --l-team-a: #8907cf;
+  --l-team-b: #997800;
+  --l-chart-a: #ae26f7;
+  --l-chart-b: #cca000;
+}
+:root {
+  --c-canvas: var(--l-canvas);
+  --c-surface: var(--l-surface);
+  --c-raised: var(--l-raised);
+  --c-line: var(--l-line);
+  --c-ink: var(--l-ink);
+  --c-muted: var(--l-muted);
+  --c-accent: var(--l-accent);
+  --c-hi: var(--l-hi);
+  --c-cta: var(--l-cta);
+  --c-cta-ink: var(--l-cta-ink);
+  --c-cta-edge: var(--l-cta-edge);
+  --c-team-a: var(--l-team-a);
+  --c-team-b: var(--l-team-b);
+  --c-chart-a: var(--l-chart-a);
+  --c-chart-b: var(--l-chart-b);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --c-canvas: var(--d-canvas);
+    --c-surface: var(--d-surface);
+    --c-raised: var(--d-raised);
+    --c-line: var(--d-line);
+    --c-ink: var(--d-ink);
+    --c-muted: var(--d-muted);
+    --c-accent: var(--d-accent);
+    --c-hi: var(--d-hi);
+    --c-cta: var(--d-cta);
+    --c-cta-ink: var(--d-cta-ink);
+    --c-cta-edge: var(--d-cta-edge);
+    --c-team-a: var(--d-team-a);
+    --c-team-b: var(--d-team-b);
+    --c-chart-a: var(--d-chart-a);
+    --c-chart-b: var(--d-chart-b);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --c-canvas: var(--d-canvas);
+  --c-surface: var(--d-surface);
+  --c-raised: var(--d-raised);
+  --c-line: var(--d-line);
+  --c-ink: var(--d-ink);
+  --c-muted: var(--d-muted);
+  --c-accent: var(--d-accent);
+  --c-hi: var(--d-hi);
+  --c-cta: var(--d-cta);
+  --c-cta-ink: var(--d-cta-ink);
+  --c-cta-edge: var(--d-cta-edge);
+  --c-team-a: var(--d-team-a);
+  --c-team-b: var(--d-team-b);
+  --c-chart-a: var(--d-chart-a);
+  --c-chart-b: var(--d-chart-b);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-canvas: var(--c-canvas);
+  --color-surface: var(--c-surface);
+  --color-raised: var(--c-raised);
+  --color-line: var(--c-line);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-accent: var(--c-accent);
+  --color-hi: var(--c-hi);
+  --color-cta: var(--c-cta);
+  --color-cta-ink: var(--c-cta-ink);
+  --color-cta-edge: var(--c-cta-edge);
+  --color-team-a: var(--c-team-a);
+  --color-team-b: var(--c-team-b);
+  --color-chart-a: var(--c-chart-a);
+  --color-chart-b: var(--c-chart-b);
+}
+
+html {
+  font-size: 112.5%; /* 18px base */
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button, input, label { touch-action: manipulation; }
+button { user-select: none; }
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+@layer components {
+/* ---- the Zetteli: a lemon paper slip with a torn bottom edge ---- */
+.slip {
+  position: relative;
+  background:
+    linear-gradient(180deg, transparent 0 calc(100% - 1px), rgb(3 7 30 / 0.06) 0) 0 0 / 100% 2.1rem,
+    var(--color-paper);
+  color: var(--color-paper-ink);
+  border-radius: 6px 6px 2px 2px;
+  box-shadow: 0 1px 0 var(--color-paper-edge) inset, 0 18px 40px -12px rgb(0 0 0 / 0.6);
+  --tear: polygon(0 0, 100% 0, 100% 94%, 96% 100%, 91% 95%, 85% 99%, 79% 94%, 72% 100%, 66% 95%, 59% 99%, 53% 94%, 46% 100%, 40% 95%, 33% 99%, 27% 94%, 20% 100%, 14% 95%, 8% 99%, 3% 94%, 0 98%);
+  clip-path: var(--tear);
+  padding-bottom: 1.2rem;
+}
+}
+
+/* slip unfolding out of the bowl */
+@keyframes unfold {
+  0% { opacity: 0; transform: translateY(40px) rotate(var(--tilt, -2deg)) scaleY(0.05); }
+  55% { opacity: 1; transform: translateY(-6px) rotate(var(--tilt, -2deg)) scaleY(1.04); }
+  100% { opacity: 1; transform: rotate(var(--tilt, -2deg)); }
+}
+.unfold { animation: unfold 0.55s var(--ease-spring) both; transform-origin: 50% 100%; }
+
+/* guessed slip: crumpled into the team pile */
+@keyframes toss {
+  to { opacity: 0; transform: translate(40%, -120%) rotate(28deg) scale(0.3); }
+}
+.toss { animation: toss 0.4s var(--ease-out) forwards; }
+@keyframes back {
+  to { opacity: 0; transform: translateY(80%) scale(0.6) rotate(-10deg); }
+}
+.back { animation: back 0.35s var(--ease-out) forwards; }
+
+@keyframes enter {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.enter { animation: enter 0.4s var(--ease-out) both; }
+
+@keyframes pop {
+  from { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.18); }
+  to { transform: none; opacity: 1; }
+}
+.pop { animation: pop 0.35s var(--ease-spring) both; display: inline-block; }
+
+/* scoreboard number bump */
+@keyframes bump {
+  40% { transform: translateY(-18%) scale(1.25); }
+}
+.bump { animation: bump 0.4s var(--ease-spring); display: inline-block; }
+
+/* last seconds of the timer */
+@keyframes throb {
+  50% { transform: scale(1.06); }
+}
+.throb { animation: throb 0.5s ease-in-out infinite; }
+
+@keyframes shake {
+  0%, 100% { transform: none; }
+  20% { transform: translateX(-6px) rotate(-1deg); }
+  40% { transform: translateX(6px) rotate(1deg); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+.shake { animation: shake 0.45s ease-out both; }
+
+/* slips raining into the bowl while players write */
+@keyframes fall {
+  0% { transform: translateY(-120px) rotate(var(--r0)); opacity: 0; }
+  15% { opacity: 1; }
+  80% { transform: translateY(0) rotate(var(--r1)); opacity: 1; }
+  100% { transform: translateY(8px) rotate(var(--r1)); opacity: 0; }
+}
+.fall { animation: fall 1.8s var(--ease-out) infinite; }
+
+/* confetti made of tiny slips */
+@keyframes confetti {
+  0% { transform: translate3d(0, -20vh, 0) rotate(0); opacity: 1; }
+  100% { transform: translate3d(var(--dx), 105vh, 0) rotate(var(--rot)); opacity: 0.9; }
+}
+.confetti { animation: confetti var(--dur) cubic-bezier(0.3, 0.6, 0.5, 1) var(--delay) both; }
+
+/* chart bars growing from the baseline */
+@keyframes grow {
+  from { transform: scaleY(0); }
+}
+.grow { animation: grow 0.7s var(--ease-out) both; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes growx {
+  from { transform: scaleX(0); }
+}
+.growx { animation: growx 0.7s var(--ease-out) both; transform-origin: 0 50%; }
+@keyframes draw {
+  from { stroke-dashoffset: var(--len); }
+}
+.draw { stroke-dasharray: var(--len); animation: draw 1.2s var(--ease-out) both; }
+
+/* QR scanner sheet (native <dialog>) */
+@keyframes sheet {
+  from { transform: translateY(100%); }
+}
+dialog.sheet[open] { animation: sheet 0.3s var(--ease-out) both; }
+dialog.sheet[open]::backdrop { animation: fade-in 0.3s ease-out both; }
+@keyframes fade-in { from { opacity: 0; } }
+
+/* slip flung off screen after a swipe or button */
+@keyframes fling-r { to { transform: translate(130vw, -10vh) rotate(35deg); opacity: 0.6; } }
+@keyframes fling-l { to { transform: translate(-130vw, 6vh) rotate(-30deg); opacity: 0.6; } }
+.fling-r { animation: fling-r 0.32s var(--ease-out) forwards; }
+.fling-l { animation: fling-l 0.32s var(--ease-out) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .unfold, .toss, .back, .fling-r, .fling-l, dialog.sheet[open], .enter, .pop, .bump, .throb, .shake, .fall, .grow, .growx, .draw { animation: none; }
+  .confetti { display: none; }
+  * { transition-duration: 0.01ms !important; }
+}
