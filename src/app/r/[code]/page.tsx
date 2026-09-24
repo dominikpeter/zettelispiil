@@ -1,15 +1,14 @@
 "use client";
 
-import { X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { Lobby, Phase, Score, Waiting } from "@/components/Game";
+import { BackButton, GameMenu, Lobby, Phase, Score, Waiting } from "@/components/Game";
 import { TopControls } from "@/components/TopControls";
 import { useT } from "@/lib/prefs";
 import type { Action, View } from "@/lib/room";
 import { api, errKey, loadIdentity, loadName, saveIdentity, saveName, type Identity } from "@/lib/roomClient";
-import { Bowl, btn, btn2, field, ghost } from "@/lib/ui";
+import { Bowl, btn, btn2, field } from "@/lib/ui";
 import { useCountdown } from "@/lib/useCountdown";
 
 const noop = () => () => {};
@@ -110,15 +109,15 @@ export default function Room() {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <header className="mb-4 flex min-h-11 items-center justify-between gap-2">
-        <button
-          onClick={() => (!joined || v?.phase === "lobby" || v?.phase === "end" || confirm(t.leaveConfirm)) && router.push("/")}
-          aria-label={t.leave}
-          className={`${ghost} -ml-3 flex items-center gap-1.5`}
-        >
-          <X className="size-5" aria-hidden />
-          <span className="font-bold tracking-[0.2em] text-ink">{code}</span>
-        </button>
-        {playing ? <Score v={v} /> : <TopControls />}
+        <BackButton v={v} onLeave={() => router.push("/")} label={code} />
+        {joined && v.phase !== "lobby" && v.phase !== "end" ? (
+          <div className="flex items-center gap-2">
+            {playing && <Score v={v} />}
+            <GameMenu v={v} send={send} mode="online" onLeave={() => router.push("/")} />
+          </div>
+        ) : (
+          <TopControls />
+        )}
       </header>
 
       {errMsg && (

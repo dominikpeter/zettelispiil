@@ -39,16 +39,71 @@ function Segmented<T extends string>({ options, value, onChange }: { options: { 
   );
 }
 
-/** header right side: quick light/dark toggle + settings sheet (language, appearance, colors) */
-export function TopControls() {
+/** language, appearance and colors; saved on this phone, so every player picks their own */
+export function SettingsPanel() {
   const t = useT();
   const theme = themePref.use();
   const palette = palettePref.use();
   const lang = langPref.use();
+  const icon = { auto: SunMoon, light: Sun, dark: Moon };
+  return (
+    <>
+          <section className="flex flex-col gap-2">
+        <h3 className="font-semibold">{t.language}</h3>
+        <Segmented options={LANGS.map((l) => ({ id: l.id, label: l.label }))} value={lang} onChange={langPref.set} />
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h3 className="font-semibold">{t.appearance}</h3>
+        <Segmented
+          options={THEMES.map((id) => {
+            const I = icon[id];
+            return {
+              id,
+              label: (
+                <>
+                  <I className="size-4" aria-hidden />
+                  {id === "auto" ? t.themeAuto : id === "light" ? t.themeLight : t.themeDark}
+                </>
+              ),
+            };
+          })}
+          value={theme}
+          onChange={themePref.set}
+        />
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h3 className="font-semibold">{t.colors}</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {PALETTES.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => palettePref.set(p.id)}
+              aria-pressed={palette === p.id}
+              className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border-2 font-semibold ${press} ${palette === p.id ? "border-accent bg-raised" : "border-line"}`}
+            >
+              <span className="flex -space-x-2" aria-hidden>
+                {p.swatch.map((c) => (
+                  <span key={c} className="size-7 rounded-full ring-2 ring-surface" style={{ background: c }} />
+                ))}
+              </span>
+              {t[`palette_${p.id}`]}
+            </button>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+/** header right side: quick light/dark toggle + settings sheet (language, appearance, colors) */
+export function TopControls() {
+  const t = useT();
+  const theme = themePref.use();
   const systemDark = useSyncExternalStore(onSystemChange, () => matchMedia(dark).matches, () => true);
   const isDark = theme === "dark" || (theme === "auto" && systemDark);
   const sheet = useRef<HTMLDialogElement>(null);
-  const icon = { auto: SunMoon, light: Sun, dark: Moon };
 
   return (
     <div className="flex items-center gap-2">
@@ -76,51 +131,7 @@ export function TopControls() {
             </button>
           </div>
 
-          <section className="flex flex-col gap-2">
-            <h3 className="font-semibold">{t.language}</h3>
-            <Segmented options={LANGS.map((l) => ({ id: l.id, label: l.label }))} value={lang} onChange={langPref.set} />
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <h3 className="font-semibold">{t.appearance}</h3>
-            <Segmented
-              options={THEMES.map((id) => {
-                const I = icon[id];
-                return {
-                  id,
-                  label: (
-                    <>
-                      <I className="size-4" aria-hidden />
-                      {id === "auto" ? t.themeAuto : id === "light" ? t.themeLight : t.themeDark}
-                    </>
-                  ),
-                };
-              })}
-              value={theme}
-              onChange={themePref.set}
-            />
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <h3 className="font-semibold">{t.colors}</h3>
-            <div className="grid grid-cols-3 gap-2">
-              {PALETTES.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => palettePref.set(p.id)}
-                  aria-pressed={palette === p.id}
-                  className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border-2 font-semibold ${press} ${palette === p.id ? "border-accent bg-raised" : "border-line"}`}
-                >
-                  <span className="flex -space-x-2" aria-hidden>
-                    {p.swatch.map((c) => (
-                      <span key={c} className="size-7 rounded-full ring-2 ring-surface" style={{ background: c }} />
-                    ))}
-                  </span>
-                  {t[`palette_${p.id}`]}
-                </button>
-              ))}
-            </div>
-          </section>
+          <SettingsPanel />
         </div>
       </dialog>
     </div>

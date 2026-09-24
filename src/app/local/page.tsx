@@ -1,14 +1,12 @@
 "use client";
 
-import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { Lobby, PassPhone, Phase, Score, Waiting } from "@/components/Game";
+import { BackButton, GameMenu, Lobby, PassPhone, Phase, Score, Waiting } from "@/components/Game";
 import { TopControls } from "@/components/TopControls";
 import { localStore } from "@/lib/localStore";
 import { useT } from "@/lib/prefs";
 import { act, joinRoom, view, type Action, type View } from "@/lib/room";
-import { ghost } from "@/lib/ui";
 import { useCountdown } from "@/lib/useCountdown";
 import { loadLocalGame, saveLocalGame, type LocalGame } from "@/lib/localGame";
 
@@ -104,10 +102,15 @@ export default function LocalGamePage() {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <header className="mb-4 flex min-h-11 items-center justify-between gap-2">
-        <button onClick={() => (v?.phase === "lobby" || v?.phase === "end" || confirm(t.leaveConfirm)) && router.push("/")} aria-label={t.leave} className={`${ghost} -ml-3`}>
-          <X className="size-5" aria-hidden />
-        </button>
-        {playing ? <Score v={v} /> : <TopControls />}
+        <BackButton v={v} onLeave={() => router.push("/")} />
+        {v && v.phase !== "lobby" && v.phase !== "end" ? (
+          <div className="flex items-center gap-2">
+            {playing && <Score v={v} />}
+            <GameMenu v={v} send={send} mode="local" onLeave={() => router.push("/")} />
+          </div>
+        ) : (
+          <TopControls />
+        )}
       </header>
 
       {!v && <Waiting text={t.loading} />}

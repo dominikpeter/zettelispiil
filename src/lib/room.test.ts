@@ -187,3 +187,29 @@ test("funny team names in the host's language; players and teams can rename in t
   assert.deepEqual(w.teamNames, ["Lilas", "Die Zettelkönige"]);
   assert.equal(w.players[1].name, "Nora B.");
 });
+
+test("pause stops the clock and hides the Zetteli; cancel goes back to the lobby", async () => {
+  const { as, see, tick } = await setup();
+  await writeAll(as);
+  const { i } = await describerView(see);
+  await as(i, { type: "go" });
+  tick(10_000);
+  await as(i, { type: "pause" });
+  let v = await see(i);
+  assert.equal(v.pausedLeft, 20_000);
+  assert.equal(v.word, null); // no peeking while paused
+  const w = (await as(i, { type: "got", w: 0 }), await see(i));
+  assert.equal(w.turnGot, 0); // taps during pause do nothing
+  tick(60_000); // a long pause never times out
+  assert.equal((await see(0)).phase, "turn");
+  await as(0, { type: "resume" }); // the host may resume too
+  v = await see(i);
+  assert.equal(v.pausedLeft, 0);
+  assert.equal(v.endsAt - (v.now), 20_000); // 20 s left, as before the pause
+  assert.ok(v.word);
+  await assert.rejects(as((i + 1) % 4 === 0 ? 1 : (i + 1) % 4, { type: "cancel" }), RoomError); // only the host cancels
+  await as(0, { type: "cancel" });
+  v = await see(2);
+  assert.equal(v.phase, "lobby");
+  assert.equal(v.players.length, 4);
+});

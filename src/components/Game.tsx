@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowLeftRight, Check, ChevronDown, ChevronUp, Crown, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, Check, Home, Pause, Play, ChevronDown, ChevronUp, Crown, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { pickOne } from "@/lib/i18n";
 import { useT } from "@/lib/prefs";
 import { ROUND_TYPES, type Action, type Settings, type Team, type View } from "@/lib/room";
 import { Bowl, btn, btn2, buzz, field, ghost, panel, press, round_btn, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
 import { Stats } from "./Stats";
+import { SettingsPanel } from "./TopControls";
 
 export type Mode = "online" | "local";
 /** `as`: in one-phone games, act as that player; online always acts as this phone's player */
@@ -42,6 +43,92 @@ export function Score({ v }: { v: View }) {
       </span>
       <span className="size-2.5 rounded-full bg-team-b" />
     </div>
+  );
+}
+
+/** back arrow for the header: straight home outside a game, after a confirm inside one */
+export function BackButton({ v, onLeave, label }: { v: View | null; onLeave: () => void; label?: string }) {
+  const t = useT();
+  const safe = !v || v.me < 0 || v.phase === "lobby" || v.phase === "end";
+  return (
+    <button onClick={() => (safe || confirm(t.leaveConfirm)) && onLeave()} aria-label={t.back} className={`${ghost} -ml-3 flex items-center gap-1.5`}>
+      <ArrowLeft className="size-5" aria-hidden />
+      {label && (
+        <span translate="no" className="font-bold tracking-[0.2em] text-ink">
+          {label}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/** pause button + pause screen: stops the turn clock for everyone; the host can cancel the game from here */
+export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode: Mode; onLeave: () => void }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const local = mode === "local";
+  const turn = v.phase === "turn";
+  const paused = turn && v.pausedLeft > 0;
+  const canPause = local || v.isHost || (turn && v.me === v.active);
+  const canCancel = local || v.isHost;
+  if (v.phase === "lobby" || v.phase === "end" || v.me < 0) return null;
+
+  const pause = async () => {
+    setOpen(true);
+    if (turn && canPause && !paused) await send({ type: "pause" });
+  };
+  const resume = async () => {
+    setOpen(false);
+    if (paused) await send({ type: "resume" });
+  };
+  const cancel = async () => {
+    if (!confirm(t.cancelConfirm)) return;
+    setOpen(false);
+    await send({ type: "cancel" }, 0);
+  };
+
+  return (
+    <>
+      <button onClick={pause} aria-label={t.pause} className={`grid size-11 shrink-0 place-items-center rounded-full border border-line bg-surface text-ink ${press}`}>
+        <Pause className="size-5" aria-hidden />
+      </button>
+      {(open || paused) && (
+        <div role="dialog" aria-modal="true" aria-label={t.paused} className="enter fixed inset-0 z-50 flex flex-col overflow-y-auto overscroll-contain bg-canvas/95 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
+          <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 py-6 text-center">
+            <span className="pop grid size-24 place-items-center rounded-[2rem] bg-raised text-accent">
+              <Pause className="size-12" strokeWidth={1.75} aria-hidden />
+            </span>
+            <h2 className="mt-2 text-5xl font-extrabold tracking-tight">{t.paused}</h2>
+            {turn && <p className="max-w-[30ch] text-muted">{paused ? t.pausedTurn : t.pausedBy}</p>}
+          </div>
+          <details className="mx-auto mb-4 w-full max-w-md rounded-3xl bg-surface p-4 [&[open]>summary>svg]:rotate-180">
+            <summary className="flex cursor-pointer list-none items-center justify-between font-semibold">
+              {t.settings}
+              <ChevronDown className="size-5 transition-transform" aria-hidden />
+            </summary>
+            <div className="mt-4 flex flex-col gap-5">
+              <SettingsPanel />
+            </div>
+          </details>
+          <div className="mx-auto flex w-full max-w-md flex-col gap-2">
+            {(!paused || canPause) && (
+              <button onClick={resume} className={btn}>
+                <Play className="size-5" aria-hidden /> {t.resumeTurn}
+              </button>
+            )}
+            {!canPause && paused && <Waiting text={t.pausedBy} />}
+            {canCancel && (
+              <button onClick={cancel} className={btn2}>
+                <X className="size-5" aria-hidden /> {t.cancelGame}
+              </button>
+            )}
+            <button onClick={onLeave} className={`${ghost} flex w-full items-center justify-center gap-2`}>
+              <Home className="size-4" aria-hidden /> {t.leaveGame}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

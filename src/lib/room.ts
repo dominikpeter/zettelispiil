@@ -36,6 +36,7 @@ type Room = {
   next: [number, number]; // per team: how many turns it had, picks its next describer
   turnStart: number;
   endsAt: number;
+  pausedAt: number; // 0 = running; a paused turn neither ticks nor times out
   carryMs: number;
   turnGot: number;
   scores: [number, number][]; // per round
@@ -96,7 +97,7 @@ export async function createRoom(db: Store, hostName: unknown, lang: unknown = "
     const code = Array.from({ length: 4 }, () => CODE_CHARS[pick(CODE_CHARS.length)]).join("");
     const room: Room = {
       code, hostId: "", settings: cleanSettings({}), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de"), phase: "lobby", ids: [], teams: [], words: [], authors: [],
-      bowl: [], current: null, held: [], shownAt: 0, round: 0, team: 0, next: [0, 0], turnStart: 0, endsAt: 0, carryMs: 0,
+      bowl: [], current: null, held: [], shownAt: 0, round: 0, team: 0, next: [0, 0], turnStart: 0, endsAt: 0, pausedAt: 0, carryMs: 0,
       turnGot: 0, scores: [], log: [], turns: [], writeNo: 0, turnNo: 0,
     };
     if (!(await db.set(k(code).room, room, { ex: TTL, nx: true }))) continue; // code taken, roll again
@@ -151,7 +152,7 @@ function closeTurn(room: Room, at: number, keepDescriber: boolean) {
 
 /** time ran out: the Zetteli in hand goes back into the bowl, the other team is up */
 function settle(room: Room, now: number) {
-  if (room.phase !== "turn" || now <= room.endsAt + GRACE) return false;
+  if (room.phase !== "turn" || room.pausedAt || now <= room.endsAt + GRACE) return false;
   logHand(room, room.endsAt, "time");
   closeTurn(room, room.endsAt, false);
   room.phase = "ready";
@@ -159,7 +160,7 @@ function settle(room: Room, now: number) {
 }
 
 export type Action =
-  | { type: "start" | "go" | "nextRound" | "pass" | "lobby" | "shuffle" }
+  | { type: "start" | "go" | "nextRound" | "pass" | "lobby" | "shuffle" | "pause" | "resume" | "cancel" }
   | { type: "settings"; settings: Partial<Settings> }
   | { type: "team"; team: Team }
   | { type: "rename"; name: string }
@@ -219,7 +220,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       if ([0, 1].some((t) => members.filter((m) => m.team === t).length < 2)) throw new RoomError("teams");
       Object.assign(room, {
         ids: members.map((m) => m.id), teams: members.map((m) => m.team), words: [], authors: [], bowl: [],
-        current: null, held: [], round: 0, team: pick(2) as Team, next: [0, 0], carryMs: 0, scores: [], log: [], turns: [],
+        current: null, held: [], pausedAt: 0, round: 0, team: pick(2) as Team, next: [0, 0], carryMs: 0, scores: [], log: [], turns: [],
         phase: "write", writeNo: room.writeNo + 1,
       } satisfies Partial<Room>);
       break;
@@ -248,8 +249,28 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       draw(room, now);
       break;
     }
+    case "pause":
+      if (room.phase !== "turn" || room.pausedAt || now > room.endsAt) return;
+      need(host || idx === describer(room));
+      room.pausedAt = now;
+      break;
+    case "resume": {
+      if (room.phase !== "turn" || !room.pausedAt) return;
+      need(host || idx === describer(room));
+      // the pause didn't happen: shift every clock of this turn by its length
+      const d = now - room.pausedAt;
+      room.endsAt += d;
+      room.shownAt += d;
+      room.turnStart += d;
+      room.pausedAt = 0;
+      break;
+    }
+    case "cancel": // stop the game, keep players, teams and settings
+      need(host && room.phase !== "lobby");
+      Object.assign(room, { phase: "lobby", current: null, held: [], pausedAt: 0, carryMs: 0 } satisfies Partial<Room>);
+      break;
     case "got": {
-      if (room.phase !== "turn" || a.w !== room.current) return; // double tap on a Zetteli already counted
+      if (room.phase !== "turn" || room.pausedAt || a.w !== room.current) return; // double tap on a Zetteli already counted
       need(idx === describer(room));
       logHand(room, now, "got");
       room.scores[room.round][room.team]++;
@@ -268,7 +289,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       break;
     }
     case "skip": {
-      if (room.phase !== "turn" || a.w !== room.current || now > room.endsAt || !fresh(room).length) return;
+      if (room.phase !== "turn" || room.pausedAt || a.w !== room.current || now > room.endsAt || !fresh(room).length) return;
       need(idx === describer(room));
       const unlimited = room.settings.skips === -1;
       if (!unlimited && room.held.length >= room.settings.skips) throw new RoomError("bad_request");
@@ -279,7 +300,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
     }
     case "back": {
       // swap the one in hand with a set-aside one; doesn't use up a skip
-      if (room.phase !== "turn" || a.w !== room.current || now > room.endsAt || !room.held.includes(a.to)) return;
+      if (room.phase !== "turn" || room.pausedAt || a.w !== room.current || now > room.endsAt || !room.held.includes(a.to)) return;
       need(idx === describer(room));
       logHand(room, now, "skip");
       room.held = room.held.map((w) => (w === a.to ? a.w : w));
@@ -323,6 +344,7 @@ export type View = {
   team: Team;
   active: number | null; // describer in ready/turn
   endsAt: number;
+  pausedLeft: number; // ms left when paused, 0 while running
   carryMs: number;
   word: { id: number; text: string } | null; // only on the describer's phone
   held: { id: number; text: string }[]; // set-aside Zetteli, describer only
@@ -374,9 +396,10 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
     team: room.team,
     active,
     endsAt: room.endsAt,
+    pausedLeft: room.phase === "turn" && room.pausedAt ? Math.max(0, room.endsAt - room.pausedAt) : 0,
     carryMs: room.carryMs,
-    word: room.phase === "turn" && idx === active && room.current !== null ? { id: room.current, text: room.words[room.current] } : null,
-    held: room.phase === "turn" && idx === active ? room.held.map((w) => ({ id: w, text: room.words[w] })) : [],
+    word: room.phase === "turn" && !room.pausedAt && idx === active && room.current !== null ? { id: room.current, text: room.words[room.current] } : null,
+    held: room.phase === "turn" && !room.pausedAt && idx === active ? room.held.map((w) => ({ id: w, text: room.words[w] })) : [],
     canSkip: room.phase === "turn" && (room.settings.skips === -1 || room.held.length < room.settings.skips) && fresh(room).length > 0,
     bowlLeft: room.bowl.length,
     total: room.words.length,

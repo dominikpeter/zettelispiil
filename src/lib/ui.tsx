@@ -33,8 +33,9 @@ export function Bowl({ count, className = "w-24" }: { count?: number; className?
         <rect x="38" y="10" width="20" height="28" rx="2" fill="var(--color-paper)" transform="rotate(-14 48 24)" />
         <rect x="58" y="6" width="20" height="30" rx="2" fill="var(--color-gold-800)" transform="rotate(9 68 21)" />
         <rect x="48" y="14" width="22" height="26" rx="2" fill="var(--color-paper-edge)" transform="rotate(-2 59 27)" />
-        <path d="M6 34h108c0 24-24 42-54 42S6 58 6 34z" fill="var(--color-indigo-500)" />
-        <path d="M6 34h108" stroke="var(--color-mauve-magic)" strokeWidth="4" strokeLinecap="round" />
+        {/* follows the color theme: a deeper shade of its accent, with the accent as rim */}
+        <path d="M6 34h108c0 24-24 42-54 42S6 58 6 34z" style={{ fill: "color-mix(in oklab, var(--color-accent) 55%, #0c0014)" }} />
+        <path d="M6 34h108" style={{ stroke: "var(--color-accent)" }} strokeWidth="4" strokeLinecap="round" />
       </svg>
       {count !== undefined && (
         <span key={count} className="bump absolute inset-x-0 bottom-[14%] text-center text-lg font-bold tabular-nums text-white">

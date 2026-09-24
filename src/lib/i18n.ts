@@ -9,6 +9,15 @@ export const LANGS: { id: Lang; label: string }[] = [
 
 const de = {
   // home
+  back: "Zurück",
+  pause: "Pause",
+  paused: "Pause",
+  pausedTurn: "Die Zeit ist angehalten. Der Zetteli bleibt verdeckt.",
+  pausedBy: "Die Zeit ist angehalten.",
+  resumeTurn: "Weiterspielen",
+  cancelGame: "Spiel abbrechen",
+  cancelConfirm: "Spiel abbrechen? Alle kommen zurück in die Lobby, Punkte und Zetteli sind weg.",
+  leaveGame: "Zur Startseite",
   passTo: "Gib das Handy an",
   iAm: (n: string) => `Ich bin ${n}`,
   writeSecret: "Die anderen schauen weg, während du deine Zetteli schreibst.",
@@ -57,6 +66,8 @@ const de = {
   palette_night: "Nacht",
   palette_ink: "Tinte",
   palette_gold: "Gold",
+  palette_sunset: "Abendrot",
+  palette_ocean: "Ozean",
   // room
   leave: "Raum verlassen",
   leaveConfirm: "Spiel verlassen? Über den Link kommst du wieder zurück.",
@@ -172,6 +183,15 @@ const de = {
 export type Dict = typeof de;
 
 const en: Dict = {
+  back: "Back",
+  pause: "Pause",
+  paused: "Paused",
+  pausedTurn: "The clock is stopped. The slip stays hidden.",
+  pausedBy: "The clock is stopped.",
+  resumeTurn: "Resume",
+  cancelGame: "Cancel game",
+  cancelConfirm: "Cancel the game? Everyone goes back to the lobby; scores and slips are gone.",
+  leaveGame: "Back to start",
   passTo: "Pass the phone to",
   iAm: (n) => `I'm ${n}`,
   writeSecret: "Everyone else looks away while you write your slips.",
@@ -218,6 +238,8 @@ const en: Dict = {
   palette_night: "Night",
   palette_ink: "Ink",
   palette_gold: "Gold",
+  palette_sunset: "Sunset",
+  palette_ocean: "Ocean",
   leave: "Leave room",
   leaveConfirm: "Leave the game? You can come back with the link.",
   invites: (n) => `${n} invites you`,
@@ -326,6 +348,15 @@ const en: Dict = {
 };
 
 const fr: Dict = {
+  back: "Retour",
+  pause: "Pause",
+  paused: "Pause",
+  pausedTurn: "Le chrono est arrêté. Le papier reste caché.",
+  pausedBy: "Le chrono est arrêté.",
+  resumeTurn: "Reprendre",
+  cancelGame: "Annuler la partie",
+  cancelConfirm: "Annuler la partie ? Tout le monde retourne au salon, les points et papiers sont perdus.",
+  leaveGame: "Retour à l'accueil",
   passTo: "Passe le téléphone à",
   iAm: (n) => `Je suis ${n}`,
   writeSecret: "Les autres regardent ailleurs pendant que tu écris tes papiers.",
@@ -372,6 +403,8 @@ const fr: Dict = {
   palette_night: "Nuit",
   palette_ink: "Encre",
   palette_gold: "Or",
+  palette_sunset: "Crépuscule",
+  palette_ocean: "Océan",
   leave: "Quitter la salle",
   leaveConfirm: "Quitter la partie ? Tu peux revenir avec le lien.",
   invites: (n) => `${n} t'invite`,

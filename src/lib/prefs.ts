@@ -34,6 +34,8 @@ export const PALETTES = [
   { id: "night", swatch: ["#25003d", "#c86bfa", "#ffd500"] },
   { id: "ink", swatch: ["#03071e", "#5068ee", "#ffee32"] },
   { id: "gold", swatch: ["#332b00", "#ffd500", "#8907cf"] },
+  { id: "sunset", swatch: ["#003049", "#f77f00", "#fcbf49"] },
+  { id: "ocean", swatch: ["#00131d", "#50c2ff", "#d62828"] },
 ] as const;
 export type Palette = (typeof PALETTES)[number]["id"];
 
