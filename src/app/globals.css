@@ -299,6 +299,8 @@ button { user-select: none; }
 }
 }
 
+/* animation helpers live in the components layer so utilities like `flex` still win */
+@layer components {
 /* slip unfolding out of the bowl */
 @keyframes unfold {
   0% { opacity: 0; transform: translateY(40px) rotate(var(--tilt, -2deg)) scaleY(0.05); }
@@ -394,6 +396,7 @@ dialog.sheet[open]::backdrop { animation: fade-in 0.3s ease-out both; }
 @keyframes fling-l { to { transform: translate(-130vw, 6vh) rotate(-30deg); opacity: 0.6; } }
 .fling-r { animation: fling-r 0.32s var(--ease-out) forwards; }
 .fling-l { animation: fling-l 0.32s var(--ease-out) forwards; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .unfold, .toss, .back, .fling-r, .fling-l, dialog.sheet[open], .enter, .pop, .bump, .throb, .shake, .fall, .grow, .growx, .draw { animation: none; }

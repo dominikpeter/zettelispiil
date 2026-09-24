@@ -9,6 +9,10 @@ export const LANGS: { id: Lang; label: string }[] = [
 
 const de = {
   // home
+  addPlayer: "Spieler hinzufügen",
+  playerN: (i: number) => `Spieler ${i}`,
+  removePlayer: (n: string) => `${n} entfernen`,
+  needFour: "Mindestens 4 Spieler, 2 pro Team",
   onePhone: "Ein Handy",
   onePhoneHelp: "Ihr reicht ein Handy herum.",
   everyPhone: "Jedes Handy",
@@ -165,6 +169,10 @@ const de = {
 export type Dict = typeof de;
 
 const en: Dict = {
+  addPlayer: "Add player",
+  playerN: (i) => `Player ${i}`,
+  removePlayer: (n) => `Remove ${n}`,
+  needFour: "At least 4 players, 2 per team",
   onePhone: "One phone",
   onePhoneHelp: "Pass one phone around.",
   everyPhone: "Every phone",
@@ -312,6 +320,10 @@ const en: Dict = {
 };
 
 const fr: Dict = {
+  addPlayer: "Ajouter un joueur",
+  playerN: (i) => `Joueur ${i}`,
+  removePlayer: (n) => `Retirer ${n}`,
+  needFour: "Au moins 4 joueurs, 2 par équipe",
   onePhone: "Un téléphone",
   onePhoneHelp: "On se passe un seul téléphone.",
   everyPhone: "Chaque téléphone",

@@ -69,7 +69,7 @@ function EditableName({ value, label, onSave, className = "" }: { value: string;
   if (draft === null)
     return (
       <button onClick={() => setDraft(value)} aria-label={`${label}: ${t.rename}`} className={`group flex min-w-0 items-center gap-1.5 text-left ${className}`}>
-        <span className="truncate">{value}</span>
+        <span className="min-w-0 break-words">{value}</span>
         <Pencil className="size-3.5 shrink-0 opacity-50 group-hover:opacity-100" aria-hidden />
       </button>
     );
@@ -156,10 +156,10 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
         </section>
       )}
 
-      <section className="grid grid-cols-2 gap-3">
+      <section className="flex flex-col gap-3">
         {([0, 1] as const).map((ti) => (
-          <div key={ti} className={`min-w-0 rounded-3xl p-4 ${TEAM[ti].soft}`}>
-            <div className={`flex items-center justify-between gap-2 font-bold ${TEAM[ti].text}`}>
+          <div key={ti} className={`rounded-3xl px-4 py-3 ${TEAM[ti].soft}`}>
+            <div className={`flex items-center justify-between gap-2 text-lg font-extrabold ${TEAM[ti].text}`}>
               {local || v.isHost || mine === ti ? (
                 <EditableName value={v.teamNames[ti]} label={t.teamName} onSave={(name) => send({ type: "teamName", team: ti, name })} />
               ) : (

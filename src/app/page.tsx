@@ -1,27 +1,34 @@
 "use client";
 
-import { Dices, Smartphone, Users } from "lucide-react";
+import { Dices, Plus, Smartphone, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { ScanCode } from "@/components/ScanCode";
 import { TopControls } from "@/components/TopControls";
 import { DICT, pickOne } from "@/lib/i18n";
-import { loadLocalGame, newLocalGame } from "@/lib/localGame";
+import { loadLocalGame, loadPlayers, newLocalGame } from "@/lib/localGame";
 import { langPref, useT } from "@/lib/prefs";
 import { api, errKey, loadName, saveIdentity, saveName, type Identity } from "@/lib/roomClient";
-import { Bowl, btn, btn2, field, press, Slip } from "@/lib/ui";
+import { Bowl, btn, btn2, field, ghost, panel, press, Slip } from "@/lib/ui";
 
 const noop = () => () => {};
 // saved name, or a funny one to start from; picked once so the snapshot stays stable
 let suggestion: string | undefined;
 const suggestedName = () => (suggestion ??= loadName() || pickOne(DICT[langPref.get()].funnyPlayers));
 const hasLocalGame = () => !!loadLocalGame();
+let savedPlayers: string[] | undefined;
+const playersSnapshot = () => (savedPlayers ??= loadPlayers());
+const NO_PLAYERS: string[] = [];
 
-// fanned out above the bowl so every word stays readable
+// fanned out above the bowl so every word stays readable; back row first, smaller
 const HERO = [
-  { w: "Fondue", tilt: -8, x: "left-0 top-[24%]", d: "0.05s" },
-  { w: "Matterhorn", tilt: 3, x: "left-1/2 -translate-x-1/2 top-0", d: "0.15s" },
-  { w: "Velo", tilt: 8, x: "right-1 top-[22%]", d: "0.25s" },
+  { w: "Schoggi", tilt: -6, x: "left-[3%] top-0", size: "text-xl", d: "0s" },
+  { w: "Gipfeli", tilt: 6, x: "right-[3%] top-[1%]", size: "text-xl", d: "0.08s" },
+  { w: "Aare", tilt: -3, x: "left-[27%] top-[40%]", size: "text-xl", d: "0.16s" },
+  { w: "Rösti", tilt: 5, x: "right-[25%] top-[41%]", size: "text-xl", d: "0.22s" },
+  { w: "Fondue", tilt: -9, x: "left-0 top-[27%]", size: "text-[1.6rem]", d: "0.3s" },
+  { w: "Velo", tilt: 9, x: "right-1 top-[26%]", size: "text-[1.6rem]", d: "0.38s" },
+  { w: "Matterhorn", tilt: 2, x: "left-1/2 -translate-x-1/2 top-[6%]", size: "text-[1.7rem]", d: "0.46s" },
 ];
 
 export default function Home() {
@@ -31,6 +38,10 @@ export default function Home() {
   const saved = useSyncExternalStore(noop, suggestedName, () => "");
   const resumable = useSyncExternalStore(noop, hasLocalGame, () => false);
   const [typed, setName] = useState<string | null>(null);
+  const savedList = useSyncExternalStore(noop, playersSnapshot, () => NO_PLAYERS);
+  const [edited, setPlayers] = useState<string[] | null>(null);
+  const players = edited ?? savedList;
+  const named = players.map((p, i) => p.trim() || t.playerN(i + 1));
   const name = typed ?? saved;
   const [play, setPlay] = useState<"local" | "online">("local");
   const [mode, setMode] = useState<"create" | "join">("create");
@@ -54,11 +65,10 @@ export default function Home() {
   const join = (c = code) => go(`/${c}`, { type: "join", name });
   const startLocal = async () => {
     setBusy(true);
-    saveName(name.trim());
-    await newLocalGame(name.trim(), lang);
+    await newLocalGame(named, lang);
     router.push("/local");
   };
-  const ready = !!name.trim() && !busy && (play === "local" || mode === "create" || code.length === 4);
+  const ready = !busy && (play === "local" ? players.length >= 4 : !!name.trim() && (mode === "create" || code.length === 4));
 
   const choice = (on: boolean) => `flex flex-col items-start gap-1 rounded-2xl border-2 p-3 text-left ${press} ${on ? "border-accent bg-raised" : "border-line"}`;
 
@@ -67,10 +77,10 @@ export default function Home() {
       <header className="flex justify-end">
         <TopControls />
       </header>
-      <div className="relative mt-2 h-48" aria-hidden>
+      <div className="relative mt-2 h-56" aria-hidden>
         {HERO.map((h) => (
-          <Slip key={h.w} tilt={h.tilt} className={`unfold absolute px-4 pt-2 ${h.x}`} style={{ animationDelay: h.d }}>
-            <span className="font-hand text-[1.7rem] font-bold whitespace-nowrap">{h.w}</span>
+          <Slip key={h.w} tilt={h.tilt} className={`unfold absolute px-3.5 pt-1.5 ${h.x}`} style={{ animationDelay: h.d }}>
+            <span className={`font-hand font-bold whitespace-nowrap ${h.size}`}>{h.w}</span>
           </Slip>
         ))}
         <Bowl className="absolute bottom-0 left-1/2 w-44 -translate-x-1/2" />
@@ -89,13 +99,6 @@ export default function Home() {
           else join();
         }}
       >
-        <div className="flex gap-2">
-          <input aria-label={t.yourName} className={`${field} min-w-0 flex-1 font-semibold`} value={name} onChange={(e) => setName(e.target.value)} placeholder={t.yourName} maxLength={24} autoComplete="nickname" />
-          <button type="button" onClick={() => setName(pickOne(t.funnyPlayers.filter((n) => n !== name)))} aria-label={t.otherName} className={`grid size-[3.4rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface ${press}`}>
-            <Dices className="size-6" aria-hidden />
-          </button>
-        </div>
-
         <div className="grid grid-cols-2 gap-2">
           {(["local", "online"] as const).map((o) => (
             <button key={o} type="button" onClick={() => setPlay(o)} aria-pressed={play === o} className={choice(play === o)}>
@@ -106,8 +109,52 @@ export default function Home() {
           ))}
         </div>
 
+        {play === "local" && (
+          <section key="players" className={`${panel} enter py-3`}>
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-lg font-bold">{t.players}</h2>
+              <span key={players.length} className="pop text-muted tabular-nums">
+                {players.length}
+              </span>
+            </div>
+            <ul className="mt-1 flex flex-col">
+              {players.map((p, i) => (
+                <li key={i} className="enter flex items-center gap-2 border-b border-line last:border-0">
+                  <input
+                    value={p}
+                    maxLength={24}
+                    aria-label={t.playerN(i + 1)}
+                    placeholder={t.playerN(i + 1)}
+                    onChange={(e) => setPlayers(players.map((x, j) => (j === i ? e.target.value : x)))}
+                    className="min-w-0 flex-1 bg-transparent py-3 text-lg font-semibold outline-none placeholder:text-muted/60"
+                  />
+                  <button type="button" onClick={() => setPlayers(players.filter((_, j) => j !== i))} aria-label={t.removePlayer(named[i])} className={`grid size-10 place-items-center rounded-full text-muted hover:bg-raised hover:text-ink ${press}`}>
+                    <X className="size-5" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setPlayers([...players, pickOne(t.funnyPlayers.filter((n) => !players.includes(n)))])}
+              disabled={players.length >= 20}
+              className={`${ghost} -ml-3 mt-1 flex items-center gap-2 text-accent`}
+            >
+              <Plus className="size-5" aria-hidden /> {t.addPlayer}
+            </button>
+          </section>
+        )}
+
         {play === "online" && (
           <div key="online" className="enter flex flex-col gap-3">
+            <div className="flex gap-2">
+          <input aria-label={t.yourName} className={`${field} min-w-0 flex-1 font-semibold`} value={name} onChange={(e) => setName(e.target.value)} placeholder={t.yourName} maxLength={24} autoComplete="nickname" />
+          <button type="button" onClick={() => setName(pickOne(t.funnyPlayers.filter((n) => n !== name)))} aria-label={t.otherName} className={`grid size-[3.4rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface ${press}`}>
+            <Dices className="size-6" aria-hidden />
+          </button>
+        </div>
+
+
             <div className="grid grid-cols-2 gap-2">
               {(["create", "join"] as const).map((o) => (
                 <button key={o} type="button" onClick={() => setMode(o)} aria-pressed={mode === o} className={choice(mode === o)}>
@@ -141,7 +188,7 @@ export default function Home() {
         )}
 
         <button className={btn} disabled={!ready}>
-          {busy ? t.wait : play === "local" ? t.newGame : mode === "create" ? t.createRoom : t.join}
+          {busy ? t.wait : play === "local" ? (players.length >= 4 ? t.newGame : t.needFour) : mode === "create" ? t.createRoom : t.join}
         </button>
         {play === "local" && resumable && (
           <button type="button" onClick={() => router.push("/local")} className={btn2}>
