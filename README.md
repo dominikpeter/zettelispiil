@@ -34,7 +34,7 @@ At the end: the winner, a score race over every turn, points per round, speed pe
 
 ## AI help
 
-With `OPENAI_API_KEY` set (Vercel AI SDK, model `OPENAI_MODEL`, default `gpt-6-luna`), writing a Zetteli gets checked in the background: spelling suggestions, a warning for words that are hard to guess, and a short hint the writer can change. The describer sees the hint under the word. The ✨ buttons invent funny player and team names. Each phone can switch AI help and hints off in the settings. AI calls are rate limited (120/min per network, 1000/day overall).
+With `OPENAI_API_KEY` set (Vercel AI SDK, model `OPENAI_MODEL`, default `gpt-6-luna`), writing a Zetteli gets checked in the background: spelling suggestions, a warning for words that are hard to guess, and a short hint the writer can change. The describer sees the hint under the word. The ✨ buttons invent funny player and team names. Each phone can switch AI help and hints off in the settings. AI calls are rate limited (300/min per network, 5000/day overall).
 
 Stuck for words? Type a topic and the AI suggests three to pick from.
 
