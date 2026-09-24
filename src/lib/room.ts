@@ -58,6 +58,9 @@ const k = (code: string) => ({ room: `room:${code}`, members: `room:${code}:memb
 const cleanName = (n: unknown) => (typeof n === "string" ? n.trim().slice(0, 24) : "");
 const clamp = (n: unknown, lo: number, hi: number, def: number) => Math.max(lo, Math.min(hi, Math.round(Number(n)) || def));
 const pick = (n: number) => Math.floor(Math.random() * n);
+// randomUUID only exists on https/localhost; one-phone games also run over plain http on the LAN
+const uid = () =>
+  crypto.randomUUID?.() ?? Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
 
 export function cleanSettings(s: Partial<Settings>): Settings {
   const rounds = Array.isArray(s.rounds) ? [...new Set(s.rounds.filter((r) => ROUND_TYPES.includes(r)))] : [];
@@ -81,7 +84,7 @@ const save = (db: Store, room: Room) => db.set(k(room.code).room, room, { ex: TT
 async function addMember(db: Store, code: string, name: string, members: Member[]) {
   const inA = members.filter((m) => m.team === 0).length;
   const team: Team = inA <= members.length - inA ? 0 : 1; // fill the smaller team
-  const m: Member = { id: crypto.randomUUID(), name, token: crypto.randomUUID(), at: Date.now(), team };
+  const m: Member = { id: uid(), name, token: uid(), at: Date.now(), team };
   await db.hset(k(code).members, m.id, m, TTL);
   return m;
 }
