@@ -14,7 +14,7 @@ export type Send = (a: Action, as?: number) => Promise<void>;
 type P = { v: View; send: Send; busy: boolean; mode: Mode };
 
 const SWIPE = 90; // px to count as a swipe
-const mini = `grid size-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-ink disabled:opacity-25 ${press}`;
+const mini = `grid size-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-ink disabled:opacity-25 ${press}`;
 
 export function Waiting({ text }: { text: string }) {
   return (
@@ -85,7 +85,7 @@ function EditableName({ value, label, onSave, className = "" }: { value: string;
         save();
       }}
     >
-      <input autoFocus value={draft} maxLength={24} aria-label={label} onChange={(e) => setDraft(e.target.value)} onBlur={save} className="min-w-0 flex-1 rounded-lg bg-canvas px-2 py-1 font-semibold text-ink outline-none" />
+      <input autoFocus value={draft} maxLength={24} aria-label={label} onChange={(e) => setDraft(e.target.value)} onBlur={save} className="min-w-0 flex-1 rounded-lg bg-canvas px-2 py-1 font-semibold text-ink outline-none ring-2 ring-accent" />
       <button aria-label={t.save} className={mini}>
         <Check className="size-4" aria-hidden />
       </button>
@@ -214,14 +214,14 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
       ) : null}
       <div className="-mt-1 flex gap-2">
         {!local && (
-          <button onClick={() => send({ type: "team", team: (1 - mine) as Team })} disabled={busy} className={btn2}>
+          <button onClick={() => send({ type: "team", team: (1 - mine) as Team })} disabled={busy} className={`${btn2} min-w-0`}>
             <ArrowLeftRight className="size-4 shrink-0" aria-hidden />
             <span className="truncate">{t.switchTo(v.teamNames[1 - mine])}</span>
           </button>
         )}
         {v.isHost && (
           <button onClick={() => send({ type: "shuffle" })} disabled={busy} className={`${btn2} ${local ? "" : "w-auto! shrink-0"}`}>
-            <Shuffle className="size-4" aria-hidden /> {t.shuffle}
+            <Shuffle className="size-4 shrink-0" aria-hidden /> {t.shuffle}
           </button>
         )}
       </div>
@@ -239,7 +239,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
             <p className="text-sm text-muted">{t.roundsHelp}</p>
             <ol className="mt-3 flex flex-col gap-2">
               {s.rounds.map((r, i) => (
-                <li key={r} className="enter flex items-center gap-2.5 rounded-2xl bg-raised py-1.5 pr-1.5 pl-3">
+                <li key={r} className="enter flex items-center gap-2 rounded-2xl bg-raised py-1.5 pr-1 pl-3">
                   <span className="w-3 shrink-0 text-sm font-bold text-muted tabular-nums">{i + 1}</span>
                   <RoundIcon type={r} className="size-5 shrink-0 text-accent" />
                   <span className="min-w-0 flex-1 truncate font-semibold">{t.round[r].name}</span>
@@ -336,9 +336,8 @@ export function Write({ v, send, busy }: P) {
       </div>
       <div className="flex flex-col gap-4">
         {draft.map((d, i) => (
-          <Slip key={i} tilt={i % 2 ? 1.2 : -1.2} className="unfold px-4 pt-2" style={{ animationDelay: `${i * 0.06}s` }}>
+          <Slip key={i} tilt={i % 2 ? 1.2 : -1.2} className="unfold px-4 pt-2 focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-accent" style={{ animationDelay: `${i * 0.06}s` }}>
             <input
-              autoFocus={i === 0}
               autoComplete="off"
               maxLength={40}
               value={d}
@@ -361,17 +360,22 @@ export function Write({ v, send, busy }: P) {
 }
 
 /** one-phone games: hand the phone over before anything secret shows */
-export function PassPhone({ name, team, onReady, label }: { name: string; team: Team; onReady: () => void; label: string }) {
+export function PassPhone({ name, team, teamName, onReady, note }: { name: string; team: Team; teamName: string; onReady: () => void; note?: string }) {
+  const t = useT();
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-      <span className="pop grid size-20 place-items-center rounded-3xl bg-raised">
-        <Smartphone className={`size-10 ${TEAM[team].text}`} aria-hidden />
-      </span>
-      <p className="enter text-lg text-muted">{label}</p>
-      <h1 className={`enter text-5xl font-extrabold tracking-tight break-words ${TEAM[team].text}`}>{name}</h1>
+    <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+        <span className={`pop grid size-24 place-items-center rounded-[2rem] ${TEAM[team].soft}`}>
+          <Smartphone className={`size-12 ${TEAM[team].text}`} strokeWidth={1.75} aria-hidden />
+        </span>
+        <p className="enter mt-2 text-lg text-muted">{t.passTo}</p>
+        <h1 className={`enter text-6xl font-extrabold tracking-tight text-balance break-words ${TEAM[team].text}`}>{name}</h1>
+        <p className="enter text-muted">{teamName}</p>
+        {note && <p className="enter mt-4 max-w-[30ch] text-muted">{note}</p>}
+      </div>
       <Cta>
         <button onClick={onReady} className={btn}>
-          {name}
+          {t.iAm(name)}
         </button>
       </Cta>
     </div>
@@ -392,13 +396,13 @@ export function Ready({ v, send, busy, mode }: P) {
     <div className="flex flex-1 flex-col gap-4">
       <RoundCard v={v} n={v.round} className="enter" />
       {last && (
-        <p className="pop self-center rounded-full bg-surface px-4 py-2 text-center">
+        <p aria-live="polite" className="pop self-center rounded-full bg-surface px-4 py-2 text-center">
           {t.gotLast(v.players[last.p].name, last.got)}
         </p>
       )}
       <div className="enter flex flex-1 flex-col items-center justify-center gap-2 text-center [animation-delay:120ms]">
         <Bowl count={v.bowlLeft} className="w-28" />
-        <p className="mt-3 text-muted">{me && !local ? t.yourTurn : t.upNext}</p>
+        <p className="mt-3 text-muted">{local ? t.passTo : me ? t.yourTurn : t.upNext}</p>
         <h1 className={`text-5xl font-extrabold tracking-tight break-words ${TEAM[p.team].text}`}>{me && !local ? t.youBang : p.name}</h1>
         <p className="text-muted">
           {t.forTeam(v.teamNames[p.team])}
@@ -479,7 +483,7 @@ function SwipeSlip({ text, locked, canSkip, fling, onSwipe }: { text: string; lo
         </Slip>
       </div>
       {locked && (
-        <p className="pop absolute inset-x-0 top-1/2 mx-auto w-max -translate-y-1/2 -rotate-6 rounded-xl bg-cta px-5 py-2 text-3xl font-extrabold text-cta-ink shadow-xl">{t.timeUp}</p>
+        <p role="alert" className="pop absolute inset-x-0 top-1/2 mx-auto w-max -translate-y-1/2 -rotate-6 rounded-xl bg-cta px-5 py-2 text-3xl font-extrabold text-cta-ink shadow-xl">{t.timeUp}</p>
       )}
     </div>
   );

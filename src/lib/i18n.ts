@@ -9,6 +9,9 @@ export const LANGS: { id: Lang; label: string }[] = [
 
 const de = {
   // home
+  passTo: "Gib das Handy an",
+  iAm: (n: string) => `Ich bin ${n}`,
+  writeSecret: "Die anderen schauen weg, während du deine Zetteli schreibst.",
   addPlayer: "Spieler hinzufügen",
   playerN: (i: number) => `Spieler ${i}`,
   removePlayer: (n: string) => `${n} entfernen`,
@@ -41,7 +44,7 @@ const de = {
   no_storage: "Der Server hat gerade keinen Speicher. Versuch's gleich nochmal.",
   offline: "Keine Verbindung. Prüf dein Internet.",
   home: "Zur Startseite",
-  loading: "Raum wird geladen",
+  loading: "Raum wird geladen …",
   // settings sheet
   settings: "Einstellungen",
   language: "Sprache",
@@ -169,6 +172,9 @@ const de = {
 export type Dict = typeof de;
 
 const en: Dict = {
+  passTo: "Pass the phone to",
+  iAm: (n) => `I'm ${n}`,
+  writeSecret: "Everyone else looks away while you write your slips.",
   addPlayer: "Add player",
   playerN: (i) => `Player ${i}`,
   removePlayer: (n) => `Remove ${n}`,
@@ -200,7 +206,7 @@ const en: Dict = {
   no_storage: "The server has no storage right now. Try again in a moment.",
   offline: "No connection. Check your internet.",
   home: "Back to start",
-  loading: "Loading room",
+  loading: "Loading room…",
   settings: "Settings",
   language: "Language",
   appearance: "Appearance",
@@ -320,6 +326,9 @@ const en: Dict = {
 };
 
 const fr: Dict = {
+  passTo: "Passe le téléphone à",
+  iAm: (n) => `Je suis ${n}`,
+  writeSecret: "Les autres regardent ailleurs pendant que tu écris tes papiers.",
   addPlayer: "Ajouter un joueur",
   playerN: (i) => `Joueur ${i}`,
   removePlayer: (n) => `Retirer ${n}`,
@@ -351,7 +360,7 @@ const fr: Dict = {
   no_storage: "Le serveur n'a pas de stockage pour le moment. Réessaie dans un instant.",
   offline: "Pas de connexion. Vérifie ton internet.",
   home: "Retour à l'accueil",
-  loading: "Chargement de la salle",
+  loading: "Chargement de la salle…",
   settings: "Réglages",
   language: "Langue",
   appearance: "Apparence",

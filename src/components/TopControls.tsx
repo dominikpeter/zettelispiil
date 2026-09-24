@@ -64,7 +64,7 @@ export function TopControls() {
       <dialog
         ref={sheet}
         onClick={(e) => e.target === sheet.current && sheet.current.close()} // tap outside closes
-        className="sheet mx-auto mt-auto mb-0 w-full max-w-md rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
+        className="sheet mx-auto mt-auto mb-0 w-full max-w-md overscroll-contain rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
       >
         <div className="flex flex-col gap-5 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between">

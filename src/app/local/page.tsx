@@ -113,7 +113,7 @@ export default function LocalGamePage() {
       {!v && <Waiting text={t.loading} />}
       {v?.phase === "lobby" && <Lobby v={v} send={send} busy={busy} mode="local" onAdd={add} />}
       {v && gateKey && confirmed !== gateKey && (
-        <PassPhone key={gateKey} name={v.players[who].name} team={v.players[who].team} label={t.upNext} onReady={() => setConfirmed(gateKey)} />
+        <PassPhone key={gateKey} name={v.players[who].name} team={v.players[who].team} teamName={v.teamNames[v.players[who].team]} note={t.writeSecret} onReady={() => setConfirmed(gateKey)} />
       )}
       {v && v.phase !== "lobby" && (!gateKey || confirmed === gateKey) && <Phase key={`${v.phase}-${who}`} v={v} send={send} busy={busy} mode="local" left={left} />}
     </main>

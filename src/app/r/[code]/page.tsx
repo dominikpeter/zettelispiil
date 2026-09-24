@@ -146,7 +146,7 @@ export default function Room() {
             }}
             className="mt-2 flex flex-col gap-3"
           >
-            <input autoFocus value={name} maxLength={24} autoComplete="nickname" placeholder={t.yourName} aria-label={t.yourName} onChange={(e) => setName(e.target.value)} className={`${field} text-center font-semibold`} />
+            <input value={name} maxLength={24} autoComplete="nickname" placeholder={t.yourName} aria-label={t.yourName} onChange={(e) => setName(e.target.value)} className={`${field} text-center font-semibold`} />
             <button disabled={busy || !name.trim()} className={btn}>
               {t.join}
             </button>

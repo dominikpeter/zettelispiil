@@ -37,7 +37,7 @@ export function Bowl({ count, className = "w-24" }: { count?: number; className?
         <path d="M6 34h108" stroke="var(--color-mauve-magic)" strokeWidth="4" strokeLinecap="round" />
       </svg>
       {count !== undefined && (
-        <span key={count} className="bump absolute inset-x-0 bottom-[14%] text-center text-lg font-bold tabular-nums text-ink">
+        <span key={count} className="bump absolute inset-x-0 bottom-[14%] text-center text-lg font-bold tabular-nums text-white">
           {count}
         </span>
       )}

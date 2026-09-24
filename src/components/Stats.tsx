@@ -75,7 +75,7 @@ function Race({ race, turns, players, names, teams, t }: { race: [number, number
         {[0.5, 1].map((f) => (
           <g key={f}>
             <line x1={pad.l} x2={W - pad.r} y1={y(max * f)} y2={y(max * f)} stroke="var(--color-line)" strokeDasharray="2 4" />
-            <text x={W - pad.r + 6} y={y(max * f) + 4} className="fill-muted text-[10px]">
+            <text x={pad.l} y={y(max * f) - 4} className="fill-muted text-[10px]">
               {Math.round(max * f)}
             </text>
           </g>
@@ -265,7 +265,7 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
           {s.hardest.map((h, i) => (
             <li key={h.w}>
               <div className="flex items-baseline justify-between gap-2">
-                <span className="font-hand truncate text-2xl leading-none font-bold">{h.text}</span>
+                <span className="font-hand min-w-0 truncate pr-1.5 text-2xl leading-tight font-bold">{h.text}</span>
                 <span className="shrink-0 text-sm text-muted tabular-nums">
                   {fmt(h.ms)} s, {t.by(v.players[st.authors[h.w]]?.name ?? "?")}
                 </span>
@@ -283,16 +283,16 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
 
 function Highlight({ label, word, detail, tilt, type }: { label: string; word: string; detail: string; tilt: number; type?: RoundType }) {
   return (
-    <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-      <div className="min-w-0">
-        <p className="text-sm text-muted">{label}</p>
-        <Slip tilt={tilt} className="mt-1 inline-block max-w-full px-4 pt-2">
+    <div>
+      <p className="text-sm text-muted">{label}</p>
+      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+        <Slip tilt={tilt} className="inline-block max-w-full px-4 pt-2">
           <span className="font-hand text-3xl font-bold break-words">{word}</span>
         </Slip>
-      </div>
-      <div className="flex flex-col items-end gap-1 text-right text-sm text-muted">
-        {type && <RoundIcon type={type} className="size-5 text-accent" />}
-        <span className="tabular-nums">{detail}</span>
+        <span className="flex items-center gap-1.5 text-sm text-muted tabular-nums">
+          {type && <RoundIcon type={type} className="size-4 shrink-0 text-accent" />}
+          {detail}
+        </span>
       </div>
     </div>
   );

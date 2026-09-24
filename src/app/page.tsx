@@ -86,7 +86,7 @@ export default function Home() {
         <Bowl className="absolute bottom-0 left-1/2 w-44 -translate-x-1/2" />
       </div>
 
-      <h1 className="mt-4 text-[3.25rem] leading-[0.95] font-extrabold tracking-tight text-hi">Zettelispiil</h1>
+      <h1 translate="no" className="mt-4 text-[3.25rem] leading-[0.95] font-extrabold tracking-tight text-hi">Zettelispiil</h1>
       <p className="mt-3 max-w-[34ch] text-lg text-muted">{t.tagline}</p>
 
       <form
@@ -126,7 +126,8 @@ export default function Home() {
                     aria-label={t.playerN(i + 1)}
                     placeholder={t.playerN(i + 1)}
                     onChange={(e) => setPlayers(players.map((x, j) => (j === i ? e.target.value : x)))}
-                    className="min-w-0 flex-1 bg-transparent py-3 text-lg font-semibold outline-none placeholder:text-muted/60"
+                    className="min-w-0 flex-1 rounded-lg bg-transparent px-1 py-3 text-lg font-semibold outline-none placeholder:text-muted/60 focus-visible:bg-raised"
+                    autoComplete="off"
                   />
                   <button type="button" onClick={() => setPlayers(players.filter((_, j) => j !== i))} aria-label={t.removePlayer(named[i])} className={`grid size-10 place-items-center rounded-full text-muted hover:bg-raised hover:text-ink ${press}`}>
                     <X className="size-5" aria-hidden />
@@ -170,6 +171,7 @@ export default function Home() {
                   maxLength={4}
                   autoCapitalize="characters"
                   autoComplete="off"
+                  spellCheck={false}
                   aria-label={t.roomCode}
                   placeholder={t.roomCode}
                   onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
