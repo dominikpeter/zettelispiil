@@ -48,3 +48,14 @@ export async function api<T>(path: string, body?: unknown, id?: Identity | null)
 // API error code → dictionary key for the message shown to the player
 const KNOWN = ["not_found", "started", "full", "no_storage"] as const;
 export const errKey = (e: string): (typeof KNOWN)[number] | "offline" => (KNOWN as readonly string[]).includes(e) ? (e as (typeof KNOWN)[number]) : "offline";
+
+/** one funny name from the AI when it's available, otherwise from our own list */
+export async function funnyName(kind: "player" | "team", lang: string, avoid: string[], fallback: string[]) {
+  try {
+    if (localStorage.getItem("ai") === "off") throw 0; // AI help switched off on this phone
+    const r = await fetch("/api/ai/names", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, lang, n: 1, avoid }) }).then((x) => x.json());
+    if (r?.ai && r.names?.[0]) return String(r.names[0]);
+  } catch {}
+  const pool = fallback.filter((n) => !avoid.includes(n));
+  return (pool.length ? pool : fallback)[Math.floor(Math.random() * (pool.length || fallback.length))];
+}

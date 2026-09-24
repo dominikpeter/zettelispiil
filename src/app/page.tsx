@@ -1,14 +1,15 @@
 "use client";
 
-import { Dices, Plus, Smartphone, Users, X } from "lucide-react";
+import { Plus, Smartphone, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { ScanCode } from "@/components/ScanCode";
+import { AiNameButton } from "@/components/Game";
 import { TopControls } from "@/components/TopControls";
 import { DICT, pickOne } from "@/lib/i18n";
 import { loadLocalGame, loadPlayers, newLocalGame } from "@/lib/localGame";
 import { langPref, useT } from "@/lib/prefs";
-import { api, errKey, loadName, saveIdentity, saveName, type Identity } from "@/lib/roomClient";
+import { api, errKey, funnyName, loadName, saveIdentity, saveName, type Identity } from "@/lib/roomClient";
 import { Bowl, btn, btn2, field, ghost, panel, press, Slip } from "@/lib/ui";
 
 const noop = () => () => {};
@@ -137,7 +138,7 @@ export default function Home() {
             </ul>
             <button
               type="button"
-              onClick={() => setPlayers([...players, pickOne(t.funnyPlayers.filter((n) => !players.includes(n)))])}
+              onClick={async () => setPlayers([...players, await funnyName("player", lang, players, t.funnyPlayers)])}
               disabled={players.length >= 20}
               className={`${ghost} -ml-3 mt-1 flex items-center gap-2 text-accent`}
             >
@@ -150,9 +151,7 @@ export default function Home() {
           <div key="online" className="enter flex flex-col gap-3">
             <div className="flex gap-2">
           <input aria-label={t.yourName} className={`${field} min-w-0 flex-1 font-semibold`} value={name} onChange={(e) => setName(e.target.value)} placeholder={t.yourName} maxLength={24} autoComplete="nickname" />
-          <button type="button" onClick={() => setName(pickOne(t.funnyPlayers.filter((n) => n !== name)))} aria-label={t.otherName} className={`grid size-[3.4rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface ${press}`}>
-            <Dices className="size-6" aria-hidden />
-          </button>
+          <AiNameButton label={t.aiName} make={() => funnyName("player", lang, [name], t.funnyPlayers)} onName={setName} className={`grid size-[3.4rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent ${press}`} />
         </div>
 
 

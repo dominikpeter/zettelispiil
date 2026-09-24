@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowLeft, ArrowLeftRight, Check, Eraser, Home, Pause, Play, ChevronDown, ChevronUp, Crown, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowLeftRight, Check, Eraser, Loader2, Sparkles, Home, Pause, Play, ChevronDown, ChevronUp, Crown, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { pickOne } from "@/lib/i18n";
-import { useT } from "@/lib/prefs";
-import { ROUND_TYPES, type Action, type Settings, type Team, type View } from "@/lib/room";
-import { Bowl, btn, btn2, buzz, field, ghost, panel, press, round_btn, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
+import { aiPref, langPref, useT } from "@/lib/prefs";
+import { funnyName } from "@/lib/roomClient";
+import { norm, ROUND_TYPES, type Action, type Settings, type Slip as SlipT, type Team, type View } from "@/lib/room";
+import { Bowl, btn, btn2, buzz, field, ghost, panel, pill, pillBtn, press, round_btn, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
 import { DrawBoard, INKS } from "./DrawBoard";
 import { Stats } from "./Stats";
 import { SettingsPanel } from "./TopControls";
@@ -92,9 +93,11 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
 
   return (
     <>
-      <button onClick={pause} aria-label={t.pause} className={`grid size-11 shrink-0 place-items-center rounded-full border border-line bg-surface text-ink ${press}`}>
-        <Pause className="size-5" aria-hidden />
-      </button>
+      <div className={pill}>
+        <button onClick={pause} aria-label={t.pause} className={pillBtn}>
+          <Pause className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />
+        </button>
+      </div>
       {(open || paused) && (
         <div role="dialog" aria-modal="true" aria-label={t.paused} className="enter fixed inset-0 z-50 flex flex-col overflow-y-auto overscroll-contain bg-canvas/95 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
           <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 py-6 text-center">
@@ -183,6 +186,30 @@ function EditableName({ value, label, onSave, className = "" }: { value: string;
   );
 }
 
+/** sparkle button that fetches a funny name without blocking anything; spins while it waits */
+export function AiNameButton({ label, make, onName, disabled, className = mini }: { label: string; make: () => Promise<string>; onName: (n: string) => void; disabled?: boolean; className?: string }) {
+  const [loading, setLoading] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        setLoading(true);
+        try {
+          onName(await make());
+        } finally {
+          setLoading(false);
+        }
+      }}
+      disabled={disabled || loading}
+      aria-label={label}
+      aria-busy={loading}
+      className={className}
+    >
+      {loading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Sparkles className="size-4" aria-hidden />}
+    </button>
+  );
+}
+
 function Stepper({ label, value, display, set, min, max }: { label: string; value: number; display?: ReactNode; set: (n: number) => void; min: number; max: number }) {
   const t = useT();
   return (
@@ -257,7 +284,10 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
           <div key={ti} className={`rounded-3xl px-4 py-3 ${TEAM[ti].soft}`}>
             <div className={`flex items-center justify-between gap-2 text-lg font-extrabold ${TEAM[ti].text}`}>
               {local || v.isHost || mine === ti ? (
-                <EditableName value={v.teamNames[ti]} label={t.teamName} onSave={(name) => send({ type: "teamName", team: ti, name })} />
+                <span className="flex min-w-0 items-center gap-1">
+                  <EditableName value={v.teamNames[ti]} label={t.teamName} onSave={(name) => send({ type: "teamName", team: ti, name })} />
+                  <AiNameButton label={`${t.teamName}: ${t.aiName}`} disabled={busy} make={() => funnyName("team", langPref.get(), v.teamNames, t.funnyTeams)} onName={(name) => send({ type: "teamName", team: ti, name })} />
+                </span>
               ) : (
                 <span className="truncate">{v.teamNames[ti]}</span>
               )}
@@ -393,9 +423,53 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
 
 // ---------- write ----------
 
+type Check = { corrected: string; tooHard: boolean; reason: string; hint: string };
+const CHECK_DELAY = 700; // ms of calm typing before a word is checked
+
 export function Write({ v, send, busy }: P) {
   const t = useT();
-  const [draft, setDraft] = useState<string[]>(() => Array.from({ length: v.settings.perPlayer }, () => ""));
+  const lang = langPref.use();
+  const aiOn = aiPref.use() === "on";
+  const n = v.settings.perPlayer;
+  // kept Zetteli stay filled; cancelled duplicates leave an empty slip to rewrite
+  const [draft, setDraft] = useState<SlipT[]>(() => {
+    const kept = v.myWrite?.words ?? [];
+    return Array.from({ length: n }, (_, i) => kept[i] ?? { word: "", hint: "" });
+  });
+  // AI results by word, filled in the background; the form never waits for them
+  const [checks, setChecks] = useState<Record<string, Check | "loading">>({});
+  const typedHint = useRef<boolean[]>(draft.map((d) => !!d.hint)); // a hint the writer typed is never overwritten
+  const edit = (i: number, patch: Partial<SlipT>) => {
+    if (patch.hint !== undefined) typedHint.current[i] = !!patch.hint.trim();
+    setDraft((d) => d.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  };
+  const dupes = new Set(draft.map((d) => norm(d.word)).filter((w, i, all) => w && all.indexOf(w) !== i));
+
+  const words = draft.map((d) => d.word.trim());
+  useEffect(() => {
+    const todo = aiOn ? [...new Set(words.filter((w) => w.length >= 2 && !(w in checks)))] : [];
+    if (!todo.length) return;
+    const timer = setTimeout(async () => {
+      setChecks((c) => ({ ...c, ...Object.fromEntries(todo.map((w) => [w, "loading" as const])) }));
+      let results: Check[] | null = null;
+      try {
+        const r = await fetch("/api/ai/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ words: todo, lang }) }).then((x) => x.json());
+        if (r?.ai && Array.isArray(r.results) && r.results.length === todo.length) results = r.results;
+      } catch {}
+      const none: Check = { corrected: "", tooHard: false, reason: "", hint: "" };
+      setChecks((c) => ({ ...c, ...Object.fromEntries(todo.map((w, i) => [w, results?.[i] ?? none])) }));
+      // hints go straight onto the slips, unless the writer already typed one
+      if (results)
+        setDraft((d) =>
+          d.map((x, i) => {
+            const k = todo.indexOf(x.word.trim());
+            return k >= 0 && !typedHint.current[i] && results[k].hint ? { ...x, hint: results[k].hint } : x;
+          }),
+        );
+    }, CHECK_DELAY);
+    return () => clearTimeout(timer);
+  }, [words.join("\u0000"), lang, aiOn]); // eslint-disable-line react-hooks/exhaustive-deps -- re-run only when the words change
+
   if (v.iDone)
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
@@ -418,6 +492,7 @@ export function Write({ v, send, busy }: P) {
         </p>
       </div>
     );
+
   return (
     <form
       onSubmit={(e) => {
@@ -430,23 +505,60 @@ export function Write({ v, send, busy }: P) {
         <h2 className="text-3xl font-extrabold tracking-tight">{t.writeTitle(draft.length)}</h2>
         <p className="mt-1 text-muted">{t.writeHelp}</p>
       </div>
-      <div className="flex flex-col gap-4">
-        {draft.map((d, i) => (
-          <Slip key={i} tilt={i % 2 ? 1.2 : -1.2} className="unfold px-4 pt-2 focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-accent" style={{ animationDelay: `${i * 0.06}s` }}>
-            <input
-              autoComplete="off"
-              maxLength={40}
-              value={d}
-              aria-label={t.slip(i + 1)}
-              placeholder={t.slip(i + 1)}
-              onChange={(e) => setDraft(draft.map((x, j) => (j === i ? e.target.value : x)))}
-              className="font-hand w-full bg-transparent text-3xl font-bold outline-none placeholder:text-paper-ink/30"
-            />
-          </Slip>
-        ))}
+      {v.myWrite?.cancelled.map((w) => (
+        <p key={w} role="alert" className="pop flex items-start gap-2 rounded-2xl bg-raised px-4 py-3 font-medium">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-hi" aria-hidden /> {t.cancelled(w)}
+        </p>
+      ))}
+      <div className="flex flex-col gap-5">
+        {draft.map((d, i) => {
+          const c = checks[d.word.trim()];
+          const r = c && c !== "loading" ? c : null;
+          const fix = r?.corrected && r.corrected !== d.word.trim() ? r.corrected : "";
+          return (
+            <div key={i}>
+              <Slip tilt={i % 2 ? 1.2 : -1.2} className="unfold relative px-4 pt-2 focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-accent" style={{ animationDelay: `${i * 0.06}s` }}>
+                <input
+                  autoComplete="off"
+                  maxLength={40}
+                  value={d.word}
+                  aria-label={t.slip(i + 1)}
+                  placeholder={t.slip(i + 1)}
+                  onChange={(e) => edit(i, { word: e.target.value })}
+                  className="font-hand w-full bg-transparent pr-7 text-3xl font-bold outline-none placeholder:text-paper-ink/30"
+                />
+                {c === "loading" && <Loader2 className="absolute top-4 right-3 size-4 animate-spin text-paper-ink/40" aria-label={t.checking} />}
+                <input
+                  autoComplete="off"
+                  maxLength={80}
+                  value={d.hint}
+                  aria-label={`${t.slip(i + 1)}: ${t.hintPh}`}
+                  placeholder={t.hintPh}
+                  onChange={(e) => edit(i, { hint: e.target.value })}
+                  className="w-full bg-transparent pb-1 text-sm text-paper-ink/70 outline-none placeholder:text-paper-ink/30"
+                />
+              </Slip>
+              {dupes.has(norm(d.word)) && <p className="mt-2 text-sm font-medium text-hi">{t.cancelled(d.word)}</p>}
+              {(fix || r?.tooHard) && (
+                <div aria-live="polite" className="pop mt-2 flex flex-wrap items-center gap-2 text-sm">
+                  {fix && (
+                    <button type="button" onClick={() => edit(i, { word: fix })} className={`flex items-center gap-1.5 rounded-2xl bg-raised px-3 py-1.5 text-left font-semibold ${press}`}>
+                      <Sparkles className="size-4 text-accent" aria-hidden /> {t.didYouMean(fix)} <span className="text-accent">{t.useIt}</span>
+                    </button>
+                  )}
+                  {r?.tooHard && (
+                    <span className="flex items-center gap-1.5 rounded-full bg-raised px-3 py-1.5 text-muted">
+                      <AlertTriangle className="size-4 shrink-0 text-hi" aria-hidden /> {r.reason || t.tooHard}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
       <Cta>
-        <button disabled={busy || draft.some((d) => !d.trim())} className={btn}>
+        <button disabled={busy || draft.some((d) => !d.word.trim()) || dupes.size > 0} className={btn}>
           {t.intoBowl}
         </button>
         <p className="mt-2 text-center text-sm text-muted tabular-nums">{t.done(v.done, v.players.length)}</p>
@@ -525,7 +637,7 @@ export function Ready({ v, send, busy, mode }: P) {
 
 // ---------- the turn ----------
 
-function SwipeSlip({ text, locked, canSkip, fling, onSwipe }: { text: string; locked: boolean; canSkip: boolean; fling: "r" | "l" | null; onSwipe: (d: "r" | "l") => void }) {
+function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe }: { text: string; hint: string; locked: boolean; canSkip: boolean; fling: "r" | "l" | null; onSwipe: (d: "r" | "l") => void }) {
   const t = useT();
   const [dx, setDx] = useState(0);
   const [shake, setShake] = useState(0);
@@ -569,6 +681,7 @@ function SwipeSlip({ text, locked, canSkip, fling, onSwipe }: { text: string; lo
           <p data-testid="word" className={`font-hand leading-none font-bold break-words ${size}`}>
             {text}
           </p>
+          {hint && <p className="mt-3 text-base text-paper-ink/60">{hint}</p>}
           {/* stamps that fade in while dragging */}
           <span className="absolute top-3 left-4 -rotate-12 rounded-md border-2 border-[#0a8a3a] px-2 text-sm font-extrabold text-[#0a8a3a]" style={{ opacity: Math.max(0, Math.min(1, dx / SWIPE)) }}>
             {t.stampGot}
@@ -651,6 +764,7 @@ export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
             <span data-testid="word" className="font-hand text-4xl font-bold">
               {word.text}
             </span>
+            {word.hint && <span className="block text-center text-sm text-paper-ink/60">{word.hint}</span>}
           </Slip>
         )}
         {word && (
@@ -757,7 +871,7 @@ export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center">
-        {v.word && <SwipeSlip key={v.word.id} text={v.word.text} locked={up} canSkip={v.canSkip} fling={fling} onSwipe={act} />}
+        {v.word && <SwipeSlip key={v.word.id} text={v.word.text} hint={v.word.hint} locked={up} canSkip={v.canSkip} fling={fling} onSwipe={act} />}
         {!up && <p className="mt-4 text-center text-sm text-muted">{t.swipeHint}</p>}
       </div>
 
@@ -845,7 +959,7 @@ export function End({ v, send, busy, mode }: P) {
 /** every phase of a running game; lobby and joining are handled by the page */
 export function Phase(props: P & { left: number }) {
   const { v } = props;
-  if (v.phase === "write") return <Write key={`w${v.settings.perPlayer}-${v.me}`} {...props} />;
+  if (v.phase === "write") return <Write key={`w${v.settings.perPlayer}-${v.me}-${v.myWrite?.cancelled.length ?? 0}`} {...props} />;
   if (v.phase === "ready") return <Ready key={`r${v.turnNo}-${v.round}`} {...props} />;
   if (v.phase === "turn") return <Turn key={`t${v.turnNo}`} {...props} />;
   if (v.phase === "roundEnd") return <RoundEnd {...props} />;

@@ -97,7 +97,7 @@ export default function LocalGamePage() {
   if (!hydrated || !game) return <main className="flex-1" />;
 
   const playing = v && v.phase !== "lobby" && v.phase !== "write" && v.phase !== "end";
-  const gateKey = v?.phase === "write" ? `write-${who}-${v.settings.perPlayer}` : null;
+  const gateKey = v?.phase === "write" ? `write-${who}-${v.settings.perPlayer}-${v.myWrite?.cancelled.length ?? 0}` : null;
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -116,7 +116,7 @@ export default function LocalGamePage() {
       {!v && <Waiting text={t.loading} />}
       {v?.phase === "lobby" && <Lobby v={v} send={send} busy={busy} mode="local" onAdd={add} />}
       {v && gateKey && confirmed !== gateKey && (
-        <PassPhone key={gateKey} name={v.players[who].name} team={v.players[who].team} teamName={v.teamNames[v.players[who].team]} note={t.writeSecret} onReady={() => setConfirmed(gateKey)} />
+        <PassPhone key={gateKey} name={v.players[who].name} team={v.players[who].team} teamName={v.teamNames[v.players[who].team]} note={v.myWrite?.cancelled.length ? t.cancelled(v.myWrite.cancelled.at(-1)!) : t.writeSecret} onReady={() => setConfirmed(gateKey)} />
       )}
       {v && v.phase !== "lobby" && (!gateKey || confirmed === gateKey) && <Phase key={`${v.phase}-${who}`} v={v} send={send} busy={busy} mode="local" left={left} />}
     </main>

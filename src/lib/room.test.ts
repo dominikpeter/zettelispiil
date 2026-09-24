@@ -234,3 +234,29 @@ test("drawing round: strokes reach every phone, wipe and a new Zetteli start a f
   await as(i, { type: "got", w: (await see(i)).word!.id });
   assert.deepEqual((await see(other)).drawing, []); // next Zetteli, clean paper
 });
+
+test("same word twice: both copies cancelled, both writers write a new one; hints reach the describer", async () => {
+  const { as, see } = await setup();
+  await as(0, { type: "start" });
+  await as(0, { type: "words", words: [{ word: "Velo", hint: "zwei Räder" }] });
+  assert.equal((await see(0)).iDone, true);
+  await as(1, { type: "words", words: ["  vélo! "] }); // same word, spelled differently
+  let a = await see(0);
+  let b = await see(1);
+  assert.equal(a.iDone, false);
+  assert.deepEqual(a.myWrite?.cancelled, ["Velo"]);
+  assert.equal(b.iDone, false);
+  assert.deepEqual(b.myWrite?.cancelled, ["vélo!"]);
+  assert.equal(a.done, 0);
+  await assert.rejects(as(2, { type: "words", words: [""] }), RoomError);
+  await as(0, { type: "words", words: [{ word: "Aare", hint: "Fluss in Bern" }] });
+  await as(1, { type: "words", words: ["Zytglogge"] });
+  await as(2, { type: "words", words: ["Rösti"] });
+  await as(3, { type: "words", words: ["Fondue"] });
+  a = await see(0);
+  assert.equal(a.phase, "ready");
+  await as(a.active!, { type: "go" });
+  b = await see(a.active!);
+  assert.ok(b.word);
+  if (b.word!.text === "Aare") assert.equal(b.word!.hint, "Fluss in Bern");
+});

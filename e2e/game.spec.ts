@@ -36,7 +36,7 @@ test("one phone: default players, write, swipe through every round, stats at the
   const words = ["Schoggi", "Matterhorn", "Velo", "Raclette", "Zytglogge"];
   for (const w of words) {
     await page.getByRole("button", { name: /^Ich bin / }).click();
-    await page.getByLabel("Zetteli 1").fill(w);
+    await page.getByLabel("Zetteli 1", { exact: true }).fill(w);
     await page.getByRole("button", { name: "In die Schüssel" }).click();
   }
 
@@ -90,7 +90,7 @@ test("every phone: only the describer sees the Zetteli, one skip with swap back,
   await host.getByRole("button", { name: "Spiel starten" }).click();
 
   for (const [i, p] of phones.entries()) {
-    await p.getByLabel("Zetteli 1").fill(`Wort${i}`);
+    await p.getByLabel("Zetteli 1", { exact: true }).fill(`Wort${i}`);
     await p.getByRole("button", { name: "In die Schüssel" }).click();
   }
 
@@ -171,7 +171,7 @@ test("drawing round: lines drawn on one phone show up on the others", async ({ b
   for (let i = 0; i < 3; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
   await host.getByRole("button", { name: "Spiel starten" }).click();
   for (const [i, p] of phones.entries()) {
-    await p.getByLabel("Zetteli 1").fill(`Bild${i}`);
+    await p.getByLabel("Zetteli 1", { exact: true }).fill(`Bild${i}`);
     await p.getByRole("button", { name: "In die Schüssel" }).click();
   }
 

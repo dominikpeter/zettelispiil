@@ -10,6 +10,9 @@ export const ghost = `min-h-11 rounded-xl px-3 font-medium text-muted hover:text
 export const panel = "rounded-3xl bg-surface p-5";
 export const field =
   "w-full rounded-2xl border border-line bg-surface px-4 py-3 text-lg outline-none transition placeholder:text-muted/60 focus:border-accent focus-visible:outline-none";
+// header controls: one frosted pill holding quiet icon buttons
+export const pill = "flex items-center gap-0.5 rounded-full border border-line/70 bg-surface/70 p-1 shadow-sm backdrop-blur-md";
+export const pillBtn = `grid size-9 place-items-center rounded-full text-muted hover:bg-raised hover:text-ink ${press}`;
 export const round_btn = `grid size-11 place-items-center rounded-full border border-line bg-raised text-2xl leading-none text-ink disabled:opacity-30 ${press}`;
 
 // team colors; the names come from the room

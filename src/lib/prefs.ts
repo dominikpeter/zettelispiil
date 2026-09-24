@@ -50,6 +50,8 @@ export const palettePref = pref<Palette>(
   "night",
   (p) => (root().dataset.palette = p),
 );
+/** AI help while writing (spelling, difficulty, hints) and for funny names; on unless this phone switched it off */
+export const aiPref = pref<"on" | "off">("ai", ["on", "off"], "on");
 export const langPref = pref<Lang>("lang", ["de", "en", "fr"], "de", (l) => (root().lang = l));
 
 /** the dictionary for the chosen language (German until the device says otherwise) */

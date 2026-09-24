@@ -9,6 +9,18 @@ export const LANGS: { id: Lang; label: string }[] = [
 
 const de = {
   // home
+  checking: "Prüfe die Zetteli …",
+  aiHelp: "KI-Hilfe",
+  aiHelpNote: "Prüft Rechtschreibung und Schwierigkeit, schlägt Hinweise und lustige Namen vor.",
+  on: "An",
+  off: "Aus",
+  didYouMean: (w: string) => `Meintest du „${w}“?`,
+  useIt: "Übernehmen",
+  tooHard: "Eher schwierig zu erraten",
+  hintPh: "Hinweis für die Erklärer:in (optional)",
+  sendAnyway: "So in die Schüssel",
+  cancelled: (w: string) => `„${w}“ hat noch jemand geschrieben. Beide sind raus, schreib ein neues Zetteli.`,
+  aiName: "Lustigen Namen erfinden",
   wipe: "Alles löschen",
   pen: (i: number) => `Stift ${i}`,
   drawHere: "Hier zeichnen",
@@ -188,6 +200,18 @@ const de = {
 export type Dict = typeof de;
 
 const en: Dict = {
+  checking: "Checking your slips…",
+  aiHelp: "AI help",
+  aiHelpNote: "Checks spelling and difficulty, suggests hints and funny names.",
+  on: "On",
+  off: "Off",
+  didYouMean: (w) => `Did you mean “${w}”?`,
+  useIt: "Use it",
+  tooHard: "Probably hard to guess",
+  hintPh: "Hint for the describer (optional)",
+  sendAnyway: "Into the bowl as is",
+  cancelled: (w) => `Someone else also wrote “${w}”. Both are out, write a new slip.`,
+  aiName: "Invent a funny name",
   wipe: "Clear drawing",
   pen: (i) => `Pen ${i}`,
   drawHere: "Draw here",
@@ -358,6 +382,18 @@ const en: Dict = {
 };
 
 const fr: Dict = {
+  checking: "Vérification des papiers…",
+  aiHelp: "Aide IA",
+  aiHelpNote: "Vérifie l'orthographe et la difficulté, propose des indices et des noms drôles.",
+  on: "Oui",
+  off: "Non",
+  didYouMean: (w) => `Tu voulais dire « ${w} » ?`,
+  useIt: "Utiliser",
+  tooHard: "Plutôt difficile à deviner",
+  hintPh: "Indice pour qui explique (facultatif)",
+  sendAnyway: "Dans le bol tel quel",
+  cancelled: (w) => `Quelqu'un d'autre a aussi écrit « ${w} ». Les deux sont retirés, écris un nouveau papier.`,
+  aiName: "Inventer un nom drôle",
   wipe: "Tout effacer",
   pen: (i) => `Crayon ${i}`,
   drawHere: "Dessine ici",

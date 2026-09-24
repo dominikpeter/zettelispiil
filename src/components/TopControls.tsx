@@ -1,10 +1,10 @@
 "use client";
 
-import { Moon, Settings, Sun, SunMoon, X } from "lucide-react";
+import { Moon, Settings, Sparkles, Sun, SunMoon, X } from "lucide-react";
 import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { LANGS } from "@/lib/i18n";
-import { langPref, palettePref, PALETTES, themePref, THEMES, useT } from "@/lib/prefs";
-import { press } from "@/lib/ui";
+import { aiPref, langPref, palettePref, PALETTES, themePref, THEMES, useT } from "@/lib/prefs";
+import { pill, pillBtn, press } from "@/lib/ui";
 
 const dark = "(prefers-color-scheme: dark)";
 const onSystemChange = (cb: () => void) => {
@@ -45,9 +45,18 @@ export function SettingsPanel() {
   const theme = themePref.use();
   const palette = palettePref.use();
   const lang = langPref.use();
+  const ai = aiPref.use();
   const icon = { auto: SunMoon, light: Sun, dark: Moon };
   return (
     <>
+      <section className="flex flex-col gap-2">
+        <h3 className="flex items-center gap-2 font-semibold">
+          <Sparkles className="size-4 text-accent" aria-hidden /> {t.aiHelp}
+        </h3>
+        <Segmented options={[{ id: "on" as const, label: t.on }, { id: "off" as const, label: t.off }]} value={ai} onChange={aiPref.set} />
+        <p className="text-sm text-muted">{t.aiHelpNote}</p>
+      </section>
+
           <section className="flex flex-col gap-2">
         <h3 className="font-semibold">{t.language}</h3>
         <Segmented options={LANGS.map((l) => ({ id: l.id, label: l.label }))} value={lang} onChange={langPref.set} />
@@ -106,14 +115,14 @@ export function TopControls() {
   const sheet = useRef<HTMLDialogElement>(null);
 
   return (
-    <div className="flex items-center gap-2">
-      <button onClick={() => themePref.set(isDark ? "light" : "dark")} aria-label={t.toggleTheme} className={round}>
+    <div className={pill}>
+      <button onClick={() => themePref.set(isDark ? "light" : "dark")} aria-label={t.toggleTheme} className={pillBtn}>
         <span key={String(isDark)} className="pop">
-          {isDark ? <Moon className="size-5" aria-hidden /> : <Sun className="size-5" aria-hidden />}
+          {isDark ? <Moon className="size-[1.15rem]" strokeWidth={2.25} aria-hidden /> : <Sun className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />}
         </span>
       </button>
-      <button onClick={() => sheet.current?.showModal()} aria-label={t.settings} className={round}>
-        <Settings className="size-5" aria-hidden />
+      <button onClick={() => sheet.current?.showModal()} aria-label={t.settings} className={pillBtn}>
+        <Settings className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />
       </button>
 
       <dialog

@@ -10,6 +10,13 @@ export const MAX_PLAYERS = 20;
 export const ROUND_TYPES = ["describe", "pantomime", "oneword", "sound", "draw"] as const;
 export type RoundType = (typeof ROUND_TYPES)[number];
 export const DEFAULT_ROUNDS: RoundType[] = ["describe", "pantomime", "oneword", "sound"]; // drawing is opt-in, and needs every phone
+/** one written Zetteli; the hint is shown small to the describer (AI-suggested, the writer may change it) */
+export type Slip = { word: string; hint: string };
+/** a player's writing so far; words someone else also wrote are cancelled on both sides */
+type WriteEntry = { words: Slip[]; cancelled: string[] };
+/** compare words the way players would: case, accents, ß and punctuation don't matter */
+export const norm = (w: string) =>
+  w.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/ß/g, "ss").replace(/[^\p{L}\p{N}]/gu, "");
 /** a drawn line: [color index, x0, y0, x1, y1, …] on a 0…1000 grid */
 export type Stroke = number[];
 export type Team = 0 | 1;
@@ -29,6 +36,7 @@ type Room = {
   ids: string[]; // player order, frozen when writing starts; indices below refer to it
   teams: Team[];
   words: string[];
+  hints: string[];
   authors: number[];
   bowl: number[]; // word ids still in the bowl, including the one in hand
   current: number | null;
@@ -100,7 +108,7 @@ export async function createRoom(db: Store, hostName: unknown, lang: unknown = "
   for (let attempt = 0; attempt < 10; attempt++) {
     const code = Array.from({ length: 4 }, () => CODE_CHARS[pick(CODE_CHARS.length)]).join("");
     const room: Room = {
-      code, hostId: "", settings: cleanSettings({}), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de"), phase: "lobby", ids: [], teams: [], words: [], authors: [],
+      code, hostId: "", settings: cleanSettings({}), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de"), phase: "lobby", ids: [], teams: [], words: [], hints: [], authors: [],
       bowl: [], current: null, held: [], shownAt: 0, round: 0, team: 0, next: [0, 0], turnStart: 0, endsAt: 0, pausedAt: 0, drawNo: 0, carryMs: 0,
       turnGot: 0, scores: [], log: [], turns: [], writeNo: 0, turnNo: 0,
     };
@@ -175,7 +183,7 @@ export type Action =
   | { type: "rename"; name: string }
   | { type: "kick"; player: number }
   | { type: "teamName"; team: Team; name: string }
-  | { type: "words"; words: string[] }
+  | { type: "words"; words: (string | Partial<Slip>)[] }
   | { type: "got" | "skip"; w: number }
   | { type: "back"; w: number; to: number }
   | { type: "draw"; strokes: Stroke[] }
@@ -238,16 +246,33 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
     }
     case "words": {
       need(room.phase === "write" && idx >= 0);
-      const words = Array.isArray(a.words) ? a.words.map((w) => String(w ?? "").trim().slice(0, 40)) : [];
-      if (words.length !== room.settings.perPlayer || words.some((w) => !w)) throw new RoomError("bad_request");
+      const slips: Slip[] = (Array.isArray(a.words) ? a.words : []).map((w) => {
+        const o = typeof w === "string" ? { word: w } : (w ?? {});
+        return { word: String(o.word ?? "").trim().slice(0, 40), hint: String(o.hint ?? "").trim().slice(0, 80) };
+      });
+      const n = room.settings.perPlayer;
+      if (slips.length !== n || slips.some((x) => !norm(x.word)) || new Set(slips.map((x) => norm(x.word))).size !== n) throw new RoomError("bad_request");
       const key = `room:${code}:words:${room.writeNo}`;
-      await db.hset(key, String(idx), words, TTL);
-      const all = await db.hgetall<string[]>(key);
-      if (Object.keys(all).length < room.ids.length) return; // others still writing; room itself unchanged
+      const all = await db.hgetall<WriteEntry>(key);
+      const mine: WriteEntry = { words: slips, cancelled: [] };
+      // same word as someone else: both copies go, both writers write a new one
+      // ponytail: two phones submitting the same word in the same instant can both slip through
+      for (const [j, other] of Object.entries(all)) {
+        if (Number(j) === idx) continue;
+        const clash = new Set(other.words.map((o) => norm(o.word)).filter((w) => mine.words.some((x) => norm(x.word) === w)));
+        if (!clash.size) continue;
+        await db.hset(key, j, { words: other.words.filter((o) => !clash.has(norm(o.word))), cancelled: [...other.cancelled, ...other.words.filter((o) => clash.has(norm(o.word))).map((o) => o.word)] }, TTL);
+        mine.cancelled.push(...mine.words.filter((x) => clash.has(norm(x.word))).map((x) => x.word));
+        mine.words = mine.words.filter((x) => !clash.has(norm(x.word)));
+      }
+      await db.hset(key, String(idx), mine, TTL);
+      const now2 = await db.hgetall<WriteEntry>(key);
+      if (!room.ids.every((_, i) => now2[String(i)]?.words.length === n)) return; // others still writing; room itself unchanged
       // ponytail: two last writers racing both build the same bowl from the same hash, so the double write is harmless
-      const entries = Object.entries(all).sort((x, y) => Number(x[0]) - Number(y[0]));
-      room.words = entries.flatMap(([, ws]) => ws);
-      room.authors = entries.flatMap(([i, ws]) => ws.map(() => Number(i)));
+      const entries = room.ids.map((_, i) => now2[String(i)].words);
+      room.words = entries.flatMap((ws) => ws.map((x) => x.word));
+      room.hints = entries.flatMap((ws) => ws.map((x) => x.hint));
+      room.authors = entries.flatMap((ws, i) => ws.map(() => i));
       room.bowl = room.words.map((_, i) => i);
       room.scores = room.settings.rounds.map(() => [0, 0]);
       room.phase = "ready";
@@ -371,7 +396,8 @@ export type View = {
   endsAt: number;
   pausedLeft: number; // ms left when paused, 0 while running
   carryMs: number;
-  word: { id: number; text: string } | null; // only on the describer's phone
+  word: { id: number; text: string; hint: string } | null; // only on the describer's phone
+  myWrite: WriteEntry | null; // write phase: what I have in the bowl so far, and which of mine were cancelled
   held: { id: number; text: string }[]; // set-aside Zetteli, describer only
   drawing: Stroke[] | null; // drawing rounds: what's on the paper right now, for every phone
   canSkip: boolean;
@@ -409,10 +435,12 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
 
   let done = 0;
   let iDone = false;
+  let myWrite: WriteEntry | null = null;
   if (room.phase === "write") {
-    const h = await db.hgetall<unknown>(`room:${code}:words:${room.writeNo}`);
-    done = Object.keys(h).length;
-    iDone = idx >= 0 && String(idx) in h;
+    const h = await db.hgetall<WriteEntry>(`room:${code}:words:${room.writeNo}`);
+    done = Object.values(h).filter((e) => e.words.length === room.settings.perPlayer).length;
+    myWrite = idx >= 0 ? (h[String(idx)] ?? null) : null;
+    iDone = myWrite?.words.length === room.settings.perPlayer;
   }
 
   return {
@@ -431,7 +459,7 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
     endsAt: room.endsAt,
     pausedLeft: room.phase === "turn" && room.pausedAt ? Math.max(0, room.endsAt - room.pausedAt) : 0,
     carryMs: room.carryMs,
-    word: room.phase === "turn" && !room.pausedAt && idx === active && room.current !== null ? { id: room.current, text: room.words[room.current] } : null,
+    word: room.phase === "turn" && !room.pausedAt && idx === active && room.current !== null ? { id: room.current, text: room.words[room.current], hint: room.hints?.[room.current] ?? "" } : null,
     held: room.phase === "turn" && !room.pausedAt && idx === active ? room.held.map((w) => ({ id: w, text: room.words[w] })) : [],
     drawing: lines,
     canSkip: room.phase === "turn" && (room.settings.skips === -1 || room.held.length < room.settings.skips) && fresh(room).length > 0,
@@ -442,6 +470,7 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
     lastTurn: room.turns.at(-1) ?? null,
     done,
     iDone,
+    myWrite,
     turnNo: room.turnNo,
     stats: room.phase === "end" ? { words: room.words, authors: room.authors, log: room.log, turns: room.turns } : null,
   };
