@@ -117,9 +117,15 @@ function Stepper({ label, value, display, set, min, max }: { label: string; valu
 
 export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr: string; copied: boolean; onShare: () => void }; onAdd?: (name: string) => Promise<void> }) {
   const t = useT();
-  const s = v.settings;
+  // only the host edits settings: show their taps at once, and send them one after another so quick taps never race
+  const [pending, setPending] = useState<Partial<Settings>>({});
+  const s = { ...v.settings, ...pending };
+  const queue = useRef(Promise.resolve());
   const local = mode === "local";
-  const set = (patch: Partial<Settings>) => send({ type: "settings", settings: patch });
+  const set = (patch: Partial<Settings>) => {
+    setPending((m) => ({ ...m, ...patch }));
+    queue.current = queue.current.then(() => send({ type: "settings", settings: patch }));
+  };
   const counts = [0, 1].map((x) => v.players.filter((p) => p.team === x).length);
   const canStart = counts.every((c) => c >= 2);
   const mine = v.players[v.me]?.team ?? 0;
