@@ -9,6 +9,10 @@ export const LANGS: { id: Lang; label: string }[] = [
 
 const de = {
   // home
+  wipe: "Alles löschen",
+  pen: (i: number) => `Stift ${i}`,
+  drawHere: "Hier zeichnen",
+  drawOnlyOnline: "Zeichnen geht nur, wenn alle ihr eigenes Handy haben.",
   back: "Zurück",
   pause: "Pause",
   paused: "Pause",
@@ -123,7 +127,7 @@ const de = {
   notHere: (n: string) => `${n} ist nicht da, überspringen`,
   guess: "Ratet!",
   listen: "Zuhören",
-  explains: (n: string, r: RoundType) => `${n} ${r === "pantomime" ? "spielt vor" : r === "sound" ? "macht Geräusche" : "erklärt"}`,
+  explains: (n: string, r: RoundType) => `${n} ${r === "pantomime" ? "spielt vor" : r === "sound" ? "macht Geräusche" : r === "draw" ? "zeichnet" : "erklärt"}`,
   guessed: "erraten",
   inBowl: "in der Schüssel",
   thisTurn: "dieser Zug",
@@ -175,6 +179,7 @@ const de = {
     pantomime: { name: "Pantomime", rule: "Kein Wort, kein Laut. Nur Hände, Füsse und Mimik." },
     oneword: { name: "Ein Wort", rule: "Genau ein Wort als Hinweis. Dann nur noch zeigen, ob's richtig ist." },
     sound: { name: "Geräusch", rule: "Nur Töne und Geräusche. Keine Wörter, keine Gesten." },
+    draw: { name: "Zeichnen", rule: "Zeichne den Begriff auf deinem Handy, die anderen sehen live mit. Keine Buchstaben, keine Zahlen." },
   } as Record<RoundType, { name: string; rule: string }>,
   funnyPlayers: ["Fondue-Fritz", "Rösti-Rosa", "Velo-Vreni", "Schoggi-Sepp", "Gipfeli-Gabi", "Alphorn-Anni", "Zmorge-Zoe", "Raclette-Ruedi", "Chäsli-Chrigi", "Murmeli-Mia"],
   funnyTeams: ["Rösti-Raketen", "Fondue-Gang", "Schoggi-Bande", "Gipfelstürmer", "Zetteli-Zauberer", "Murmeltiere", "Alphorn-Allstars", "Bergziegen", "Käse-Kommando", "Gipfeli-Gang"],
@@ -183,6 +188,10 @@ const de = {
 export type Dict = typeof de;
 
 const en: Dict = {
+  wipe: "Clear drawing",
+  pen: (i) => `Pen ${i}`,
+  drawHere: "Draw here",
+  drawOnlyOnline: "Drawing needs everyone on their own phone.",
   back: "Back",
   pause: "Pause",
   paused: "Paused",
@@ -292,7 +301,7 @@ const en: Dict = {
   notHere: (n) => `${n} isn't here, skip them`,
   guess: "Guess!",
   listen: "Listen",
-  explains: (n, r) => `${n} ${r === "pantomime" ? "is acting" : r === "sound" ? "is making sounds" : "is explaining"}`,
+  explains: (n, r) => `${n} ${r === "pantomime" ? "is acting" : r === "sound" ? "is making sounds" : r === "draw" ? "is drawing" : "is explaining"}`,
   guessed: "guessed",
   inBowl: "in the bowl",
   thisTurn: "this turn",
@@ -342,12 +351,17 @@ const en: Dict = {
     pantomime: { name: "Charades", rule: "No words, no sounds. Only hands, feet and faces." },
     oneword: { name: "One word", rule: "Exactly one word as a clue. After that, only show if it's right." },
     sound: { name: "Sounds", rule: "Only noises and sounds. No words, no gestures." },
+    draw: { name: "Drawing", rule: "Draw the word on your phone, the others watch live. No letters, no numbers." },
   },
   funnyPlayers: ["Captain Cheese", "Sir Snacksalot", "Waffle Wizard", "Noodle Ninja", "Pickle Pro", "Disco Llama", "Muffin Mayhem", "Taco Tornado", "Banana Bandit", "Nacho Libre"],
   funnyTeams: ["Mighty Muffins", "Snack Attack", "The Clueless", "Pun Intended", "Team Spaghetti", "Guess Who", "Slip Happens", "The Wild Guesses", "Bowl Busters", "Word Nerds"],
 };
 
 const fr: Dict = {
+  wipe: "Tout effacer",
+  pen: (i) => `Crayon ${i}`,
+  drawHere: "Dessine ici",
+  drawOnlyOnline: "Le dessin demande que chacun ait son téléphone.",
   back: "Retour",
   pause: "Pause",
   paused: "Pause",
@@ -457,7 +471,7 @@ const fr: Dict = {
   notHere: (n) => `${n} n'est pas là, passer`,
   guess: "Devinez !",
   listen: "Écoutez",
-  explains: (n, r) => `${n} ${r === "pantomime" ? "mime" : r === "sound" ? "fait des bruits" : "explique"}`,
+  explains: (n, r) => `${n} ${r === "pantomime" ? "mime" : r === "sound" ? "fait des bruits" : r === "draw" ? "dessine" : "explique"}`,
   guessed: "trouvés",
   inBowl: "dans le bol",
   thisTurn: "ce tour",
@@ -507,6 +521,7 @@ const fr: Dict = {
     pantomime: { name: "Mime", rule: "Pas un mot, pas un son. Seulement les mains, les pieds et les grimaces." },
     oneword: { name: "Un mot", rule: "Un seul mot comme indice. Ensuite, seulement montrer si c'est juste." },
     sound: { name: "Bruitage", rule: "Seulement des bruits et des sons. Pas de mots, pas de gestes." },
+    draw: { name: "Dessin", rule: "Dessine le mot sur ton téléphone, les autres regardent en direct. Pas de lettres, pas de chiffres." },
   },
   funnyPlayers: ["Baguette Bernard", "Croissant Claire", "Fromage Fifi", "Crêpe Camille", "Raclette René", "Escargot Émile", "Madeleine Mimi", "Fondue Fanfan", "Macaron Max", "Brioche Bibi"],
   funnyTeams: ["Croissants Volants", "Fromages Qui Rient", "Baguettes Magiques", "Escargots Turbo", "Crêpes Sauvages", "Papiers Froissés", "Bols Pleins", "Mimes Masqués", "Cerveaux Frits", "Quiches Lorraines"],

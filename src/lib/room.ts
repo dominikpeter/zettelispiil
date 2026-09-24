@@ -7,8 +7,11 @@ const GRACE = 1500; // a "got" tapped at 0:00 still counts while it travels to t
 const MIN_CARRY = 5000; // less time left than this when the bowl empties → next player starts the new round
 export const MAX_PLAYERS = 20;
 
-export const ROUND_TYPES = ["describe", "pantomime", "oneword", "sound"] as const;
+export const ROUND_TYPES = ["describe", "pantomime", "oneword", "sound", "draw"] as const;
 export type RoundType = (typeof ROUND_TYPES)[number];
+export const DEFAULT_ROUNDS: RoundType[] = ["describe", "pantomime", "oneword", "sound"]; // drawing is opt-in, and needs every phone
+/** a drawn line: [color index, x0, y0, x1, y1, …] on a 0…1000 grid */
+export type Stroke = number[];
 export type Team = 0 | 1;
 export type Settings = { perPlayer: number; seconds: number; rounds: RoundType[]; skips: number }; // skips: per turn, -1 = unlimited
 export type Phase = "lobby" | "write" | "ready" | "turn" | "roundEnd" | "end";
@@ -37,6 +40,7 @@ type Room = {
   turnStart: number;
   endsAt: number;
   pausedAt: number; // 0 = running; a paused turn neither ticks nor times out
+  drawNo: number; // a fresh sheet for every Zetteli drawn and every wipe
   carryMs: number;
   turnGot: number;
   scores: [number, number][]; // per round
@@ -68,7 +72,7 @@ export function cleanSettings(s: Partial<Settings>): Settings {
   return {
     perPlayer: clamp(s.perPlayer, 1, 10, 4),
     seconds: Math.round(clamp(s.seconds, 10, 120, 30) / 5) * 5,
-    rounds: rounds.length ? rounds : [...ROUND_TYPES],
+    rounds: rounds.length ? rounds : [...DEFAULT_ROUNDS],
     skips: s.skips === -1 ? -1 : clamp(s.skips ?? 1, 0, 5, 0),
   };
 }
@@ -97,7 +101,7 @@ export async function createRoom(db: Store, hostName: unknown, lang: unknown = "
     const code = Array.from({ length: 4 }, () => CODE_CHARS[pick(CODE_CHARS.length)]).join("");
     const room: Room = {
       code, hostId: "", settings: cleanSettings({}), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de"), phase: "lobby", ids: [], teams: [], words: [], authors: [],
-      bowl: [], current: null, held: [], shownAt: 0, round: 0, team: 0, next: [0, 0], turnStart: 0, endsAt: 0, pausedAt: 0, carryMs: 0,
+      bowl: [], current: null, held: [], shownAt: 0, round: 0, team: 0, next: [0, 0], turnStart: 0, endsAt: 0, pausedAt: 0, drawNo: 0, carryMs: 0,
       turnGot: 0, scores: [], log: [], turns: [], writeNo: 0, turnNo: 0,
     };
     if (!(await db.set(k(code).room, room, { ex: TTL, nx: true }))) continue; // code taken, roll again
@@ -119,6 +123,10 @@ export async function joinRoom(db: Store, code: string, name: unknown) {
   return { code, pid: m.id, token: m.token };
 }
 
+// one drawing sheet per Zetteli in hand; a new Zetteli or a wipe starts a fresh one
+const drawKey = (room: Room) => `room:${room.code}:draw:${room.drawNo}`;
+const drawing = (room: Room) => room.phase === "turn" && room.settings.rounds[room.round] === "draw";
+
 const teamPlayers = (room: Room, t: Team) => room.teams.flatMap((x, i) => (x === t ? [i] : []));
 /** who describes next (ready) or now (turn) */
 export const describer = (room: Room) => {
@@ -134,6 +142,7 @@ function draw(room: Room, now: number) {
   const pool = fresh(room);
   room.current = pool.length ? pool[pick(pool.length)] : (room.held.shift() ?? null);
   room.shownAt = now;
+  room.drawNo++;
 }
 
 function logHand(room: Room, at: number, res: Ev["res"]) {
@@ -168,7 +177,9 @@ export type Action =
   | { type: "teamName"; team: Team; name: string }
   | { type: "words"; words: string[] }
   | { type: "got" | "skip"; w: number }
-  | { type: "back"; w: number; to: number };
+  | { type: "back"; w: number; to: number }
+  | { type: "draw"; strokes: Stroke[] }
+  | { type: "wipe" };
 
 export async function act(db: Store, code: string, pid: unknown, token: unknown, a: Action, now = Date.now()) {
   const { room, members } = await load(db, code);
@@ -265,6 +276,19 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       room.pausedAt = 0;
       break;
     }
+    case "draw": {
+      if (!drawing(room) || room.pausedAt || now > room.endsAt + GRACE) return;
+      need(idx === describer(room));
+      const ok = Array.isArray(a.strokes) && a.strokes.length <= 40 && a.strokes.every((st) => Array.isArray(st) && st.length >= 3 && st.length <= 1201 && st.every((n) => Number.isInteger(n) && n >= 0 && n <= 1000));
+      if (!ok) throw new RoomError("bad_request");
+      await db.hset(drawKey(room), `${now}.${Math.random().toString(36).slice(2, 6)}`, a.strokes, 60 * 60);
+      return; // the room itself is unchanged
+    }
+    case "wipe":
+      if (!drawing(room)) return;
+      need(idx === describer(room));
+      room.drawNo++;
+      break;
     case "cancel": // stop the game, keep players, teams and settings
       need(host && room.phase !== "lobby");
       Object.assign(room, { phase: "lobby", current: null, held: [], pausedAt: 0, carryMs: 0 } satisfies Partial<Room>);
@@ -306,6 +330,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       room.held = room.held.map((w) => (w === a.to ? a.w : w));
       room.current = a.to;
       room.shownAt = now;
+      room.drawNo++;
       break;
     }
     case "nextRound":
@@ -348,6 +373,7 @@ export type View = {
   carryMs: number;
   word: { id: number; text: string } | null; // only on the describer's phone
   held: { id: number; text: string }[]; // set-aside Zetteli, describer only
+  drawing: Stroke[] | null; // drawing rounds: what's on the paper right now, for every phone
   canSkip: boolean;
   bowlLeft: number;
   total: number;
@@ -372,6 +398,13 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
   const order = lobby ? members.map((m) => m.id) : room.ids;
   const idx = me ? order.indexOf(me.id) : -1;
   const playing = room.phase === "ready" || room.phase === "turn";
+  let lines: Stroke[] | null = null;
+  if (drawing(room) && !room.pausedAt) {
+    const h = await db.hgetall<Stroke[]>(drawKey(room));
+    lines = Object.entries(h)
+      .sort((x, y) => parseFloat(x[0]) - parseFloat(y[0]))
+      .flatMap(([, ss]) => ss);
+  }
   const active = playing ? describer(room) : null;
 
   let done = 0;
@@ -400,6 +433,7 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
     carryMs: room.carryMs,
     word: room.phase === "turn" && !room.pausedAt && idx === active && room.current !== null ? { id: room.current, text: room.words[room.current] } : null,
     held: room.phase === "turn" && !room.pausedAt && idx === active ? room.held.map((w) => ({ id: w, text: room.words[w] })) : [],
+    drawing: lines,
     canSkip: room.phase === "turn" && (room.settings.skips === -1 || room.held.length < room.settings.skips) && fresh(room).length > 0,
     bowlLeft: room.bowl.length,
     total: room.words.length,

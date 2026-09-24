@@ -148,3 +148,60 @@ test("unknown room code says so and offers the way back", async ({ page }) => {
   await page.getByRole("button", { name: "Zur Startseite" }).click();
   await expect(page).toHaveURL("/");
 });
+
+test("drawing round: lines drawn on one phone show up on the others", async ({ browser }) => {
+  const host = await phone(browser);
+  await host.goto("/");
+  await host.getByRole("button", { name: /Jedes Handy/ }).click();
+  await host.getByLabel("Dein Name").fill("Lisa");
+  await host.getByRole("button", { name: "Raum erstellen" }).click();
+  await host.waitForURL(/\/r\/[A-Z0-9]{4}$/);
+  const code = host.url().split("/").pop()!;
+  const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
+  for (const [i, p] of others.entries()) {
+    await p.goto(`/r/${code}`);
+    await p.getByLabel("Dein Name").fill(`P${i}`);
+    await p.getByRole("button", { name: "Beitreten" }).click();
+  }
+  const phones = [host, ...others];
+
+  // only the drawing round, 1 Zetteli each
+  await host.getByRole("button", { name: "Zeichnen hinzufügen" }).click();
+  for (const r of ["Umschreiben", "Pantomime", "Ein Wort", "Geräusch"]) await host.getByRole("button", { name: `${r} weglassen` }).click();
+  for (let i = 0; i < 3; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
+  await host.getByRole("button", { name: "Spiel starten" }).click();
+  for (const [i, p] of phones.entries()) {
+    await p.getByLabel("Zetteli 1").fill(`Bild${i}`);
+    await p.getByRole("button", { name: "In die Schüssel" }).click();
+  }
+
+  const go = (p: Page) => p.getByRole("button", { name: "Los, Zetteli ziehen" });
+  await expect.poll(async () => (await Promise.all(phones.map((p) => go(p).isVisible()))).filter(Boolean).length, { timeout: 10_000 }).toBe(1);
+  const d = phones[(await Promise.all(phones.map((p) => go(p).isVisible()))).indexOf(true)];
+  const watcher = phones.find((p) => p !== d)!;
+  await go(d).click();
+  await expect(d.getByTestId("word")).toBeVisible();
+
+  // draw a zig-zag on the paper
+  const paper = d.getByRole("img", { name: "Hier zeichnen" });
+  const box = (await paper.boundingBox())!;
+  await d.mouse.move(box.x + 30, box.y + 30);
+  await d.mouse.down();
+  for (let i = 1; i <= 10; i++) await d.mouse.move(box.x + 30 + i * 25, box.y + 30 + (i % 2) * 80);
+  await d.mouse.up();
+
+  // the watcher's canvas gets ink (dark pixels), and never the word
+  const inked = () =>
+    watcher.locator("canvas").evaluate((c: HTMLCanvasElement) => {
+      const px = c.getContext("2d")!.getImageData(0, 0, c.width, c.height).data;
+      let n = 0;
+      for (let i = 3; i < px.length; i += 4) if (px[i] > 0) n++;
+      return n;
+    });
+  await expect.poll(inked, { timeout: 5_000 }).toBeGreaterThan(50);
+  await expect(watcher.getByTestId("word")).toHaveCount(0);
+
+  // wiping clears it for everyone
+  await d.getByRole("button", { name: "Alles löschen" }).click();
+  await expect.poll(inked, { timeout: 5_000 }).toBe(0);
+});

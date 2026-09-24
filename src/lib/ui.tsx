@@ -1,6 +1,6 @@
 // shared look & feel
 import type { CSSProperties, ReactNode } from "react";
-import { MessageSquareText, PersonStanding, Volume2, WholeWord, type LucideIcon } from "lucide-react";
+import { Brush, MessageSquareText, PersonStanding, Volume2, WholeWord, type LucideIcon } from "lucide-react";
 import type { RoundType } from "./room";
 
 export const press = "transition duration-200 ease-spring active:scale-[0.96]";
@@ -18,7 +18,7 @@ export const TEAM = [
   { text: "text-team-b", bg: "bg-team-b", soft: "bg-team-b/15", border: "border-team-b" },
 ] as const;
 
-const ROUND_ICON: Record<RoundType, LucideIcon> = { describe: MessageSquareText, pantomime: PersonStanding, oneword: WholeWord, sound: Volume2 };
+const ROUND_ICON: Record<RoundType, LucideIcon> = { describe: MessageSquareText, pantomime: PersonStanding, oneword: WholeWord, sound: Volume2, draw: Brush };
 export function RoundIcon({ type, className = "size-6" }: { type: RoundType; className?: string }) {
   const I = ROUND_ICON[type];
   return <I className={className} aria-hidden />;

@@ -1,18 +1,21 @@
 "use client";
 
-import { ArrowLeft, ArrowLeftRight, Check, Home, Pause, Play, ChevronDown, ChevronUp, Crown, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, Check, Eraser, Home, Pause, Play, ChevronDown, ChevronUp, Crown, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { pickOne } from "@/lib/i18n";
 import { useT } from "@/lib/prefs";
 import { ROUND_TYPES, type Action, type Settings, type Team, type View } from "@/lib/room";
 import { Bowl, btn, btn2, buzz, field, ghost, panel, press, round_btn, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
+import { DrawBoard, INKS } from "./DrawBoard";
 import { Stats } from "./Stats";
 import { SettingsPanel } from "./TopControls";
 
 export type Mode = "online" | "local";
 /** `as`: in one-phone games, act as that player; online always acts as this phone's player */
 export type Send = (a: Action, as?: number) => Promise<void>;
-type P = { v: View; send: Send; busy: boolean; mode: Mode };
+/** fire-and-forget, no refresh: for the stream of drawing batches */
+export type SendQuiet = (a: Action) => void;
+type P = { v: View; send: Send; busy: boolean; mode: Mode; sendQuiet?: SendQuiet };
 
 const SWIPE = 90; // px to count as a swipe
 const mini = `grid size-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-ink disabled:opacity-25 ${press}`;
@@ -217,7 +220,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
   const canStart = counts.every((c) => c >= 2);
   const mine = v.players[v.me]?.team ?? 0;
   const skipStep = s.skips === -1 ? 6 : s.skips; // stepper runs 0…5, then ∞
-  const off = ROUND_TYPES.filter((r) => !s.rounds.includes(r));
+  const off = ROUND_TYPES.filter((r) => !s.rounds.includes(r) && !(local && r === "draw")); // one phone can't show a drawing to the others
   const move = (i: number, d: number) => {
     const r = [...s.rounds];
     [r[i], r[i + d]] = [r[i + d], r[i]];
@@ -582,7 +585,7 @@ function SwipeSlip({ text, locked, canSkip, fling, onSwipe }: { text: string; lo
   );
 }
 
-export function Turn({ v, left, send }: P & { left: number }) {
+export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
   const t = useT();
   const d = v.active!;
   const p = v.players[d];
@@ -611,6 +614,105 @@ export function Turn({ v, left, send }: P & { left: number }) {
   };
 
   const type = v.settings.rounds[v.round];
+  const [ink, setInk] = useState(0);
+  const [wipes, setWipes] = useState(0);
+
+  const topBar = (
+    <div className="sticky top-0 z-10 -mx-4 flex items-center justify-between gap-3 bg-canvas/90 px-4 py-2 backdrop-blur">
+      <TimerRing left={shownLeft} total={total} size={76} label={t.secondsLeft} />
+      <div className="text-center">
+        <p className="text-sm text-muted">{t.thisTurn}</p>
+        <p key={v.turnGot} className="bump text-3xl font-extrabold text-hi tabular-nums">
+          +{v.turnGot}
+        </p>
+      </div>
+      <Bowl count={v.bowlLeft} className="w-20" />
+    </div>
+  );
+  const buttons = (
+    <div className="grid grid-cols-[1fr_1.6fr] gap-3 pb-1">
+      <button onClick={() => act("l")} disabled={up || !!fling || !v.canSkip} className={`${btn2} min-h-14 flex-col gap-0 leading-tight`}>
+        {t.next}
+        {v.settings.skips !== -1 && <span className="text-xs font-medium text-muted">{t.left(v.settings.skips - v.held.length)}</span>}
+      </button>
+      <button onClick={() => act("r")} disabled={up || !!fling} className={btn}>
+        <Check className="size-5" aria-hidden /> {t.got}
+      </button>
+    </div>
+  );
+
+  if (type === "draw" && me) {
+    const [word, sheet] = [v.word, `${v.word?.id}-${wipes}`];
+    return (
+      <div className="flex flex-1 flex-col gap-3">
+        {topBar}
+        {word && (
+          <Slip key={word.id} tilt={-1} className="unfold self-center px-5 pt-1.5">
+            <span data-testid="word" className="font-hand text-4xl font-bold">
+              {word.text}
+            </span>
+          </Slip>
+        )}
+        {word && (
+          <DrawBoard
+            key={sheet}
+            strokes={wipes ? [] : (v.drawing ?? [])}
+            ink={ink}
+            label={t.drawHere}
+            onFlush={up ? undefined : (strokes) => sendQuiet?.({ type: "draw", strokes })}
+          />
+        )}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex gap-2" role="radiogroup" aria-label={t.drawHere}>
+            {INKS.map((c, i) => (
+              <button
+                key={c}
+                role="radio"
+                aria-checked={ink === i}
+                aria-label={t.pen(i + 1)}
+                onClick={() => setInk(i)}
+                className={`size-10 rounded-full border-4 ${press} ${ink === i ? "border-accent" : "border-surface"}`}
+                style={{ background: c }}
+              />
+            ))}
+          </div>
+          <button
+            onClick={async () => {
+              setWipes((n) => n + 1);
+              await send({ type: "wipe" }, d);
+            }}
+            disabled={up}
+            className={`${btn2} w-auto! px-4`}
+          >
+            <Eraser className="size-5" aria-hidden /> {t.wipe}
+          </button>
+        </div>
+        {buttons}
+      </div>
+    );
+  }
+
+  if (type === "draw") {
+    const guessing = v.players[v.me]?.team === p.team;
+    return (
+      <div className="flex flex-1 flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <TimerRing left={shownLeft} total={total} size={76} label={t.secondsLeft} />
+          <div className="min-w-0 text-right">
+            <p className={`text-3xl font-extrabold tracking-tight ${guessing ? TEAM[p.team].text : "text-ink"}`}>{guessing ? t.guess : t.listen}</p>
+            <p className="truncate text-muted">{t.explains(p.name, type)}</p>
+          </div>
+        </div>
+        <DrawBoard strokes={v.drawing ?? []} label={t.explains(p.name, type)} />
+        <p className="text-center text-muted">
+          <b key={v.turnGot} className="bump text-2xl text-ink tabular-nums">
+            {v.turnGot}
+          </b>{" "}
+          {t.guessed} · <b className="text-2xl text-ink tabular-nums">{v.bowlLeft}</b> {t.inBowl}
+        </p>
+      </div>
+    );
+  }
 
   if (!me) {
     const guessing = v.players[v.me]?.team === p.team;
@@ -646,16 +748,7 @@ export function Turn({ v, left, send }: P & { left: number }) {
   return (
     <div className="flex flex-1 flex-col gap-3">
       {/* always visible: time, score this turn, bowl */}
-      <div className="sticky top-0 z-10 -mx-4 flex items-center justify-between gap-3 bg-canvas/90 px-4 py-2 backdrop-blur">
-        <TimerRing left={shownLeft} total={total} size={76} label={t.secondsLeft} />
-        <div className="text-center">
-          <p className="text-sm text-muted">{t.thisTurn}</p>
-          <p key={v.turnGot} className="bump text-3xl font-extrabold text-hi tabular-nums">
-            +{v.turnGot}
-          </p>
-        </div>
-        <Bowl count={v.bowlLeft} className="w-20" />
-      </div>
+      {topBar}
       <div className="flex items-start gap-2 rounded-2xl bg-surface px-3 py-2 text-sm text-muted">
         <RoundIcon type={type} className="mt-0.5 size-4 shrink-0 text-accent" />
         <p>
@@ -689,15 +782,7 @@ export function Turn({ v, left, send }: P & { left: number }) {
         </div>
       )}
 
-      <div className="grid grid-cols-[1fr_1.6fr] gap-3 pb-1">
-        <button onClick={() => act("l")} disabled={up || !!fling || !v.canSkip} className={`${btn2} min-h-14 flex-col gap-0 leading-tight`}>
-          {t.next}
-          {v.settings.skips !== -1 && <span className="text-xs font-medium text-muted">{t.left(v.settings.skips - v.held.length)}</span>}
-        </button>
-        <button onClick={() => act("r")} disabled={up || !!fling} className={btn}>
-          <Check className="size-5" aria-hidden /> {t.got}
-        </button>
-      </div>
+      {buttons}
     </div>
   );
 }

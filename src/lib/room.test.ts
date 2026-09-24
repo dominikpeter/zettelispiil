@@ -213,3 +213,24 @@ test("pause stops the clock and hides the Zetteli; cancel goes back to the lobby
   assert.equal(v.phase, "lobby");
   assert.equal(v.players.length, 4);
 });
+
+test("drawing round: strokes reach every phone, wipe and a new Zetteli start a fresh sheet", async () => {
+  const { as, see } = await setup();
+  await as(0, { type: "settings", settings: { rounds: ["draw"] } });
+  await writeAll(as);
+  const { i } = await describerView(see);
+  const other = (i + 1) % 4;
+  await as(i, { type: "go" });
+  await assert.rejects(as(other, { type: "draw", strokes: [[0, 1, 2, 3, 4]] }), RoomError); // only the drawer draws
+  await assert.rejects(as(i, { type: "draw", strokes: [[0, 1, 2000]] }), RoomError); // off the paper
+  await as(i, { type: "draw", strokes: [[0, 10, 10, 20, 20]] });
+  await as(i, { type: "draw", strokes: [[1, 20, 20, 30, 40], [2, 5, 5]] });
+  const v = await see(other);
+  assert.deepEqual(v.drawing, [[0, 10, 10, 20, 20], [1, 20, 20, 30, 40], [2, 5, 5]]);
+  assert.equal(v.word, null); // watchers see lines, never the word
+  await as(i, { type: "wipe" });
+  assert.deepEqual((await see(other)).drawing, []);
+  await as(i, { type: "draw", strokes: [[0, 1, 1, 2, 2]] });
+  await as(i, { type: "got", w: (await see(i)).word!.id });
+  assert.deepEqual((await see(other)).drawing, []); // next Zetteli, clean paper
+});

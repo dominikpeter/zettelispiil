@@ -14,6 +14,7 @@ import { useCountdown } from "@/lib/useCountdown";
 const noop = () => () => {};
 const POLL_MS = 1500;
 const POLL_TURN_MS = 800;
+const POLL_DRAW_MS = 350;
 
 export default function Room() {
   const t = useT();
@@ -44,18 +45,19 @@ export default function Room() {
   }, [code, id]);
 
   const fast = v?.phase === "turn" || v?.phase === "ready";
+  const drawTurn = v?.phase === "turn" && v.settings.rounds[v.round] === "draw" && v.me !== v.active; // watchers follow the drawing closely
   // poll while visible; refresh right away when the phone wakes up
   useEffect(() => {
     const tick = () => document.visibilityState === "visible" && refresh();
     const first = setTimeout(refresh, 0); // always load once, even if opened in a background tab
-    const timer = setInterval(tick, fast ? POLL_TURN_MS : POLL_MS);
+    const timer = setInterval(tick, drawTurn ? POLL_DRAW_MS : fast ? POLL_TURN_MS : POLL_MS);
     document.addEventListener("visibilitychange", tick);
     return () => {
       clearTimeout(first);
       clearInterval(timer);
       document.removeEventListener("visibilitychange", tick);
     };
-  }, [refresh, fast]);
+  }, [refresh, fast, drawTurn]);
 
   const left = useCountdown(v, offset);
 
@@ -74,6 +76,10 @@ export default function Room() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const sendQuiet = (body: Action) => {
+    api(`/${code}`, { ...id, ...body }).catch(() => {}); // a lost drawing batch is not worth an error
   };
 
   const join = async () => {
@@ -164,7 +170,7 @@ export default function Room() {
       )}
 
       {joined && v.phase === "lobby" && <Lobby v={v} send={send} busy={busy} mode="online" share={{ qr, copied, onShare: share }} />}
-      {joined && v.phase !== "lobby" && <Phase v={v} send={send} busy={busy} mode="online" left={left} />}
+      {joined && v.phase !== "lobby" && <Phase v={v} send={send} sendQuiet={sendQuiet} busy={busy} mode="online" left={left} />}
 
       {!v && !errMsg && <Waiting text={t.loading} />}
     </main>
