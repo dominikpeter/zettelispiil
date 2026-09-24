@@ -14,7 +14,7 @@ import { useCountdown } from "@/lib/useCountdown";
 const noop = () => () => {};
 const POLL_MS = 1500;
 const POLL_TURN_MS = 800;
-const POLL_DRAW_MS = 350;
+const POLL_DRAW_MS = 500; // watchers follow the drawing; Redis cost scales with this
 
 export default function Room() {
   const t = useT();

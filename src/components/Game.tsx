@@ -3,7 +3,7 @@
 import { AlertTriangle, ArrowLeft, ArrowLeftRight, Check, Eraser, Loader2, Sparkles, Home, Pause, Play, ChevronDown, ChevronUp, Crown, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { pickOne } from "@/lib/i18n";
-import { aiPref, langPref, useT } from "@/lib/prefs";
+import { aiPref, langPref, useHints, useT } from "@/lib/prefs";
 import { funnyName } from "@/lib/roomClient";
 import { norm, ROUND_TYPES, type Action, type Settings, type Slip as SlipT, type Team, type View } from "@/lib/room";
 import { Bowl, btn, btn2, buzz, field, ghost, panel, pill, pillBtn, press, round_btn, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
@@ -105,7 +105,8 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
               <Pause className="size-12" strokeWidth={1.75} aria-hidden />
             </span>
             <h2 className="mt-2 text-5xl font-extrabold tracking-tight">{t.paused}</h2>
-            {turn && <p className="max-w-[30ch] text-muted">{paused ? t.pausedTurn : t.pausedBy}</p>}
+            {paused && <p className="max-w-[30ch] text-muted">{canPause ? t.pausedTurn : t.pausedBy}</p>}
+            {turn && !paused && !canPause && <p className="max-w-[30ch] text-muted">{t.menuRunning}</p>}
           </div>
           <details className="mx-auto mb-4 w-full max-w-md rounded-3xl bg-surface p-4 [&[open]>summary>svg]:rotate-180">
             <summary className="flex cursor-pointer list-none items-center justify-between font-semibold">
@@ -312,7 +313,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
                       </button>
                     )}
                     {v.isHost && i !== v.hostIndex && (
-                      <button onClick={() => send({ type: "kick", player: i })} disabled={busy} aria-label={`${p.name} ×`} className={mini}>
+                      <button onClick={() => send({ type: "kick", player: i })} disabled={busy} aria-label={t.removePlayer(p.name)} className={mini}>
                         <X className="size-4" aria-hidden />
                       </button>
                     )}
@@ -538,7 +539,7 @@ export function Write({ v, send, busy }: P) {
                   className="w-full bg-transparent pb-1 text-sm text-paper-ink/70 outline-none placeholder:text-paper-ink/30"
                 />
               </Slip>
-              {dupes.has(norm(d.word)) && <p className="mt-2 text-sm font-medium text-hi">{t.cancelled(d.word)}</p>}
+              {dupes.has(norm(d.word)) && <p className="mt-2 text-sm font-medium text-hi">{t.twice(d.word)}</p>}
               {(fix || r?.tooHard) && (
                 <div aria-live="polite" className="pop mt-2 flex flex-wrap items-center gap-2 text-sm">
                   {fix && (
@@ -558,7 +559,7 @@ export function Write({ v, send, busy }: P) {
         })}
       </div>
       <Cta>
-        <button disabled={busy || draft.some((d) => !d.word.trim()) || dupes.size > 0} className={btn}>
+        <button disabled={busy || draft.some((d) => !norm(d.word)) || dupes.size > 0} className={btn}>
           {t.intoBowl}
         </button>
         <p className="mt-2 text-center text-sm text-muted tabular-nums">{t.done(v.done, v.players.length)}</p>
@@ -639,6 +640,7 @@ export function Ready({ v, send, busy, mode }: P) {
 
 function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe }: { text: string; hint: string; locked: boolean; canSkip: boolean; fling: "r" | "l" | null; onSwipe: (d: "r" | "l") => void }) {
   const t = useT();
+  const showHint = useHints();
   const [dx, setDx] = useState(0);
   const [shake, setShake] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -681,7 +683,7 @@ function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe }: { text: stri
           <p data-testid="word" className={`font-hand leading-none font-bold break-words ${size}`}>
             {text}
           </p>
-          {hint && <p className="mt-3 text-base text-paper-ink/60">{hint}</p>}
+          {showHint && hint && <p className="mt-3 text-base text-paper-ink/60">{hint}</p>}
           {/* stamps that fade in while dragging */}
           <span className="absolute top-3 left-4 -rotate-12 rounded-md border-2 border-[#0a8a3a] px-2 text-sm font-extrabold text-[#0a8a3a]" style={{ opacity: Math.max(0, Math.min(1, dx / SWIPE)) }}>
             {t.stampGot}
@@ -728,6 +730,7 @@ export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
 
   const type = v.settings.rounds[v.round];
   const [ink, setInk] = useState(0);
+  const showHint = useHints();
   const [wipes, setWipes] = useState(0);
 
   const topBar = (
@@ -764,7 +767,7 @@ export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
             <span data-testid="word" className="font-hand text-4xl font-bold">
               {word.text}
             </span>
-            {word.hint && <span className="block text-center text-sm text-paper-ink/60">{word.hint}</span>}
+            {showHint && word.hint && <span className="block text-center text-sm text-paper-ink/60">{word.hint}</span>}
           </Slip>
         )}
         {word && (

@@ -10,6 +10,10 @@ export const LANGS: { id: Lang; label: string }[] = [
 const de = {
   // home
   checking: "Prüfe die Zetteli …",
+  twice: (w: string) => `„${w}“ steht zweimal auf deinen Zetteli.`,
+  menuRunning: "Die Zeit läuft weiter. Anhalten kann die Erklärer:in oder die Spielleitung.",
+  showHints: "Hinweise beim Erklären",
+  showHintsNote: "Zeigt den KI-Hinweis klein unter dem Zetteli. Braucht KI-Hilfe.",
   aiHelp: "KI-Hilfe",
   aiHelpNote: "Prüft Rechtschreibung und Schwierigkeit, schlägt Hinweise und lustige Namen vor.",
   on: "An",
@@ -201,6 +205,10 @@ export type Dict = typeof de;
 
 const en: Dict = {
   checking: "Checking your slips…",
+  twice: (w) => `“${w}” is on your slips twice.`,
+  menuRunning: "The clock keeps running. The describer or the host can pause it.",
+  showHints: "Hints while explaining",
+  showHintsNote: "Shows the AI hint small under the slip. Needs AI help.",
   aiHelp: "AI help",
   aiHelpNote: "Checks spelling and difficulty, suggests hints and funny names.",
   on: "On",
@@ -383,6 +391,10 @@ const en: Dict = {
 
 const fr: Dict = {
   checking: "Vérification des papiers…",
+  twice: (w) => `« ${w} » est deux fois sur tes papiers.`,
+  menuRunning: "Le chrono continue. Qui explique ou l'hôte peut le mettre en pause.",
+  showHints: "Indices pendant l'explication",
+  showHintsNote: "Affiche l'indice IA sous le papier. Nécessite l'aide IA.",
   aiHelp: "Aide IA",
   aiHelpNote: "Vérifie l'orthographe et la difficulté, propose des indices et des noms drôles.",
   on: "Oui",

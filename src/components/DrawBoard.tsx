@@ -4,7 +4,7 @@ import { useEffect, useEffectEvent, useRef } from "react";
 import type { Stroke } from "@/lib/room";
 
 export const INKS = ["#03071e", "#d62828", "#00679f", "#0a8a3a"];
-const FLUSH_MS = 250; // how often the drawer's new lines go to the server
+const FLUSH_MS = 400; // how often the drawer's new lines go to the server
 
 function paint(ctx: CanvasRenderingContext2D, strokes: Stroke[], size: number) {
   ctx.clearRect(0, 0, size, size);

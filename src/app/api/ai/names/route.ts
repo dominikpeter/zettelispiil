@@ -7,8 +7,8 @@ export async function POST(req: Request) {
   if (!(await allowed(req))) return Response.json({ ai: false, error: "rate_limited" }, { status: 429 });
   const body = await req.json().catch(() => ({}));
   const kind = body?.kind === "team" ? "team" : "player";
-  const n = Math.max(1, Math.min(10, Number(body?.n) || 1));
-  const avoid = Array.isArray(body?.avoid) ? body.avoid.map(String).slice(0, 30) : [];
+  const n = Math.max(1, Math.min(3, Number(body?.n) || 1));
+  const avoid = Array.isArray(body?.avoid) ? body.avoid.slice(0, 20).map((a: unknown) => String(a).slice(0, 24)) : [];
   try {
     return Response.json({ ai: true, names: await funnyNames(kind, lang(body?.lang), n, avoid) });
   } catch (e) {

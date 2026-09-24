@@ -1,3 +1,4 @@
+import { aiPref } from "./prefs";
 // browser side of rooms: who I am in each room, and calls to /api/rooms
 export type Identity = { pid: string; token: string };
 
@@ -52,7 +53,7 @@ export const errKey = (e: string): (typeof KNOWN)[number] | "offline" => (KNOWN 
 /** one funny name from the AI when it's available, otherwise from our own list */
 export async function funnyName(kind: "player" | "team", lang: string, avoid: string[], fallback: string[]) {
   try {
-    if (localStorage.getItem("ai") === "off") throw 0; // AI help switched off on this phone
+    if (aiPref.get() === "off") throw 0; // AI help switched off on this phone
     const r = await fetch("/api/ai/names", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, lang, n: 1, avoid }) }).then((x) => x.json());
     if (r?.ai && r.names?.[0]) return String(r.names[0]);
   } catch {}

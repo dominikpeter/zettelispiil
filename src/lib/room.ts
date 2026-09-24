@@ -4,6 +4,7 @@ import type { Store } from "./store.ts";
 const TTL = 60 * 60 * 24; // rooms vanish a day after the last write
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I lookalikes
 const GRACE = 1500; // a "got" tapped at 0:00 still counts while it travels to the server
+const MAX_SHEET = 240; // drawing batches per sheet (~1 min of steady drawing at 250 ms) keeps every poll small
 const MIN_CARRY = 5000; // less time left than this when the bowl empties → next player starts the new round
 export const MAX_PLAYERS = 20;
 
@@ -304,8 +305,11 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
     case "draw": {
       if (!drawing(room) || room.pausedAt || now > room.endsAt + GRACE) return;
       need(idx === describer(room));
-      const ok = Array.isArray(a.strokes) && a.strokes.length <= 40 && a.strokes.every((st) => Array.isArray(st) && st.length >= 3 && st.length <= 1201 && st.every((n) => Number.isInteger(n) && n >= 0 && n <= 1000));
+      const ok = Array.isArray(a.strokes) && a.strokes.length <= 20 && a.strokes.every((st) => Array.isArray(st) && st.length >= 3 && st.length <= 401 && st.every((n) => Number.isInteger(n) && n >= 0 && n <= 1000));
       if (!ok) throw new RoomError("bad_request");
+      // ponytail: a sheet holds at most MAX_SHEET batches; a wipe or the next Zetteli starts a new one
+      const sheet = await db.hgetall<Stroke[]>(drawKey(room));
+      if (Object.keys(sheet).length >= MAX_SHEET) throw new RoomError("bad_request");
       await db.hset(drawKey(room), `${now}.${Math.random().toString(36).slice(2, 6)}`, a.strokes, 60 * 60);
       return; // the room itself is unchanged
     }

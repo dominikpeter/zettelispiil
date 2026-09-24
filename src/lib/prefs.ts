@@ -52,6 +52,9 @@ export const palettePref = pref<Palette>(
 );
 /** AI help while writing (spelling, difficulty, hints) and for funny names; on unless this phone switched it off */
 export const aiPref = pref<"on" | "off">("ai", ["on", "off"], "on");
+/** show the (AI) hint under the Zetteli while describing; only counts while AI help is on */
+export const hintPref = pref<"on" | "off">("hints", ["on", "off"], "on");
+export const useHints = () => aiPref.use() === "on" && hintPref.use() === "on";
 export const langPref = pref<Lang>("lang", ["de", "en", "fr"], "de", (l) => (root().lang = l));
 
 /** the dictionary for the chosen language (German until the device says otherwise) */

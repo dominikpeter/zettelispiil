@@ -1,15 +1,24 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-// every AI call costs money: at most 20 per minute per IP (needs Redis; unlimited in local dev without it)
+// every AI call costs money: 20 per minute per phone, and 1000 per day for the whole app
 const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
 const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
-const limiter = url && token ? new Ratelimit({ redis: new Redis({ url, token }), limiter: Ratelimit.slidingWindow(20, "1 m"), prefix: "ratelimit:ai" }) : null;
+const redis = url && token ? new Redis({ url, token }) : null;
+const perIp = redis && new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, "1 m"), prefix: "ratelimit:ai" });
+const perDay = redis && new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(1000, "1 d"), prefix: "ratelimit:ai-day" });
+
+// Vercel sets these itself; a client-sent x-forwarded-for can't fake them
+const ipOf = (req: Request) => req.headers.get("x-vercel-forwarded-for") ?? req.headers.get("x-real-ip") ?? "anon";
 
 export async function allowed(req: Request) {
-  if (!limiter) return true;
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "anon";
-  return (await limiter.limit(ip)).success;
+  if (!perIp || !perDay) return !process.env.VERCEL; // no Redis: fine on a dev machine, closed when deployed
+  try {
+    const [ip, day] = await Promise.all([perIp.limit(ipOf(req)), perDay.limit("all")]);
+    return ip.success && day.success;
+  } catch {
+    return false; // limiter unreachable: no AI rather than unmetered AI
+  }
 }
 
 export const lang = (l: unknown) => (l === "en" || l === "fr" ? l : "de");

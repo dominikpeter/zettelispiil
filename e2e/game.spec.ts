@@ -205,3 +205,106 @@ test("drawing round: lines drawn on one phone show up on the others", async ({ b
   await d.getByRole("button", { name: "Alles löschen" }).click();
   await expect.poll(inked, { timeout: 5_000 }).toBe(0);
 });
+
+/** one-phone game with 1 Zetteli each, written by `write(i)`, up to the first "Los" */
+async function localGame(page: Page, write = (i: number) => `Wort${i}`) {
+  page.on("dialog", (d) => d.accept()); // confirm() for leaving / cancelling
+  await page.goto("/");
+  await page.getByRole("button", { name: "Neues Spiel" }).click();
+  await page.waitForURL(/\/local$/);
+  for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  for (let i = 0; i < 5; i++) {
+    await page.getByRole("button", { name: /^Ich bin / }).click();
+    await page.getByLabel("Zetteli 1", { exact: true }).fill(write(i));
+    await page.getByRole("button", { name: "In die Schüssel" }).click();
+  }
+}
+
+test("pause hides the Zetteli and stops the clock; cancel goes back to the lobby; back goes home", async ({ page }) => {
+  await localGame(page);
+  await page.getByRole("button", { name: "Los, Zetteli ziehen" }).click();
+  await expect(page.getByTestId("word")).toBeVisible();
+  await page.getByRole("button", { name: "Pause" }).click();
+  await expect(page.getByRole("dialog", { name: "Pause" })).toBeVisible();
+  await expect(page.getByTestId("word")).toHaveCount(0); // no peeking
+  const frozen = await page.getByRole("timer").getAttribute("aria-label");
+  await page.waitForTimeout(2500);
+  expect(await page.getByRole("timer").getAttribute("aria-label")).toBe(frozen);
+  await page.getByRole("button", { name: "Weiterspielen" }).click();
+  await expect(page.getByTestId("word")).toBeVisible();
+
+  await page.getByRole("button", { name: "Pause" }).click();
+  await page.getByRole("button", { name: "Spiel abbrechen" }).click();
+  await expect(page.getByRole("button", { name: "Spiel starten" })).toBeVisible(); // lobby, same players
+  await expect(page.getByText("Domi", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Zurück" }).click();
+  await expect(page).toHaveURL("/");
+});
+
+test("the same word on two phones is cancelled for both, who each write a new one", async ({ browser }) => {
+  const host = await phone(browser);
+  await host.goto("/");
+  await host.getByRole("button", { name: /Jedes Handy/ }).click();
+  await host.getByLabel("Dein Name").fill("Lisa");
+  await host.getByRole("button", { name: "Raum erstellen" }).click();
+  await host.waitForURL(/\/r\/[A-Z0-9]{4}$/);
+  const code = host.url().split("/").pop()!;
+  const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
+  for (const [i, p] of others.entries()) {
+    await p.goto(`/r/${code}`);
+    await p.getByLabel("Dein Name").fill(`P${i}`);
+    await p.getByRole("button", { name: "Beitreten" }).click();
+    await expect(p.getByText("(du)")).toBeVisible();
+  }
+  for (let i = 0; i < 3; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
+  await host.getByRole("button", { name: "Spiel starten" }).click();
+
+  const [a, b, c, d] = [host, ...others];
+  await a.getByLabel("Zetteli 1", { exact: true }).fill("Velo");
+  await a.getByRole("button", { name: "In die Schüssel" }).click();
+  await expect(a.getByText("Deine Zetteli sind drin")).toBeVisible();
+  await b.getByLabel("Zetteli 1", { exact: true }).fill("vélo");
+  await b.getByRole("button", { name: "In die Schüssel" }).click();
+  for (const p of [a, b]) await expect(p.getByRole("alert").filter({ hasText: /hat noch jemand geschrieben/ })).toBeVisible();
+
+  await a.getByLabel("Zetteli 1", { exact: true }).fill("Aare");
+  await a.getByRole("button", { name: "In die Schüssel" }).click();
+  await b.getByLabel("Zetteli 1", { exact: true }).fill("Rösti");
+  await b.getByRole("button", { name: "In die Schüssel" }).click();
+  await c.getByLabel("Zetteli 1", { exact: true }).fill("Fondue");
+  await c.getByRole("button", { name: "In die Schüssel" }).click();
+  await d.getByLabel("Zetteli 1", { exact: true }).fill("Gipfeli");
+  await d.getByRole("button", { name: "In die Schüssel" }).click();
+  await expect(a.getByText(/Runde 1 von 4/)).toBeVisible();
+});
+
+test("AI help: spelling suggestion, hint filled in and shown to the describer (AI answer mocked)", async ({ page }) => {
+  await page.route("**/api/ai/check", async (route) => {
+    const { words } = route.request().postDataJSON() as { words: string[] };
+    const fix: Record<string, string> = { Matterhon: "Matterhorn" };
+    await route.fulfill({ json: { ai: true, results: words.map((w) => ({ word: w, corrected: fix[w] ?? w, tooHard: w === "Quark", reason: "", hint: `Tipp zu ${fix[w] ?? w}` })) } });
+  });
+  page.on("dialog", (d) => d.accept());
+  await page.goto("/");
+  await page.getByRole("button", { name: "Neues Spiel" }).click();
+  await page.waitForURL(/\/local$/);
+  for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+
+  await page.getByRole("button", { name: /^Ich bin / }).click();
+  await page.getByLabel("Zetteli 1", { exact: true }).fill("Matterhon");
+  await page.getByRole("button", { name: /Meintest du „Matterhorn“/ }).click();
+  await expect(page.getByLabel("Zetteli 1", { exact: true })).toHaveValue("Matterhorn");
+  await expect(page.getByLabel(/Zetteli 1: Hinweis/)).toHaveValue(/Tipp zu Matter/);
+  await page.getByRole("button", { name: "In die Schüssel" }).click();
+  for (let i = 1; i < 5; i++) {
+    await page.getByRole("button", { name: /^Ich bin / }).click();
+    await page.getByLabel("Zetteli 1", { exact: true }).fill(`Wort${i}`);
+    await expect(page.getByLabel(/Zetteli 1: Hinweis/)).toHaveValue(`Tipp zu Wort${i}`);
+    await page.getByRole("button", { name: "In die Schüssel" }).click();
+  }
+  await page.getByRole("button", { name: "Los, Zetteli ziehen" }).click();
+  const w = await page.getByTestId("word").innerText();
+  await expect(page.getByText(`Tipp zu ${w}`)).toBeVisible(); // hint under the word
+});

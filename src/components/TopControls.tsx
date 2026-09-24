@@ -3,7 +3,7 @@
 import { Moon, Settings, Sparkles, Sun, SunMoon, X } from "lucide-react";
 import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { LANGS } from "@/lib/i18n";
-import { aiPref, langPref, palettePref, PALETTES, themePref, THEMES, useT } from "@/lib/prefs";
+import { aiPref, hintPref, langPref, palettePref, PALETTES, themePref, THEMES, useT } from "@/lib/prefs";
 import { pill, pillBtn, press } from "@/lib/ui";
 
 const dark = "(prefers-color-scheme: dark)";
@@ -46,6 +46,7 @@ export function SettingsPanel() {
   const palette = palettePref.use();
   const lang = langPref.use();
   const ai = aiPref.use();
+  const hints = hintPref.use();
   const icon = { auto: SunMoon, light: Sun, dark: Moon };
   return (
     <>
@@ -56,6 +57,11 @@ export function SettingsPanel() {
         <Segmented options={[{ id: "on" as const, label: t.on }, { id: "off" as const, label: t.off }]} value={ai} onChange={aiPref.set} />
         <p className="text-sm text-muted">{t.aiHelpNote}</p>
       </section>
+      <fieldset disabled={ai !== "on"} className={`flex flex-col gap-2 transition-opacity ${ai === "on" ? "" : "opacity-40"}`}>
+        <legend className="mb-2 font-semibold">{t.showHints}</legend>
+        <Segmented options={[{ id: "on" as const, label: t.on }, { id: "off" as const, label: t.off }]} value={ai === "on" ? hints : "off"} onChange={hintPref.set} />
+        <p className="text-sm text-muted">{t.showHintsNote}</p>
+      </fieldset>
 
           <section className="flex flex-col gap-2">
         <h3 className="font-semibold">{t.language}</h3>
