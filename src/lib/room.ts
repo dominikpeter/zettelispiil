@@ -4,7 +4,7 @@ import type { Store } from "./store.ts";
 const TTL = 60 * 60 * 24; // rooms vanish a day after the last write
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I lookalikes
 const GRACE = 1500; // a "got" tapped at 0:00 still counts while it travels to the server
-const MAX_SHEET = 240; // drawing batches per sheet (~1 min of steady drawing at 250 ms) keeps every poll small
+const MAX_SHEET = 3000; // strokes per drawing sheet; a wipe or the next Zetteli starts a new one
 const MIN_CARRY = 5000; // less time left than this when the bowl empties → next player starts the new round
 export const MAX_PLAYERS = 20;
 
@@ -52,6 +52,7 @@ type Room = {
   drawNo: number; // a fresh sheet for every Zetteli drawn and every wipe
   carryMs: number;
   turnGot: number;
+  lastGot: { n: number; text: string; by: number } | null; // flashed on every phone; n changes with each guess
   scores: [number, number][]; // per round
   log: Ev[];
   turns: TurnLog[];
@@ -111,7 +112,7 @@ export async function createRoom(db: Store, hostName: unknown, lang: unknown = "
     const room: Room = {
       code, hostId: "", settings: cleanSettings({}), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de"), phase: "lobby", ids: [], teams: [], words: [], hints: [], authors: [],
       bowl: [], current: null, held: [], shownAt: 0, round: 0, team: 0, next: [0, 0], turnStart: 0, endsAt: 0, pausedAt: 0, drawNo: 0, carryMs: 0,
-      turnGot: 0, scores: [], log: [], turns: [], writeNo: 0, turnNo: 0,
+      turnGot: 0, lastGot: null, scores: [], log: [], turns: [], writeNo: 0, turnNo: 0,
     };
     if (!(await db.set(k(code).room, room, { ex: TTL, nx: true }))) continue; // code taken, roll again
     const host = await addMember(db, code, name, []);
@@ -132,9 +133,39 @@ export async function joinRoom(db: Store, code: string, name: unknown) {
   return { code, pid: m.id, token: m.token };
 }
 
-// one drawing sheet per Zetteli in hand; a new Zetteli or a wipe starts a fresh one
-const drawKey = (room: Room) => `room:${room.code}:draw:${room.drawNo}`;
+// drawing: one sheet (a Redis list of strokes) per Zetteli in hand; a new Zetteli or a wipe starts the next sheet.
+// The drawer's phone writes to it directly, checked against `drawer`, so no room load per batch.
+const sheetKey = (code: string, n: number) => `room:${code}:sheet:${n}`;
+const drawerKey = (code: string) => `room:${code}:drawer`;
+type Drawer = { pid: string; token: string; sheet: number; until: number };
 const drawing = (room: Room) => room.phase === "turn" && room.settings.rounds[room.round] === "draw";
+
+/** who may draw on which sheet until when; written whenever a drawing game's room changes */
+async function syncDrawer(db: Store, room: Room, members: Member[]) {
+  const d = drawing(room) && !room.pausedAt && room.current !== null ? members.find((m) => m.id === room.ids[describer(room)]) : undefined;
+  const v: Drawer = d ? { pid: d.id, token: d.token, sheet: room.drawNo, until: room.endsAt + GRACE } : { pid: "", token: "", sheet: room.drawNo, until: 0 };
+  await db.set(drawerKey(room.code), v, { ex: 60 * 60 });
+}
+
+const validStrokes = (ss: unknown): ss is Stroke[] =>
+  Array.isArray(ss) && ss.length > 0 && ss.length <= 20 && ss.every((st) => Array.isArray(st) && st.length >= 3 && st.length <= 401 && st.every((n) => Number.isInteger(n) && n >= 0 && n <= 1000));
+
+/** drawer's phone: add lines to the current sheet */
+export async function pushStrokes(db: Store, code: string, pid: unknown, token: unknown, sheet: unknown, strokes: unknown, now = Date.now()) {
+  if (!validStrokes(strokes)) throw new RoomError("bad_request");
+  const d = await db.get<Drawer>(drawerKey(code));
+  if (!d || !d.pid || d.pid !== pid || d.token !== token || d.sheet !== sheet || now > d.until) throw new RoomError("forbidden");
+  if ((await db.rpush(sheetKey(code, d.sheet), strokes, 60 * 60)) > MAX_SHEET) throw new RoomError("bad_request");
+}
+
+/** every other phone: the lines of the current sheet from `from` on; a new sheet (wipe, next Zetteli) starts over at 0 */
+export async function pullStrokes(db: Store, code: string, sheet: number, from: number) {
+  const r = await db.lrangeWith<Stroke, Drawer>(sheetKey(code, sheet), Math.max(0, from), drawerKey(code));
+  const current = r.other?.sheet ?? sheet;
+  if (current === sheet) return { sheet, from, strokes: r.items };
+  const fresh = await db.lrangeWith<Stroke, Drawer>(sheetKey(code, current), 0, drawerKey(code));
+  return { sheet: current, from: 0, strokes: fresh.items };
+}
 
 const teamPlayers = (room: Room, t: Team) => room.teams.flatMap((x, i) => (x === t ? [i] : []));
 /** who describes next (ready) or now (turn) */
@@ -152,6 +183,23 @@ function draw(room: Room, now: number) {
   room.current = pool.length ? pool[pick(pool.length)] : (room.held.shift() ?? null);
   room.shownAt = now;
   room.drawNo++;
+}
+
+/** the Zetteli in hand was guessed: score it, then draw the next one or close the round */
+function guessed(room: Room, now: number, by: number) {
+  const w = room.current!;
+  logHand(room, now, "got");
+  room.lastGot = { n: room.turnNo * 1000 + room.turnGot + 1, text: room.words[w], by };
+  room.scores[room.round][room.team]++;
+  room.turnGot++;
+  room.bowl = room.bowl.filter((x) => x !== w);
+  room.current = null;
+  if (room.bowl.length) return draw(room, now);
+  // bowl empty: round over; with enough time left the same describer opens the next round
+  const left = room.endsAt - now;
+  room.carryMs = left >= MIN_CARRY ? left : 0;
+  closeTurn(room, now, room.carryMs > 0);
+  room.phase = room.round + 1 < room.settings.rounds.length ? "roundEnd" : "end";
 }
 
 function logHand(room: Room, at: number, res: Ev["res"]) {
@@ -186,8 +234,8 @@ export type Action =
   | { type: "teamName"; team: Team; name: string }
   | { type: "words"; words: (string | Partial<Slip>)[] }
   | { type: "got" | "skip"; w: number }
+  | { type: "teamGot"; seen: number } // a teammate taps "Erraten"; `seen` = turnGot on their screen, so a word counts once
   | { type: "back"; w: number; to: number }
-  | { type: "draw"; strokes: Stroke[] }
   | { type: "wipe" };
 
 export async function act(db: Store, code: string, pid: unknown, token: unknown, a: Action, now = Date.now()) {
@@ -302,17 +350,6 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       room.pausedAt = 0;
       break;
     }
-    case "draw": {
-      if (!drawing(room) || room.pausedAt || now > room.endsAt + GRACE) return;
-      need(idx === describer(room));
-      const ok = Array.isArray(a.strokes) && a.strokes.length <= 20 && a.strokes.every((st) => Array.isArray(st) && st.length >= 3 && st.length <= 401 && st.every((n) => Number.isInteger(n) && n >= 0 && n <= 1000));
-      if (!ok) throw new RoomError("bad_request");
-      // ponytail: a sheet holds at most MAX_SHEET batches; a wipe or the next Zetteli starts a new one
-      const sheet = await db.hgetall<Stroke[]>(drawKey(room));
-      if (Object.keys(sheet).length >= MAX_SHEET) throw new RoomError("bad_request");
-      await db.hset(drawKey(room), `${now}.${Math.random().toString(36).slice(2, 6)}`, a.strokes, 60 * 60);
-      return; // the room itself is unchanged
-    }
     case "wipe":
       if (!drawing(room)) return;
       need(idx === describer(room));
@@ -322,23 +359,15 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       need(host && room.phase !== "lobby");
       Object.assign(room, { phase: "lobby", current: null, held: [], pausedAt: 0, carryMs: 0 } satisfies Partial<Room>);
       break;
+    case "teamGot":
+      if (room.phase !== "turn" || room.pausedAt || room.current === null || a.seen !== room.turnGot || now > room.endsAt + GRACE) return; // someone was faster
+      need(idx >= 0 && room.teams[idx] === room.team);
+      guessed(room, now, idx);
+      break;
     case "got": {
       if (room.phase !== "turn" || room.pausedAt || a.w !== room.current) return; // double tap on a Zetteli already counted
       need(idx === describer(room));
-      logHand(room, now, "got");
-      room.scores[room.round][room.team]++;
-      room.turnGot++;
-      room.bowl = room.bowl.filter((w) => w !== a.w);
-      room.current = null;
-      if (room.bowl.length) {
-        draw(room, now);
-        break;
-      }
-      // bowl empty: round over; with enough time left the same describer opens the next round
-      const left = room.endsAt - now;
-      room.carryMs = left >= MIN_CARRY ? left : 0;
-      closeTurn(room, now, room.carryMs > 0);
-      room.phase = room.round + 1 < room.settings.rounds.length ? "roundEnd" : "end";
+      guessed(room, now, idx);
       break;
     }
     case "skip": {
@@ -382,6 +411,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       throw new RoomError("bad_request");
   }
   await save(db, room);
+  if (room.settings.rounds.includes("draw")) await syncDrawer(db, room, members);
 }
 
 export type View = {
@@ -403,11 +433,12 @@ export type View = {
   word: { id: number; text: string; hint: string } | null; // only on the describer's phone
   myWrite: WriteEntry | null; // write phase: what I have in the bowl so far, and which of mine were cancelled
   held: { id: number; text: string }[]; // set-aside Zetteli, describer only
-  drawing: Stroke[] | null; // drawing rounds: what's on the paper right now, for every phone
+  sheet: number | null; // drawing rounds: the current sheet, read live via pullStrokes
   canSkip: boolean;
   bowlLeft: number;
   total: number;
   turnGot: number; // guessed so far in the running turn
+  lastGot: { n: number; text: string; by: number } | null; // the latest guessed Zetteli, flashed on the other phones
   scores: [number, number][];
   lastTurn: TurnLog | null;
   done: number; // players who wrote their words
@@ -428,13 +459,6 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
   const order = lobby ? members.map((m) => m.id) : room.ids;
   const idx = me ? order.indexOf(me.id) : -1;
   const playing = room.phase === "ready" || room.phase === "turn";
-  let lines: Stroke[] | null = null;
-  if (drawing(room) && !room.pausedAt) {
-    const h = await db.hgetall<Stroke[]>(drawKey(room));
-    lines = Object.entries(h)
-      .sort((x, y) => parseFloat(x[0]) - parseFloat(y[0]))
-      .flatMap(([, ss]) => ss);
-  }
   const active = playing ? describer(room) : null;
 
   let done = 0;
@@ -465,11 +489,12 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
     carryMs: room.carryMs,
     word: room.phase === "turn" && !room.pausedAt && idx === active && room.current !== null ? { id: room.current, text: room.words[room.current], hint: room.hints?.[room.current] ?? "" } : null,
     held: room.phase === "turn" && !room.pausedAt && idx === active ? room.held.map((w) => ({ id: w, text: room.words[w] })) : [],
-    drawing: lines,
+    sheet: drawing(room) && !room.pausedAt ? room.drawNo : null,
     canSkip: room.phase === "turn" && (room.settings.skips === -1 || room.held.length < room.settings.skips) && fresh(room).length > 0,
     bowlLeft: room.bowl.length,
     total: room.words.length,
     turnGot: room.turnGot,
+    lastGot: room.lastGot ?? null,
     scores: room.scores,
     lastTurn: room.turns.at(-1) ?? null,
     done,

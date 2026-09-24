@@ -31,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {prefsScript}
         </Script>
       </head>
-      <body className="flex min-h-full flex-col font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      <body className="flex min-h-full flex-col font-sans pt-[env(safe-area-inset-top)]">
         {children}
       </body>
     </html>

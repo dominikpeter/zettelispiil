@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { act, createRoom, joinRoom, RoomError, view, type View } from "./room.ts";
+import { act, createRoom, joinRoom, pullStrokes, pushStrokes, RoomError, view, type View } from "./room.ts";
 import { computeStats } from "./stats.ts";
 import { db as envStore, memoryStore, persistent } from "./store.ts";
 
@@ -19,7 +19,7 @@ async function setup() {
   const see = (i: number) => view(db, host.code, all[i].pid, all[i].token, clock);
   const tick = (ms: number) => (clock += ms);
   await as(0, { type: "settings", settings: { perPlayer: 1, seconds: 30, rounds: ["describe", "sound"] } });
-  return { db, host, as, see, tick };
+  return { db, host, all, as, see, tick, now: () => clock };
 }
 
 async function writeAll(as: Awaited<ReturnType<typeof setup>>["as"]) {
@@ -214,25 +214,56 @@ test("pause stops the clock and hides the Zetteli; cancel goes back to the lobby
   assert.equal(v.players.length, 4);
 });
 
-test("drawing round: strokes reach every phone, wipe and a new Zetteli start a fresh sheet", async () => {
-  const { as, see } = await setup();
+test("drawing round: the drawer's lines reach everyone sheet by sheet; only the drawer, only while drawing", async () => {
+  const { as, see, db, host, all, tick, now } = await setup();
   await as(0, { type: "settings", settings: { rounds: ["draw"] } });
   await writeAll(as);
   const { i } = await describerView(see);
   const other = (i + 1) % 4;
+  const push = (who: number, sheet: number | null, st: number[][]) => pushStrokes(db, host.code, all[who].pid, all[who].token, sheet, st, now());
   await as(i, { type: "go" });
-  await assert.rejects(as(other, { type: "draw", strokes: [[0, 1, 2, 3, 4]] }), RoomError); // only the drawer draws
-  await assert.rejects(as(i, { type: "draw", strokes: [[0, 1, 2000]] }), RoomError); // off the paper
-  await as(i, { type: "draw", strokes: [[0, 10, 10, 20, 20]] });
-  await as(i, { type: "draw", strokes: [[1, 20, 20, 30, 40], [2, 5, 5]] });
-  const v = await see(other);
-  assert.deepEqual(v.drawing, [[0, 10, 10, 20, 20], [1, 20, 20, 30, 40], [2, 5, 5]]);
-  assert.equal(v.word, null); // watchers see lines, never the word
+  const sheet = (await see(other)).sheet!;
+  assert.equal((await see(other)).word, null); // watchers get lines, never the word
+  await assert.rejects(push(other, sheet, [[0, 1, 2, 3, 4]]), RoomError); // only the drawer draws
+  await assert.rejects(push(i, sheet, [[0, 1, 2000]]), RoomError); // off the paper
+  await push(i, sheet, [[0, 10, 10, 20, 20]]);
+  await push(i, sheet, [[1, 20, 20, 30, 40], [2, 5, 5]]);
+  assert.deepEqual((await pullStrokes(db, host.code, sheet, 0)).strokes, [[0, 10, 10, 20, 20], [1, 20, 20, 30, 40], [2, 5, 5]]);
+  assert.deepEqual((await pullStrokes(db, host.code, sheet, 2)).strokes, [[2, 5, 5]]); // only what's new
+
   await as(i, { type: "wipe" });
-  assert.deepEqual((await see(other)).drawing, []);
-  await as(i, { type: "draw", strokes: [[0, 1, 1, 2, 2]] });
+  let r = await pullStrokes(db, host.code, sheet, 3);
+  assert.notEqual(r.sheet, sheet); // watchers switch to the fresh sheet on their next pull
+  assert.deepEqual(r.strokes, []);
+  await assert.rejects(push(i, sheet, [[0, 1, 1]]), RoomError); // the old sheet is closed
+  await push(i, r.sheet, [[0, 1, 1, 2, 2]]);
   await as(i, { type: "got", w: (await see(i)).word!.id });
-  assert.deepEqual((await see(other)).drawing, []); // next Zetteli, clean paper
+  r = await pullStrokes(db, host.code, r.sheet, 1);
+  assert.deepEqual(r.strokes, []); // next Zetteli, clean paper
+
+  await as(i, { type: "pause" });
+  await assert.rejects(push(i, r.sheet, [[0, 1, 1]]), RoomError); // no drawing while paused
+  await as(i, { type: "resume" });
+  await push(i, r.sheet, [[0, 1, 1]]);
+  tick(40_000);
+  await assert.rejects(push(i, r.sheet, [[0, 1, 1]]), RoomError); // time's up
+});
+
+test("teammates can count a guess, once; the other team can't; guessed words flash for everyone", async () => {
+  const { as, see } = await setup();
+  await writeAll(as);
+  const { i, v } = await describerView(see);
+  const mate = v.players.findIndex((p, j) => j !== i && p.team === v.players[i].team);
+  const rival = v.players.findIndex((p) => p.team !== v.players[i].team);
+  await as(i, { type: "go" });
+  const w = (await see(i)).word!;
+  await assert.rejects(as(rival, { type: "teamGot", seen: 0 }), RoomError);
+  await as(mate, { type: "teamGot", seen: 0 });
+  await as(i, { type: "got", w: w.id }); // the describer taps too late: already counted
+  await as(mate, { type: "teamGot", seen: 0 }); // stale screen: ignored
+  const after = await see(rival);
+  assert.equal(after.turnGot, 1);
+  assert.deepEqual(after.lastGot && { text: after.lastGot.text, by: after.lastGot.by }, { text: w.text, by: mate });
 });
 
 test("same word twice: both copies cancelled, both writers write a new one; hints reach the describer", async () => {

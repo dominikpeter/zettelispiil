@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { BackButton, GameMenu, Lobby, Phase, Score, Waiting } from "@/components/Game";
 import { TopControls } from "@/components/TopControls";
 import { useT } from "@/lib/prefs";
-import type { Action, View } from "@/lib/room";
+import type { Action, Stroke, View } from "@/lib/room";
 import { api, errKey, loadIdentity, loadName, saveIdentity, saveName, type Identity } from "@/lib/roomClient";
 import { Bowl, btn, btn2, field } from "@/lib/ui";
 import { useCountdown } from "@/lib/useCountdown";
@@ -14,7 +14,6 @@ import { useCountdown } from "@/lib/useCountdown";
 const noop = () => () => {};
 const POLL_MS = 1500;
 const POLL_TURN_MS = 800;
-const POLL_DRAW_MS = 500; // watchers follow the drawing; Redis cost scales with this
 
 export default function Room() {
   const t = useT();
@@ -45,19 +44,19 @@ export default function Room() {
   }, [code, id]);
 
   const fast = v?.phase === "turn" || v?.phase === "ready";
-  const drawTurn = v?.phase === "turn" && v.settings.rounds[v.round] === "draw" && v.me !== v.active; // watchers follow the drawing closely
+
   // poll while visible; refresh right away when the phone wakes up
   useEffect(() => {
     const tick = () => document.visibilityState === "visible" && refresh();
     const first = setTimeout(refresh, 0); // always load once, even if opened in a background tab
-    const timer = setInterval(tick, drawTurn ? POLL_DRAW_MS : fast ? POLL_TURN_MS : POLL_MS);
+    const timer = setInterval(tick, fast ? POLL_TURN_MS : POLL_MS);
     document.addEventListener("visibilitychange", tick);
     return () => {
       clearTimeout(first);
       clearInterval(timer);
       document.removeEventListener("visibilitychange", tick);
     };
-  }, [refresh, fast, drawTurn]);
+  }, [refresh, fast]);
 
   const left = useCountdown(v, offset);
 
@@ -78,8 +77,12 @@ export default function Room() {
     }
   };
 
-  const sendQuiet = (body: Action) => {
-    api(`/${code}`, { ...id, ...body }).catch(() => {}); // a lost drawing batch is not worth an error
+  // drawer: new line pieces straight to the drawing channel; a lost piece is not worth an error
+  const live = {
+    code,
+    draw: (sheet: number, strokes: Stroke[]) => {
+      api(`/${code}/draw`, { ...id, sheet, strokes }).catch(() => {});
+    },
   };
 
   const join = async () => {
@@ -113,7 +116,7 @@ export default function Room() {
   const playing = v && v.phase !== "lobby" && v.phase !== "write" && v.phase !== "end";
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <header className="mb-4 flex min-h-11 items-center justify-between gap-2">
         <BackButton v={v} onLeave={() => router.push("/")} label={code} />
         {joined && v.phase !== "lobby" && v.phase !== "end" ? (
@@ -170,7 +173,7 @@ export default function Room() {
       )}
 
       {joined && v.phase === "lobby" && <Lobby v={v} send={send} busy={busy} mode="online" share={{ qr, copied, onShare: share }} />}
-      {joined && v.phase !== "lobby" && <Phase v={v} send={send} sendQuiet={sendQuiet} busy={busy} mode="online" left={left} />}
+      {joined && v.phase !== "lobby" && <Phase v={v} send={send} live={live} busy={busy} mode="online" left={left} />}
 
       {!v && !errMsg && <Waiting text={t.loading} />}
     </main>

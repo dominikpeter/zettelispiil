@@ -7,6 +7,10 @@ export interface Store {
   hset(key: string, field: string, value: unknown, ex: number): Promise<void>;
   hgetall<T>(key: string): Promise<Record<string, T>>;
   hdel(key: string, field: string): Promise<void>;
+  /** append to a list; returns its new length */
+  rpush(key: string, values: unknown[], ex: number): Promise<number>;
+  /** a list from `start` to the end, plus a companion key read in the same round trip */
+  lrangeWith<T, U>(key: string, start: number, other: string): Promise<{ items: T[]; other: U | null }>;
 }
 
 export function memoryStore(): Store {
@@ -38,6 +42,14 @@ export function memoryStore(): Store {
       const e = live(k);
       if (e) delete (e.v as Record<string, unknown>)[f];
     },
+    async rpush(k, vs, ex) {
+      const list = [...((live(k)?.v as unknown[]) ?? []), ...clone<unknown[]>(vs)];
+      data.set(k, { v: list, until: Date.now() + ex * 1000 });
+      return list.length;
+    },
+    async lrangeWith<T, U>(k: string, start: number, other: string) {
+      return { items: clone<T[]>(((live(k)?.v as unknown[]) ?? []).slice(start)), other: live(other) ? clone<U>(live(other)!.v) : null };
+    },
   };
 }
 
@@ -55,6 +67,14 @@ function redisStore(redis: Redis): Store {
     },
     async hdel(k, f) {
       await redis.hdel(k, f);
+    },
+    async rpush(k, vs, ex) {
+      const [len] = await redis.multi().rpush(k, ...vs).expire(k, ex).exec<[number, number]>();
+      return len;
+    },
+    async lrangeWith<T, U>(k: string, start: number, other: string) {
+      const [items, o] = await redis.pipeline().lrange<T>(k, start, -1).get<U>(other).exec<[T[], U | null]>();
+      return { items: items ?? [], other: o };
     },
   };
 }

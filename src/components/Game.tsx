@@ -5,18 +5,18 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { pickOne } from "@/lib/i18n";
 import { aiPref, langPref, useHints, useT } from "@/lib/prefs";
 import { funnyName } from "@/lib/roomClient";
-import { norm, ROUND_TYPES, type Action, type Settings, type Slip as SlipT, type Team, type View } from "@/lib/room";
-import { Bowl, btn, btn2, buzz, field, ghost, panel, pill, pillBtn, press, round_btn, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
-import { DrawBoard, INKS } from "./DrawBoard";
+import { norm, ROUND_TYPES, type Action, type RoundType, type Stroke, type Settings, type Slip as SlipT, type Team, type View } from "@/lib/room";
+import { Bowl, btn, btn2, buzz, field, fitLine, ghost, panel, pill, pillBtn, press, round_btn, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
+import { DrawPad, DrawView, INKS } from "./DrawBoard";
 import { Stats } from "./Stats";
 import { SettingsPanel } from "./TopControls";
 
 export type Mode = "online" | "local";
 /** `as`: in one-phone games, act as that player; online always acts as this phone's player */
 export type Send = (a: Action, as?: number) => Promise<void>;
-/** fire-and-forget, no refresh: for the stream of drawing batches */
-export type SendQuiet = (a: Action) => void;
-type P = { v: View; send: Send; busy: boolean; mode: Mode; sendQuiet?: SendQuiet };
+/** every-phone games: the room code and the drawer's line sender (fire-and-forget) */
+export type Live = { code: string; draw: (sheet: number, strokes: Stroke[]) => void };
+type P = { v: View; send: Send; busy: boolean; mode: Mode; live?: Live };
 
 const SWIPE = 90; // px to count as a swipe
 const mini = `grid size-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-ink disabled:opacity-25 ${press}`;
@@ -30,7 +30,8 @@ export function Waiting({ text }: { text: string }) {
 }
 
 export function Cta({ children }: { children: ReactNode }) {
-  return <div className="sticky bottom-0 z-20 -mx-4 mt-auto bg-gradient-to-t from-canvas from-70% to-transparent px-4 pt-6 pb-1">{children}</div>;
+  // own bottom padding: clears the iPhone home bar and leaves room for the button's 3D edge
+  return <div className="sticky bottom-0 z-20 -mx-4 mt-auto bg-gradient-to-t from-canvas from-75% to-transparent px-4 pt-6 pb-[max(0.9rem,env(safe-area-inset-bottom))]">{children}</div>;
 }
 
 export function Score({ v }: { v: View }) {
@@ -139,7 +140,10 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
   );
 }
 
-function RoundCard({ v, n, className = "" }: { v: View; n: number; className?: string }) {
+/** the rule of a round; with one phone, drawing happens on a flip chart or paper */
+const ruleOf = (t: ReturnType<typeof useT>, type: RoundType, mode: Mode) => (type === "draw" && mode === "local" ? t.drawPaper : t.round[type].rule);
+
+function RoundCard({ v, n, mode, className = "" }: { v: View; n: number; mode: Mode; className?: string }) {
   const t = useT();
   const type = v.settings.rounds[n];
   return (
@@ -150,7 +154,7 @@ function RoundCard({ v, n, className = "" }: { v: View; n: number; className?: s
       <div>
         <p className="text-sm text-muted">{t.roundOf(n + 1, v.settings.rounds.length)}</p>
         <h2 className="text-2xl font-extrabold tracking-tight">{t.round[type].name}</h2>
-        <p className="mt-1 text-muted">{t.round[type].rule}</p>
+        <p className="mt-1 text-muted">{ruleOf(t, type, mode)}</p>
       </div>
     </section>
   );
@@ -248,7 +252,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
   const canStart = counts.every((c) => c >= 2);
   const mine = v.players[v.me]?.team ?? 0;
   const skipStep = s.skips === -1 ? 6 : s.skips; // stepper runs 0…5, then ∞
-  const off = ROUND_TYPES.filter((r) => !s.rounds.includes(r) && !(local && r === "draw")); // one phone can't show a drawing to the others
+  const off = ROUND_TYPES.filter((r) => !s.rounds.includes(r));
   const move = (i: number, d: number) => {
     const r = [...s.rounds];
     [r[i], r[i + d]] = [r[i + d], r[i]];
@@ -506,6 +510,10 @@ export function Write({ v, send, busy }: P) {
         <h2 className="text-3xl font-extrabold tracking-tight">{t.writeTitle(draft.length)}</h2>
         <p className="mt-1 text-muted">{t.writeHelp}</p>
       </div>
+      {aiOn && <Ideas lang={lang} avoid={words.filter(Boolean)} onPick={(w) => {
+        const i = draft.findIndex((d) => !d.word.trim());
+        edit(i >= 0 ? i : draft.length - 1, { word: w });
+      }} />}
       {v.myWrite?.cancelled.map((w) => (
         <p key={w} role="alert" className="pop flex items-start gap-2 rounded-2xl bg-raised px-4 py-3 font-medium">
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-hi" aria-hidden /> {t.cancelled(w)}
@@ -568,6 +576,60 @@ export function Write({ v, send, busy }: P) {
   );
 }
 
+/** topic in, three AI suggestions out; tapping one puts it on the next empty Zetteli */
+function Ideas({ lang, avoid, onPick }: { lang: string; avoid: string[]; onPick: (w: string) => void }) {
+  const t = useT();
+  const [topic, setTopic] = useState("");
+  const [ideas, setIdeas] = useState<string[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const get = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch("/api/ai/ideas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic, lang, avoid }) }).then((x) => x.json());
+      setIdeas(r?.ai && Array.isArray(r.words) ? r.words : []);
+    } catch {
+      setIdeas([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <section className="rounded-3xl bg-surface p-3" aria-label={t.ideas}>
+      <div className="flex gap-2">
+        <input
+          value={topic}
+          maxLength={60}
+          autoComplete="off"
+          aria-label={t.topicPh}
+          placeholder={t.topicPh}
+          onChange={(e) => setTopic(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault(); // not the Zetteli form
+              get();
+            }
+          }}
+          className="min-w-0 flex-1 rounded-2xl bg-canvas px-3 py-2.5 outline-none placeholder:text-muted/70 focus-visible:ring-2 focus-visible:ring-accent"
+        />
+        <button type="button" onClick={get} disabled={loading} aria-label={t.getIdeas} className={`${btn2} w-auto! shrink-0 px-3 text-accent`}>
+          {loading ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <Sparkles className="size-5" aria-hidden />}
+        </button>
+      </div>
+      {ideas && ideas.length > 0 && (
+        <div aria-live="polite" className="mt-3 flex flex-wrap gap-2">
+          {ideas.map((w, i) => (
+            <button key={w} type="button" onClick={() => { onPick(w); setIdeas((xs) => xs && xs.filter((x) => x !== w)); }} aria-label={t.pickIdea(w)} className={`${press}`}>
+              <Slip tilt={i % 2 ? 2 : -2} className="pop px-3 pt-1 pb-1">
+                <span className="font-hand text-2xl font-bold">{w}</span>
+              </Slip>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 /** one-phone games: hand the phone over before anything secret shows */
 export function PassPhone({ name, team, teamName, onReady, note }: { name: string; team: Team; teamName: string; onReady: () => void; note?: string }) {
   const t = useT();
@@ -603,7 +665,7 @@ export function Ready({ v, send, busy, mode }: P) {
   const carry = Math.round(v.carryMs / 1000);
   return (
     <div className="flex flex-1 flex-col gap-4">
-      <RoundCard v={v} n={v.round} className="enter" />
+      <RoundCard v={v} n={v.round} mode={mode} className="enter" />
       {last && (
         <p aria-live="polite" className="pop self-center rounded-full bg-surface px-4 py-2 text-center">
           {t.gotLast(v.players[last.p].name, last.got)}
@@ -655,7 +717,6 @@ function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe }: { text: stri
     else if (dx < -SWIPE) setShake((n) => n + 1); // no skips left
     setDx(0);
   };
-  const size = text.length > 22 ? "text-4xl" : text.length > 12 ? "text-5xl" : "text-6xl";
   return (
     <div
       data-testid="slip"
@@ -679,8 +740,8 @@ function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe }: { text: stri
         className={fling === "r" ? "fling-r" : fling === "l" ? "fling-l" : shake ? "shake" : ""}
         style={{ transform: `translateX(${dx}px) rotate(${dx / 14}deg)`, transition: dragging ? "none" : "transform 0.3s var(--ease-spring)" }}
       >
-        <Slip tilt={-1.5} className={`unfold relative px-5 pt-10 pb-12 text-center ${locked ? "opacity-70 grayscale" : ""}`}>
-          <p data-testid="word" className={`font-hand leading-none font-bold break-words ${size}`}>
+        <Slip tilt={-1.5} className={`unfold relative @container px-5 pt-10 pb-12 text-center [@media(max-height:640px)]:pt-6 [@media(max-height:640px)]:pb-8 ${locked ? "opacity-70 grayscale" : ""}`}>
+          <p data-testid="word" className="font-hand leading-tight font-bold" style={fitLine(text)}>
             {text}
           </p>
           {showHint && hint && <p className="mt-3 text-base text-paper-ink/60">{hint}</p>}
@@ -700,7 +761,7 @@ function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe }: { text: stri
   );
 }
 
-export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
+export function Turn({ v, left, send, live, mode }: P & { left: number }) {
   const t = useT();
   const d = v.active!;
   const p = v.players[d];
@@ -731,6 +792,20 @@ export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
   const type = v.settings.rounds[v.round];
   const [ink, setInk] = useState(0);
   const showHint = useHints();
+  // teammates may count a guess too; `seen` makes sure a word is only counted once
+  const [teamBusy, setTeamBusy] = useState(false);
+  const teamGot = async () => {
+    setTeamBusy(true);
+    buzz(25);
+    await send({ type: "teamGot", seen: v.turnGot });
+    setTeamBusy(false);
+  };
+  const teamButton = mode === "online" && !me && v.players[v.me]?.team === p.team && (
+    <button onClick={teamGot} disabled={up || teamBusy || v.pausedLeft > 0} className={btn}>
+      <Check className="size-5" aria-hidden /> {t.got}
+    </button>
+  );
+
   const [wipes, setWipes] = useState(0);
 
   const topBar = (
@@ -746,7 +821,7 @@ export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
     </div>
   );
   const buttons = (
-    <div className="grid grid-cols-[1fr_1.6fr] gap-3 pb-1">
+    <div className="grid grid-cols-[1fr_1.6fr] gap-3 pb-2">
       <button onClick={() => act("l")} disabled={up || !!fling || !v.canSkip} className={`${btn2} min-h-14 flex-col gap-0 leading-tight`}>
         {t.next}
         {v.settings.skips !== -1 && <span className="text-xs font-medium text-muted">{t.left(v.settings.skips - v.held.length)}</span>}
@@ -757,28 +832,26 @@ export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
     </div>
   );
 
-  if (type === "draw" && me) {
-    const [word, sheet] = [v.word, `${v.word?.id}-${wipes}`];
+  if (type === "draw" && me && mode === "online") {
+    const word = v.word;
+    const sheet = v.sheet;
     return (
-      <div className="flex flex-1 flex-col gap-3">
+      <div className="flex flex-1 flex-col gap-2">
         {topBar}
         {word && (
-          <Slip key={word.id} tilt={-1} className="unfold self-center px-5 pt-1.5">
-            <span data-testid="word" className="font-hand text-4xl font-bold">
+          <Slip key={word.id} tilt={-1} className="unfold @container w-full max-w-xs self-center px-5 pt-1.5 text-center">
+            <span data-testid="word" className="font-hand block font-bold" style={fitLine(word.text, "2.25rem")}>
               {word.text}
             </span>
             {showHint && word.hint && <span className="block text-center text-sm text-paper-ink/60">{word.hint}</span>}
           </Slip>
         )}
-        {word && (
-          <DrawBoard
-            key={sheet}
-            strokes={wipes ? [] : (v.drawing ?? [])}
-            ink={ink}
-            label={t.drawHere}
-            onFlush={up ? undefined : (strokes) => sendQuiet?.({ type: "draw", strokes })}
-          />
-        )}
+        {/* the paper takes what's left of the screen, never more: no scrolling while drawing */}
+        <div className="mx-auto w-full" style={{ maxWidth: "min(100%, calc(100dvh - 24rem))" }}>
+          {word && sheet !== null && (
+            <DrawPad key={`${sheet}-${wipes}`} ink={ink} label={t.drawHere} onFlush={up ? undefined : (strokes) => live?.draw(sheet, strokes)} />
+          )}
+        </div>
         <div className="flex items-center justify-between gap-2">
           <div className="flex gap-2" role="radiogroup" aria-label={t.drawHere}>
             {INKS.map((c, i) => (
@@ -799,9 +872,10 @@ export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
               await send({ type: "wipe" }, d);
             }}
             disabled={up}
-            className={`${btn2} w-auto! px-4`}
+            aria-label={t.wipe}
+            className={`${btn2} w-auto! px-3`}
           >
-            <Eraser className="size-5" aria-hidden /> {t.wipe}
+            <Eraser className="size-5" aria-hidden />
           </button>
         </div>
         {buttons}
@@ -809,24 +883,23 @@ export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
     );
   }
 
-  if (type === "draw") {
+  if (type === "draw" && mode === "online") {
     const guessing = v.players[v.me]?.team === p.team;
     return (
       <div className="flex flex-1 flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <TimerRing left={shownLeft} total={total} size={76} label={t.secondsLeft} />
+          <TimerRing left={shownLeft} total={total} size={64} label={t.secondsLeft} />
           <div className="min-w-0 text-right">
             <p className={`text-3xl font-extrabold tracking-tight ${guessing ? TEAM[p.team].text : "text-ink"}`}>{guessing ? t.guess : t.listen}</p>
-            <p className="truncate text-muted">{t.explains(p.name, type)}</p>
+            <p className="truncate text-muted">
+              {t.explains(p.name, type)} · <b className="text-ink tabular-nums">{v.turnGot}</b> {t.guessed}
+            </p>
           </div>
         </div>
-        <DrawBoard strokes={v.drawing ?? []} label={t.explains(p.name, type)} />
-        <p className="text-center text-muted">
-          <b key={v.turnGot} className="bump text-2xl text-ink tabular-nums">
-            {v.turnGot}
-          </b>{" "}
-          {t.guessed} · <b className="text-2xl text-ink tabular-nums">{v.bowlLeft}</b> {t.inBowl}
-        </p>
+        <div className="mx-auto w-full" style={{ maxWidth: teamButton ? "min(100%, calc(100dvh - 17rem))" : "min(100%, calc(100dvh - 12rem))" }}>
+          {live && v.sheet !== null && <DrawView code={live.code} sheet={v.sheet} label={t.explains(p.name, type)} />}
+        </div>
+        {teamButton}
       </div>
     );
   }
@@ -858,6 +931,7 @@ export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
             <b className="text-2xl text-ink tabular-nums">{v.bowlLeft}</b> {t.inBowl}
           </span>
         </p>
+        {teamButton && <div className="w-full">{teamButton}</div>}
       </div>
     );
   }
@@ -868,14 +942,14 @@ export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
       {topBar}
       <div className="flex items-start gap-2 rounded-2xl bg-surface px-3 py-2 text-sm text-muted">
         <RoundIcon type={type} className="mt-0.5 size-4 shrink-0 text-accent" />
-        <p>
-          <b className="text-ink">{t.round[type].name}:</b> {t.round[type].rule}
+        <p className="[@media(max-height:700px)]:line-clamp-2">
+          <b className="text-ink">{t.round[type].name}:</b> {ruleOf(t, type, mode)}
         </p>
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center">
         {v.word && <SwipeSlip key={v.word.id} text={v.word.text} hint={v.word.hint} locked={up} canSkip={v.canSkip} fling={fling} onSwipe={act} />}
-        {!up && <p className="mt-4 text-center text-sm text-muted">{t.swipeHint}</p>}
+        {!up && <p className="mt-4 text-center text-sm text-muted [@media(max-height:640px)]:hidden">{t.swipeHint}</p>}
       </div>
 
       {v.held.length > 0 && (
@@ -906,7 +980,7 @@ export function Turn({ v, left, send, sendQuiet }: P & { left: number }) {
 
 // ---------- round over ----------
 
-export function RoundEnd({ v, send, busy }: P) {
+export function RoundEnd({ v, send, busy, mode }: P) {
   const t = useT();
   const r = v.scores[v.round];
   const carry = Math.round(v.carryMs / 1000);
@@ -926,7 +1000,7 @@ export function RoundEnd({ v, send, busy }: P) {
           </div>
         ))}
       </section>
-      <RoundCard v={v} n={v.round + 1} className="enter [animation-delay:200ms]" />
+      <RoundCard v={v} n={v.round + 1} mode={mode} className="enter [animation-delay:200ms]" />
       {starter && carry > 0 && <p className="enter text-center text-muted [animation-delay:260ms]">{t.starts(starter.name, carry)}</p>}
       <Cta>
         {v.isHost ? (
@@ -959,13 +1033,49 @@ export function End({ v, send, busy, mode }: P) {
   );
 }
 
+/** a guessed Zetteli flashes on every phone except the one that scored it */
+function GotFlash({ v }: { v: View }) {
+  const t = useT();
+  const g = v.lastGot;
+  const [seen, setSeen] = useState(g?.n ?? 0); // no flash for what was guessed before this screen opened
+  const [shown, setShown] = useState<typeof g>(null);
+  if (g && g.n !== seen) {
+    setSeen(g.n);
+    if (g.by !== v.me) setShown(g);
+  }
+  useEffect(() => {
+    if (!shown) return;
+    buzz(15);
+    const h = setTimeout(() => setShown(null), 1800);
+    return () => clearTimeout(h);
+  }, [shown]);
+  if (!shown) return null;
+  return (
+    <div role="status" className="pointer-events-none fixed inset-x-0 top-[max(4.5rem,calc(env(safe-area-inset-top)+4rem))] z-40 flex justify-center px-4">
+      <p key={shown.n} className="pop flex max-w-full items-center gap-2 rounded-full bg-cta px-4 py-2 font-bold text-cta-ink shadow-xl">
+        <Check className="size-5 shrink-0" aria-hidden />
+        <span className="truncate">
+          {t.got}: <span className="font-hand text-2xl leading-none">{shown.text}</span>
+        </span>
+      </p>
+    </div>
+  );
+}
+
 /** every phase of a running game; lobby and joining are handled by the page */
 export function Phase(props: P & { left: number }) {
   const { v } = props;
-  if (v.phase === "write") return <Write key={`w${v.settings.perPlayer}-${v.me}-${v.myWrite?.cancelled.length ?? 0}`} {...props} />;
-  if (v.phase === "ready") return <Ready key={`r${v.turnNo}-${v.round}`} {...props} />;
-  if (v.phase === "turn") return <Turn key={`t${v.turnNo}`} {...props} />;
-  if (v.phase === "roundEnd") return <RoundEnd {...props} />;
-  if (v.phase === "end") return <End {...props} />;
-  return null;
+  const body =
+    v.phase === "write" ? <Write key={`w${v.settings.perPlayer}-${v.me}-${v.myWrite?.cancelled.length ?? 0}`} {...props} />
+    : v.phase === "ready" ? <Ready key={`r${v.turnNo}-${v.round}`} {...props} />
+    : v.phase === "turn" ? <Turn key={`t${v.turnNo}`} {...props} />
+    : v.phase === "roundEnd" ? <RoundEnd {...props} />
+    : v.phase === "end" ? <End {...props} />
+    : null;
+  return (
+    <>
+      {props.mode === "online" && v.phase !== "write" && <GotFlash v={v} />}
+      {body}
+    </>
+  );
 }

@@ -100,7 +100,7 @@ export default function LocalGamePage() {
   const gateKey = v?.phase === "write" ? `write-${who}-${v.settings.perPlayer}-${v.myWrite?.cancelled.length ?? 0}` : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <header className="mb-4 flex min-h-11 items-center justify-between gap-2">
         <BackButton v={v} onLeave={() => router.push("/")} />
         {v && v.phase !== "lobby" && v.phase !== "end" ? (

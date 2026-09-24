@@ -37,6 +37,21 @@ export async function checkWords(words: string[], lang: Lang): Promise<WordCheck
   return output.results;
 }
 
+const Ideas = z.object({ words: z.array(z.string()) });
+
+/** three good Zetteli for a topic: well known, guessable, varied */
+export async function suggestWords(topic: string, lang: Lang, avoid: string[]): Promise<string[]> {
+  const { output } = await generateText({
+    model: model(),
+    output: Output.object({ schema: Ideas }),
+    system:
+      `You suggest words for Zettelispiil, a party guessing game (describe, charades, one word, sounds, drawing), in ${LANG_NAME[lang]}. ` +
+      "Pick things most friends at a party know: people, places, things, films, animals. 1-3 words each, no explanations.",
+    prompt: `Topic: ${topic || "anything"}. Give 3 different words. Avoid: ${avoid.join(", ") || "none"}.`,
+  });
+  return output.words.map((w) => w.trim().slice(0, 40)).filter(Boolean).slice(0, 3);
+}
+
 const Names = z.object({ names: z.array(z.string()) });
 
 /** fresh funny names for players or teams */

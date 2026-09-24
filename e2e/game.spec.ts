@@ -308,3 +308,45 @@ test("AI help: spelling suggestion, hint filled in and shown to the describer (A
   const w = await page.getByTestId("word").innerText();
   await expect(page.getByText(`Tipp zu ${w}`)).toBeVisible(); // hint under the word
 });
+
+test("AI ideas: a topic gives three words, tapping one fills the next empty Zetteli (AI answer mocked)", async ({ page }) => {
+  await page.route("**/api/ai/check", (r) => r.fulfill({ json: { ai: false } }));
+  await page.route("**/api/ai/ideas", async (route) => {
+    expect(route.request().postDataJSON().topic).toBe("Schweizer Essen");
+    await route.fulfill({ json: { ai: true, words: ["Käsefondue", "Rösti", "Birchermüesli"] } });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Neues Spiel" }).click();
+  await page.waitForURL(/\/local$/);
+  for (let i = 0; i < 2; i++) await page.getByRole("button", { name: "Zetteli pro Person weniger" }).click(); // 2 each
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  await page.getByRole("button", { name: /^Ich bin / }).click();
+  await page.getByLabel(/^Thema/).fill("Schweizer Essen");
+  await page.getByRole("button", { name: "Vorschläge holen" }).click();
+  await page.getByRole("button", { name: "„Rösti“ übernehmen" }).click();
+  await expect(page.getByLabel("Zetteli 1", { exact: true })).toHaveValue("Rösti");
+  await page.getByRole("button", { name: "„Birchermüesli“ übernehmen" }).click();
+  await expect(page.getByLabel("Zetteli 2", { exact: true })).toHaveValue("Birchermüesli");
+  await expect(page.getByRole("button", { name: "„Rösti“ übernehmen" })).toHaveCount(0); // used ideas disappear
+});
+
+test("one phone can play the drawing round on a flip chart", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Neues Spiel" }).click();
+  await page.waitForURL(/\/local$/);
+  await page.getByRole("button", { name: "Zeichnen hinzufügen" }).click();
+  for (const r of ["Umschreiben", "Pantomime", "Ein Wort", "Geräusch"]) await page.getByRole("button", { name: `${r} weglassen` }).click();
+  for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  for (let i = 0; i < 5; i++) {
+    await page.getByRole("button", { name: /^Ich bin / }).click();
+    await page.getByLabel("Zetteli 1", { exact: true }).fill(`Bild${i}`);
+    await page.getByRole("button", { name: "In die Schüssel" }).click();
+  }
+  await expect(page.getByText(/Flipchart oder Papier/)).toBeVisible();
+  await page.getByRole("button", { name: "Los, Zetteli ziehen" }).click();
+  await expect(page.getByTestId("word")).toBeVisible(); // the word to draw, no drawing pad on one phone
+  await expect(page.getByRole("img", { name: "Hier zeichnen" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Erraten" }).click();
+  await expect(page.getByTestId("word")).toBeVisible();
+});

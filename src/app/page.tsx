@@ -74,7 +74,7 @@ export default function Home() {
   const choice = (on: boolean) => `flex flex-col items-start gap-1 rounded-2xl border-2 p-3 text-left ${press} ${on ? "border-accent bg-raised" : "border-line"}`;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-6">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <header className="flex justify-end">
         <TopControls />
       </header>

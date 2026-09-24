@@ -10,6 +10,12 @@ export const ghost = `min-h-11 rounded-xl px-3 font-medium text-muted hover:text
 export const panel = "rounded-3xl bg-surface p-5";
 export const field =
   "w-full rounded-2xl border border-line bg-surface px-4 py-3 text-lg outline-none transition placeholder:text-muted/60 focus:border-accent focus-visible:outline-none";
+/** handwritten word that always fits one line: shrinks with its length (needs an `@container` ancestor) */
+export const fitLine = (text: string, max = "3.75rem"): CSSProperties => ({
+  fontSize: `min(${max}, calc(100cqi / ${(Math.max(4, [...text].length) * 0.5).toFixed(2)}))`,
+  whiteSpace: "nowrap",
+});
+
 // header controls: one frosted pill holding quiet icon buttons
 export const pill = "flex items-center gap-0.5 rounded-full border border-line/70 bg-surface/70 p-1 shadow-sm backdrop-blur-md";
 export const pillBtn = `grid size-9 place-items-center rounded-full text-muted hover:bg-raised hover:text-ink ${press}`;

@@ -37,6 +37,14 @@ export const localStore: Store = {
   async hgetall<T>(k: string) {
     return ((read(k)?.v as Record<string, T>) ?? {}) as Record<string, T>;
   },
+  async rpush(k, vs, ex) {
+    const list = [...((read(k)?.v as unknown[]) ?? []), ...vs];
+    write(k, list, ex);
+    return list.length;
+  },
+  async lrangeWith<T, U>(k: string, start: number, other: string) {
+    return { items: ((read(k)?.v as T[]) ?? []).slice(start), other: (read(other)?.v as U) ?? null };
+  },
   async hdel(k, f) {
     const e = read(k);
     if (!e) return;
