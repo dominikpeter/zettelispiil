@@ -1,5 +1,6 @@
 import { currentUser } from "@/lib/auth";
 import { act, claimAi, joinRoom, view } from "@/lib/room";
+import { count } from "@/lib/usage";
 import { handle } from "../handle";
 
 const clean = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); // 5 letters today, 4 for rooms made before
@@ -15,8 +16,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ code: s
   const code = clean((await params).code);
   return handle(async (db) => {
     const { pid, token, ...a } = await req.json();
-    if (a.type === "join") return joinRoom(db, code, a.name);
+    if (a.type === "join") {
+      const me = await joinRoom(db, code, a.name);
+      await count({ joins: 1 });
+      return me;
+    }
     if (a.type === "claimAi") return claimAi(db, code, pid, token, (await currentUser(req))?.id ?? ""); // the host signed in: AI for the whole room
-    return act(db, code, pid, token, a);
+    const done = await act(db, code, pid, token, a);
+    if (a.type === "start") await count({ games: 1 }); // only reached when the host's start went through
+    return done;
   }, { req, kind: "act" });
 }

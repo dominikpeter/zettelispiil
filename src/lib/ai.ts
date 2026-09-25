@@ -3,6 +3,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import type { Lang } from "./i18n";
+import { count } from "./usage";
 
 export const aiEnabled = () => !!process.env.OPENAI_API_KEY;
 // always the real API: a shell-wide OPENAI_BASE_URL (e.g. a local proxy) must not leak into the game
@@ -23,9 +24,13 @@ const Check = z.object({
 });
 export type WordCheck = z.infer<typeof Check>["results"][number];
 
+/** count the call and its tokens for the admin page */
+const meter = (kind: "check" | "names" | "ideas", u: { inputTokens?: number; outputTokens?: number }) =>
+  count({ [`ai_${kind}`]: 1, [`tokens_in_${kind}`]: u.inputTokens ?? 0, [`tokens_out_${kind}`]: u.outputTokens ?? 0 });
+
 /** spelling, difficulty and a hint for each Zetteli of one player */
 export async function checkWords(words: string[], lang: Lang): Promise<WordCheck[]> {
-  const { output } = await generateText({
+  const { output, usage } = await generateText({
     model: model(),
     output: Output.object({ schema: Check }),
     system:
@@ -34,6 +39,7 @@ export async function checkWords(words: string[], lang: Lang): Promise<WordCheck
       `Write reasons and hints in ${LANG_NAME[lang]}.`,
     prompt: `Check these words, one result per word, same order:\n${words.map((w, i) => `${i + 1}. ${w}`).join("\n")}`,
   });
+  await meter("check", usage);
   // the model's answer is untrusted too: one result per word at most, every text bounded
   return output.results.slice(0, words.length).map((r) => ({
     word: r.word.slice(0, 40),
@@ -48,7 +54,7 @@ const Ideas = z.object({ words: z.array(z.string()) });
 
 /** three good Zetteli for a topic: well known, guessable, varied */
 export async function suggestWords(topic: string, lang: Lang, avoid: string[]): Promise<string[]> {
-  const { output } = await generateText({
+  const { output, usage } = await generateText({
     model: model(),
     output: Output.object({ schema: Ideas }),
     system:
@@ -56,6 +62,7 @@ export async function suggestWords(topic: string, lang: Lang, avoid: string[]): 
       "Pick things most friends at a party know: people, places, things, films, animals. 1-3 words each, no explanations.",
     prompt: `Topic: ${topic || "anything"}. Give 3 different words. Avoid: ${avoid.join(", ") || "none"}.`,
   });
+  await meter("ideas", usage);
   return output.words.map((w) => w.trim().slice(0, 40)).filter(Boolean).slice(0, 3);
 }
 
@@ -73,12 +80,13 @@ export async function funnyNames(kind: "player" | "team", lang: Lang, n: number,
   const around = base
     ? ` Every name must keep "${base}" exactly as written and add something funny around it, like "Alphornbläser-Beni" for "Beni". At most 24 characters.`
     : "";
-  const { output } = await generateText({
+  const { output, usage } = await generateText({
     model: model(),
     output: Output.object({ schema: Names }),
     system: `You invent short, funny, friendly ${kind === "team" ? "team names (1-3 words)" : "player nicknames (1-2 words)"} for a Swiss party game, in ${LANG_NAME[lang]}. No offensive words. Be surprising: vary the style, never reuse a word stem twice.`,
     prompt: `Give 8 different names, loosely inspired by ${pick(THEMES)}.${around} Do not use or resemble any of these: ${others.join(", ") || "none"}.`,
   });
+  await meter("names", usage);
   const taken = new Set(avoid.map((a) => a.toLowerCase()));
   const names = output.names
     .map((s) => s.trim().slice(0, 24))

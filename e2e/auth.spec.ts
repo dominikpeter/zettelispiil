@@ -130,3 +130,10 @@ test("the sign-in buttons lead to Google and GitHub (live providers)", async ({ 
     expect(decodeURIComponent(decodeURIComponent(page.url()))).toContain("zettelispiil.ch/api/auth/callback/");
   }
 });
+
+test("the admin page shows nothing to anyone else", async ({ page }) => {
+  const res = await page.goto("/admin");
+  // locally (no sign-in set up) there is no admin page at all; on the live site a stranger only gets the sign-in
+  if (res?.status() !== 404) await expect(page.getByRole("button", { name: /anmelden$/ }).first()).toBeVisible();
+  for (const secret of ["KI nach Funktion", "Konten", "Spiele pro Tag"]) await expect(page.getByText(secret)).toHaveCount(0);
+});

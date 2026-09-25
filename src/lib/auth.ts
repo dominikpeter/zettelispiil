@@ -1,8 +1,10 @@
 // server only: sign-in with Google, GitHub or Microsoft (Better Auth, no database).
 // The session lives in an encrypted cookie; it only unlocks the AI features, playing needs no account.
 import { betterAuth } from "better-auth";
+import { createAuthMiddleware } from "better-auth/api";
 import { Ratelimit } from "@upstash/ratelimit";
 import { redis } from "./store";
+import { signedIn } from "./usage";
 
 const env = process.env;
 const limiters = new Map<string, Ratelimit>();
@@ -49,6 +51,13 @@ const make = () => betterAuth({
     }),
   },
   advanced: { ipAddress: { ipAddressHeaders: ["x-vercel-forwarded-for", "x-real-ip"] } },
+  // a finished sign-in (the provider sent the player back): remember who, for the admin page
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      const s = ctx.context.newSession;
+      if (ctx.path.startsWith("/callback/") && s) await signedIn(s.user, ctx.path.slice("/callback/".length));
+    }),
+  },
 });
 let instance: ReturnType<typeof make> | null = null;
 export const getAuth = () => (authEnabled() ? (instance ??= make()) : null);

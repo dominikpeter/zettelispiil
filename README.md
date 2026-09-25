@@ -53,6 +53,7 @@ German by default, plus English and French. Light and dark mode and five color t
 - AI needs sign-in (Google, GitHub, Microsoft via Better Auth, encrypted cookie sessions, 7 days), is rate limited per account and overall, and its answers are length-bounded.
 - Headers: Content-Security-Policy (same origin only), `X-Frame-Options: DENY`, `nosniff`, strict referrer, camera only for the QR scanner.
 - Commits run a secret scan, lint, type check and unit tests (prek).
+- `/admin` shows usage (rooms, games, joins, sign-ins, AI calls and tokens per feature, accounts) to the verified accounts in `ADMIN_EMAIL` only; everyone else gets a 404. Counters live in Redis per day, nothing players write is stored.
 
 ## Stack
 
