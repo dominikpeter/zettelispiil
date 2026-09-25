@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 // "KI schreibt": the AI writes every Zetteli, nobody knows a word beforehand. AI status and answer are mocked
 // (the local test server has no key); the one-phone game is the quickest way through a whole game.
-const WORDS = ["Murmeltier", "Gletscher", "Alphorn", "Steinbock"];
+const WORDS = ["Kuckucksuhr", "Gletscher", "Sackmesser", "Steinbock"]; // none of them in a funny team name
 const aiOn = (page: Page) => page.route("**/api/ai/status", (r) => r.fulfill({ json: { ai: true, login: false, providers: [], user: null } }));
 
 async function lobby(page: Page) {
@@ -46,7 +46,7 @@ test("KI schreibt: the host picks two topics, nobody writes, no word shows befor
   // straight to the first turn; the words stay hidden until the describer draws one
   const go = page.getByRole("button", { name: "Los, Zetteli ziehen" });
   await expect(go).toBeVisible();
-  for (const w of WORDS) await expect(page.getByText(w)).toHaveCount(0);
+  for (const w of WORDS) await expect(page.getByText(w, { exact: true })).toHaveCount(0);
 
   // play to the end
   const end = page.getByText("Gewonnen hat").or(page.getByText("Unentschieden"));
