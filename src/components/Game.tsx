@@ -7,6 +7,7 @@ import type { View } from "@/lib/room";
 import { buzz } from "@/lib/ui";
 import { End, Ready, RoundEnd } from "./game/Between";
 import type { P } from "./game/common";
+import { AiWrite } from "./game/AiWrite";
 import { Turn } from "./game/Turn";
 import { Write } from "./game/Write";
 
@@ -50,7 +51,8 @@ function GotFlash({ v }: { v: View }) {
 export function Phase(props: P & { left: number }) {
   const { v } = props;
   const body =
-    v.phase === "write" ? <Write key={`w${v.settings.perPlayer}-${v.me}-${v.myWrite?.cancelled.length ?? 0}`} {...props} />
+    v.phase === "write" && v.settings.source === "ai" ? <AiWrite key="ai" {...props} />
+    : v.phase === "write" ? <Write key={`w${v.settings.perPlayer}-${v.me}-${v.myWrite?.cancelled.length ?? 0}`} {...props} />
     : v.phase === "ready" ? <Ready key={`r${v.turnNo}-${v.round}`} {...props} />
     : v.phase === "turn" ? <Turn key={`t${v.turnNo}`} {...props} />
     : v.phase === "roundEnd" ? <RoundEnd {...props} />

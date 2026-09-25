@@ -64,6 +64,7 @@ export async function supplyZetteli({ lang, topics, count, write, now = Date.now
     }
   };
   // what was served lately, per word and per topic (for the prompt)
+  // ponytail: reads the whole 30-day set each game (~40 words a game); switch to ZMSCORE on the candidates if it grows large
   const recentMembers = await safe(async () => {
     await r!.zremrangebyscore(recentKey(lang), 0, now - RECENT_MS);
     return r!.zrange(recentKey(lang), now - RECENT_MS, Number.MAX_SAFE_INTEGER, { byScore: true });
@@ -80,7 +81,10 @@ export async function supplyZetteli({ lang, topics, count, write, now = Date.now
   const taken = new Set<string>(); // norm of every word in this game
   const chosen: { topic: string; slip: Slip }[] = [];
   const usable = (s: Slip) => !!norm(s.word) && !taken.has(norm(s.word)) && !recent.has(norm(s.word));
-  const take = (topic: string, s: Slip) => (taken.add(norm(s.word)), chosen.push({ topic, slip: s }));
+  const take = (topic: string, s: Slip) => {
+    taken.add(norm(s.word));
+    chosen.push({ topic, slip: s });
+  };
 
   // 1. the pools
   const need = shares(topics, count);
@@ -90,7 +94,11 @@ export async function supplyZetteli({ lang, topics, count, write, now = Date.now
     for (let tries = 0; got < n && tries < 3; tries++) {
       const xs = await safe(() => r!.lpop<Slip>(poolKey(lang, topic), n - got), null);
       if (!xs?.length) break;
-      for (const s of xs) if (got < n && s && typeof s.word === "string" && usable(s)) (take(topic, { word: s.word, hint: String(s.hint ?? "") }), got++);
+      for (const s of xs)
+        if (got < n && s && typeof s.word === "string" && usable(s)) {
+          take(topic, { word: s.word, hint: String(s.hint ?? "") });
+          got++;
+        }
     }
     pooled += got;
     need.set(topic, n - got);
@@ -117,7 +125,10 @@ export async function supplyZetteli({ lang, topics, count, write, now = Date.now
     for (const s of slips) {
       if (!norm(s.word) || taken.has(norm(s.word))) continue;
       if (recent.has(norm(s.word))) stale.push({ topic, slip: s });
-      else if (n > 0) (take(topic, s), n--);
+      else if (n > 0) {
+        take(topic, s);
+        n--;
+      }
       else spare.push({ topic, slip: s });
     }
   }

@@ -57,6 +57,8 @@ Die Spielleitung legt mit Plus und Minus fest:
 - **Stören erlaubt** (nur mit mehreren Handys): Schalter, standardmässig aus. Ist er an, dürfen die anderen Teams die erklärende Person ablenken (siehe «Stören» unten).
   - **Auto** (Standard) oder **Fix**: Bei «Auto» bekommt ein Team, das zurückliegt, manchmal einen Stör-Bonus (siehe unten). Bei «Fix» darf jede Person der anderen Teams gleich oft stören.
   - **Stören pro Person und Zug** (nur bei «Fix»): 1 bis 5, Standard 2.
+- **Wer schreibt die Zetteli?** (nur mit KI-Hilfe): **Selber schreiben** (Standard) oder **KI schreibt**. Bei «KI schreibt» schreibt die KI alle Zetteli, so kennt niemand ein Wort im Voraus (siehe «KI schreibt die Zetteli» unten).
+  - **Themen**: Standard ist **Alle Themen**. Tippe Themen an, um nur diese zu spielen, zum Beispiel Tiere und Schwiiz. Ein Thema bleibt immer gewählt; tippst du das letzte weg, gelten wieder alle.
 - **Sprache der Zetteli**: Deutsch, English oder Français. Startet mit der Sprache des Handys, das den Raum erstellt. Die KI prüft Rechtschreibung, schreibt Hinweise und schlägt Ideen und lustige Namen in dieser Sprache vor. Jedes Handy zeigt die App trotzdem in seiner eigenen Sprache an.
 
 Unten fasst eine kurze Übersicht die Einstellungen zusammen. Dann tippt die Spielleitung auf **Spiel starten**.
@@ -91,6 +93,15 @@ Alle schreiben gleichzeitig ihre Zetteli («Schreib 4 Zetteli»). Niemand sieht,
 - Unter jedes Zetteli kannst du einen **Hinweis für die Erklärer:in** setzen (optional).
 - Mit **In die Schüssel** gibst du deine Zetteli ab. Das Spiel zeigt, wie viele schon fertig sind.
 - Steht derselbe Begriff zweimal auf deinen eigenen Zetteli, macht dich das Spiel darauf aufmerksam.
+
+### KI schreibt die Zetteli
+
+Hat die Spielleitung «KI schreibt» gewählt, schreibt niemand selber. Nach **Spiel starten** zeigen alle Handys «KI schreibt die Zetteli …», und die KI legt so viele Zetteli in die Schüssel, wie ihr sonst geschrieben hättet (Spieler mal Zetteli pro Person, höchstens 120), jedes mit einem kurzen Hinweis für die Erklärer:in. Niemand sieht die Begriffe, bis sie gezogen werden; danach geht es gleich mit dem ersten Zug los.
+
+- Die Begriffe passen zu den gewählten Themen: meist bekannte, gut erklärbare Dinge, dazu ein paar überraschendere.
+- Kein Begriff kommt im selben Spiel zweimal vor, und was die KI in den letzten 30 Tagen schon gebracht hat, kommt so bald nicht wieder.
+- Klappt es gerade nicht, zeigt das Handy der Spielleitung eine Meldung: **Nochmal versuchen** oder **Selber schreiben**, dann schreiben alle ihre Zetteli wie gewohnt.
+- In der Statistik am Schluss steht bei diesen Zetteli «von KI».
 
 ### Doppelte Begriffe
 
@@ -164,7 +175,7 @@ Das Spiel zeigt, wer gewonnen hat (oder «Unentschieden»), dazu eine Übersicht
 - **Punkte pro Runde** für jedes Team.
 - **Tempo**: durchschnittliche Sekunden, bis ein Zetteli erraten war, pro Runde.
 - **Spieler**: erratene Zetteli beim Erklären und Sekunden pro Zetteli.
-- **Die Zetteli**: am schnellsten erraten, am längsten gedauert, am meisten übersprungen und die schwierigsten Begriffe über alle Runden.
+- **Die Zetteli**: am schnellsten erraten, am längsten gedauert, am meisten übersprungen und die schwierigsten Begriffe über alle Runden. Bei den schwierigsten und in der Liste aller Zetteli steht, wer sie geschrieben hat («von KI», wenn es die KI war).
 - **Zeichnungen** (nur mit mehreren Handys und der Runde Zeichnen): alle Zeichnungen des Spiels als kleine Bilder, mit Begriff, wer gezeichnet hat und wie schnell es erraten wurde (oder «nicht erraten»). Tippe auf eine Zeichnung, und sie entsteht nochmal Strich für Strich; **Nochmal abspielen** zeigt es erneut. Hast du mit **Alles löschen** neu angefangen, zeigt die Zeichnung den letzten Versuch. Leere Blätter erscheinen nicht.
 - Tippe auf ein Zetteli oder einen Spieler für Details: beim Zetteli pro Runde, wer es erraten hat, wie lange es gedauert hat und wie oft es übersprungen wurde; beim Spieler die erratenen Zetteli pro Runde, die Zeit pro Zetteli, das Überspringen und das schnellste und langsamste Zetteli.
 

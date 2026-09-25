@@ -43,6 +43,16 @@ export async function api<T>(path: string, body?: unknown, id?: Identity | null)
 const KNOWN = ["not_found", "started", "full", "no_storage", "rate_limited"] as const;
 export const errKey = (e: string): (typeof KNOWN)[number] | "offline" => (KNOWN as readonly string[]).includes(e) ? (e as (typeof KNOWN)[number]) : "offline";
 
+/** "KI schreibt": the host's phone asks the AI for every Zetteli of the game; null when it couldn't */
+export async function aiZetteli(count: number, topics: string[], lang: string, room?: AiRoom | null): Promise<{ word: string; hint: string }[] | null> {
+  try {
+    const r = await fetch("/api/ai/zetteli", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ count, topics, lang, room: room ?? null }) }).then((x) => x.json());
+    return r?.ai && Array.isArray(r.words) && r.words.length ? r.words : null;
+  } catch {
+    return null;
+  }
+}
+
 /** one funny name from the AI when it's available, otherwise from our own list */
 const recent: string[] = []; // names this phone was already offered: asked again, the AI must come up with something new
 const builtOn = new Map<string, string>(); // suggestion → the typed name it was built on: pressing again restarts from "Beni", not "Alphornbläser-Beni"

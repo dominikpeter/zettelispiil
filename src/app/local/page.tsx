@@ -12,10 +12,10 @@ import { loadLocalGame, saveLocalGame, type LocalGame } from "@/lib/localGame";
 
 const noop = () => () => {};
 
-/** who holds the phone right now: the host between rounds, each writer in turn, the describer during turns */
+/** who holds the phone right now: the host between rounds and while the AI writes, each writer in turn, the describer during turns */
 async function viewerOf(g: LocalGame): Promise<{ v: View; who: number }> {
   const host = await view(localStore, g.code, g.ids[0].pid, g.ids[0].token);
-  if (host.phase === "write") {
+  if (host.phase === "write" && host.settings.source !== "ai") {
     for (let i = 0; i < g.ids.length; i++) {
       const v = await view(localStore, g.code, g.ids[i].pid, g.ids[i].token);
       if (!v.iDone) return { v, who: i };
@@ -97,7 +97,7 @@ export default function LocalGamePage() {
   if (!hydrated || !game) return <main className="flex-1" />;
 
   const playing = v && v.phase !== "lobby" && v.phase !== "write" && v.phase !== "end";
-  const gateKey = v?.phase === "write" ? `write-${who}-${v.settings.perPlayer}-${v.myWrite?.cancelled.length ?? 0}` : null;
+  const gateKey = v?.phase === "write" && v.settings.source !== "ai" ? `write-${who}-${v.settings.perPlayer}-${v.myWrite?.cancelled.length ?? 0}` : null;
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">

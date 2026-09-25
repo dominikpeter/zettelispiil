@@ -1,16 +1,20 @@
 "use client";
 
-import { ArrowLeftRight, Check, Sparkles, Crown, GripVertical, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, UserPlus, X } from "lucide-react";
+import {
+  ArrowLeftRight, Briefcase, Car, Castle, Check, Clapperboard, Crown, Globe, GripVertical, Infinity as Inf, Minus, Mountain, Music, Palette, PartyPopper,
+  PawPrint, Pencil, PersonStanding, Plus, Share2, Shuffle, Sofa, Sparkles, Star, Trees, Trophy, UserPlus, UtensilsCrossed, X, type LucideIcon,
+} from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { move as moved } from "@dnd-kit/helpers";
 import { useAiOn, useAiRoom } from "@/lib/aiAccess";
-import { useT } from "@/lib/prefs";
+import { langPref, useT } from "@/lib/prefs";
 import { LANGS } from "@/lib/i18n";
 import { Segmented } from "../TopControls";
 import { funnyName } from "@/lib/roomClient";
 import { MAX_TEAMS, ROUND_TYPES, type RoundType, type Settings, type Team } from "@/lib/room";
+import { TOPIC_IDS, TOPICS, topicById, type TopicIcon } from "@/lib/topics";
 import { btn, btn2, field, ghost, panel, press, round_btn, RoundIcon, TEAM, WhatsAppIcon, whatsappHref } from "@/lib/ui";
 import { mini, Waiting, Cta, AiNameButton, type P } from "./common";
 
@@ -82,6 +86,55 @@ function RoundRow({ r, i, children }: { r: RoundType; i: number; children: React
   );
 }
 
+const TOPIC_ICON: Record<TopicIcon, LucideIcon> = { PawPrint, UtensilsCrossed, Star, Clapperboard, Globe, Mountain, Trophy, Briefcase, Sofa, Music, Castle, Trees, Car, Palette, PartyPopper, PersonStanding };
+const tile = (on: boolean) =>
+  `flex min-h-11 items-center gap-2 rounded-2xl px-3 py-2 text-left text-sm leading-tight font-semibold max-xs:flex-col max-xs:gap-1 max-xs:px-2 max-xs:text-center ${on ? "bg-accent text-canvas" : "border border-line bg-canvas text-ink hover:bg-raised"} ${press}`;
+
+/** the topics the AI writes about, in this phone's language; all of them: "Alle Themen" */
+const topicNames = (topics: string[], t: ReturnType<typeof useT>, lang: ReturnType<typeof langPref.get>) =>
+  topics.length === TOPIC_IDS.length ? t.allTopics : topics.map((id) => topicById(id)?.name[lang] ?? id).join(", ");
+
+/** host: who writes the Zetteli; with the AI, about which topics ("Alle Themen", or the ones tapped) */
+function ZetteliSource({ s, set }: { s: Settings; set: (patch: Partial<Settings>) => void }) {
+  const t = useT();
+  const lang = langPref.use();
+  const all = s.topics.length === TOPIC_IDS.length;
+  const toggle = (id: string) => {
+    if (all) return set({ topics: [id] }); // from all topics, the first tap picks just this one
+    const next = s.topics.includes(id) ? s.topics.filter((x) => x !== id) : [...s.topics, id];
+    set({ topics: next.length ? next : [...TOPIC_IDS] }); // never none: the last one off means all again
+  };
+  return (
+    <>
+      <h3 className="mt-4 font-semibold">{t.source}</h3>
+      <div className="mt-2">
+        <Segmented options={[{ id: "players" as const, label: t.sourcePlayers }, { id: "ai" as const, label: <><Sparkles className="size-4 shrink-0 max-xs:hidden" aria-hidden />{t.sourceAi}</> }]} value={s.source} onChange={(source) => set({ source })} />
+      </div>
+      <p className="mt-1.5 text-sm text-muted">{s.source === "ai" ? t.sourceAiHelp : t.sourcePlayersHelp}</p>
+      {s.source === "ai" && (
+        <>
+          <h3 className="mt-4 font-semibold">{t.topics}</h3>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button onClick={() => set({ topics: [...TOPIC_IDS] })} aria-pressed={all} className={`col-span-2 justify-center ${tile(all)}`}>
+              <Sparkles className="size-4 shrink-0" aria-hidden /> {t.allTopics}
+            </button>
+            {TOPICS.map((tp) => {
+              const Icon = TOPIC_ICON[tp.icon];
+              const on = !all && s.topics.includes(tp.id);
+              return (
+                <button key={tp.id} onClick={() => toggle(tp.id)} aria-pressed={on} className={tile(on)}>
+                  <Icon className={`size-5 shrink-0 ${on ? "" : "text-accent"}`} aria-hidden />
+                  <span className="min-w-0 break-words">{tp.name[lang]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
 export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr: string; copied: boolean; onShare: () => void; url: string }; onAdd?: (name: string) => Promise<void> }) {
   const t = useT();
   // only the host edits settings: show their taps at once, and send them one after another so quick taps never race
@@ -89,6 +142,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
   const s = { ...v.settings, ...pending };
   const aiRoom = useAiRoom();
   const aiOn = useAiOn();
+  const lang = langPref.use(); // this phone's language, for topic names
   const queue = useRef(Promise.resolve());
   const local = mode === "local";
   const set = (patch: Partial<Settings>) => {
@@ -247,6 +301,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
               )}
               {!local && s.heckle && s.heckleMode === "fixed" && <Stepper label={t.heckles} value={s.heckles} set={(n) => set({ heckles: n })} min={1} max={5} />}
             </div>
+            {(aiOn || s.source === "ai") && <ZetteliSource s={s} set={set} />}
             <h3 className="mt-4 font-semibold">{t.wordLang}</h3>
             <p className="text-sm text-muted">{t.wordLangHelp}</p>
             <div className="mt-2">
@@ -283,6 +338,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
             <li>{t.sumSkips(s.skips)}</li>
             {s.heckle && <li>{s.heckleMode === "auto" ? t.sumHeckleAuto : t.sumHeckle(s.heckles)}</li>}
             <li>{t.sumLang(LANGS.find((l) => l.id === s.lang)!.label)}</li>
+            {s.source === "ai" && <li>{t.sumAi(topicNames(s.topics, t, lang))}</li>}
             <li className="mt-2 flex flex-wrap gap-2">
               {s.rounds.map((r, i) => (
                 <span key={r} className="flex items-center gap-1.5 rounded-full bg-raised px-3 py-1 text-sm text-ink">

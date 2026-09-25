@@ -217,6 +217,7 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
   const teams = v.players.map((p) => p.team);
   const s = computeStats(st.log, st.turns, st.words, teams, v.scores);
   const names = v.settings.rounds.map((r) => t.round[r].name);
+  const author = (i: number) => (i < 0 ? t.aiAuthor : (v.players[i]?.name ?? "?")); // -1: the AI wrote it
   const maxGot = Math.max(1, ...s.players.map((p) => p.got));
   const maxHard = Math.max(1, ...s.hardest.map((h) => h.ms));
   const w = s.winner;
@@ -305,7 +306,7 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-hand min-w-0 truncate pr-1.5 text-2xl leading-tight font-bold">{h.text}</span>
                     <span className="flex shrink-0 items-center gap-1 text-sm text-muted tabular-nums">
-                      {fmt(h.ms)} s, {t.by(v.players[st.authors[h.w]]?.name ?? "?")}
+                      {fmt(h.ms)} s, {t.by(author(st.authors[h.w]))}
                       {chevron}
                     </span>
                   </div>
@@ -331,7 +332,7 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
                   head={<>
                     <span className="font-hand min-w-0 truncate text-xl font-bold">{text}</span>
                     <span className="flex shrink-0 items-center gap-1 text-sm text-muted">
-                      {t.by(v.players[st.authors[w]]?.name ?? "?")}
+                      {t.by(author(st.authors[w]))}
                       {chevron}
                     </span>
                   </>}

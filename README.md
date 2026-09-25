@@ -38,6 +38,8 @@ With `OPENAI_API_KEY` set (Vercel AI SDK, model `OPENAI_MODEL`, default `gpt-6-l
 
 Stuck for words? Type a topic and the AI suggests three to pick from.
 
+Or let the AI write them all ("KI schreibt", a lobby option for the host when AI is on): nobody knows a single word beforehand. The host picks topics from a fixed list (animals, Switzerland, films, …); at start the host's phone calls `POST /api/ai/zetteli` for players × Zetteli each (max 120) words with hints, and the room skips the write phase. Words come from a Redis pool per language and topic that the model refills in batches; every word served is remembered for 30 days per language (sorted set) and not served again while there are others. Only topic ids and AI-written words ever reach the prompt. If the AI fails, the host can switch the room back to writing. The stats list these Zetteli as "by AI".
+
 AI answers are reused through Redis: a word checked once (by anyone) is answered from the cache for 30 days, the model writes names six at a time into a pool (per typed name) and topic ideas nine at a time, so most taps need no model call at all. The rest run on `gpt-6-luna` without reasoning, with short answers and in OpenAI's priority lane (~2 s). Cached are only words and topics, never who wrote them.
 
 AI help needs an account (Google or GitHub). Signed out, no AI features show at all. A room opened by a signed-in host (or whose host signs in later) has AI for everyone in it, on the host's budget: 120 calls per minute and 300 per day per room, 1000 per day per host.
