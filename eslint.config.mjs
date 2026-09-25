@@ -23,6 +23,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // generated: the Capacitor phone projects (Gradle/Xcode copy web assets and plugin code in), agent worktrees
+    "android/**",
+    "ios/**",
+    ".claude/worktrees/**",
   ]),
 ]);
 
