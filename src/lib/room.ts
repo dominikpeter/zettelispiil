@@ -78,6 +78,9 @@ type Room = {
   lastGot: { n: number; text: string; by: number } | null; // flashed on every phone; n changes with each guess
   heckled?: Record<number, number>; // presses per player index in the running turn, cleared when a turn starts (fixed mode)
   heckleBonus?: number[]; // presses left per team in the running turn (auto mode), drawn when the turn starts
+  heckleGranted?: number[]; // what each team was granted at the start of the running turn (auto mode)
+  heckleLog?: { by: number; bonus: boolean }[]; // every press this game, for the end stats
+  bonusGot?: number[]; // per team: bonus presses granted this game (auto mode)
   heckledMs?: number; // disturbed time in the running turn
   lastHeckle?: { n: number; by: number; until: number } | null; // disturbs the describer's Zetteli until `until`; n changes with each press
   scores: number[][]; // per round, per team
@@ -387,7 +390,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       if (room.teamNames.some((_, t) => members.filter((m) => m.team === t).length < 2)) throw new RoomError("teams");
       Object.assign(room, {
         ids: members.map((m) => m.id), teams: members.map((m) => m.team), words: [], authors: [], bowl: [],
-        current: null, held: [], pausedAt: 0, round: 0, team: pick(n), next: Array(n).fill(0), carryMs: 0, scores: [], log: [], turns: [], drawings: [],
+        current: null, held: [], pausedAt: 0, round: 0, team: pick(n), next: Array(n).fill(0), carryMs: 0, scores: [], log: [], turns: [], drawings: [], heckleLog: [], bonusGot: [],
         phase: "write", writeNo: room.writeNo + 1,
       } satisfies Partial<Room>);
       break;
@@ -430,8 +433,9 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       need(room.phase === "ready" && idx === describer(room));
       const ms = room.carryMs || room.settings.seconds * 1000;
       const totals = room.teamNames.map((_, t) => room.scores.reduce((sum, r) => sum + (r[t] ?? 0), 0));
-      const bonus = room.settings.heckle && cleanSettings(room.settings).heckleMode === "auto" ? heckleBonus(totals, room.team) : [];
-      Object.assign(room, { carryMs: 0, turnStart: now, endsAt: now + ms, turnGot: 0, phase: "turn", turnNo: room.turnNo + 1, heckled: {}, heckledMs: 0, heckleBonus: bonus });
+      const bonus = room.settings.heckle && cleanSettings(room.settings).heckleMode === "auto" ? heckleBonus(totals, room.team, process.env.E2E_HECKLE_DICE === "always" ? () => 0 : Math.random) : []; // e2e server only: loaded dice
+      Object.assign(room, { carryMs: 0, turnStart: now, endsAt: now + ms, turnGot: 0, phase: "turn", turnNo: room.turnNo + 1, heckled: {}, heckledMs: 0, heckleBonus: bonus, heckleGranted: bonus });
+      if (bonus.some(Boolean)) room.bonusGot = room.teamNames.map((_, t) => (room.bonusGot?.[t] ?? 0) + (bonus[t] ?? 0));
       draw(room, now);
       break;
     }
@@ -482,6 +486,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       else room.heckled = { ...room.heckled, [idx]: used + 1 };
       room.heckledMs = (room.heckledMs ?? 0) + ms;
       room.lastHeckle = { n: (room.lastHeckle?.n ?? 0) + 1, by: idx, until: now + ms };
+      if ((room.heckleLog ??= []).length < 500) room.heckleLog.push({ by: idx, bonus: auto });
       break;
     }
     case "got": {
@@ -565,12 +570,13 @@ export type View = {
   lastHeckle: { n: number; by: number; until: number } | null; // the latest heckle; the describer's Zetteli is disturbed until `until` (server clock), nobody heckles meanwhile
   heckles: number; // heckles I have left this turn (auto mode: my team's bonus)
   heckleDone: boolean; // this turn has been disturbed enough
+  heckleGranted: number; // auto mode: the bonus my team got for this turn (0: no button)
   scores: number[][];
   lastTurn: TurnLog | null;
   done: number; // players who wrote their words
   iDone: boolean;
   turnNo: number;
-  stats: null | { words: string[]; authors: number[]; log: Ev[]; turns: TurnLog[]; drawings: Drawing[] };
+  stats: null | { words: string[]; authors: number[]; log: Ev[]; turns: TurnLog[]; drawings: Drawing[]; heckles: { by: number; bonus: boolean }[]; bonusGot: number[] };
 };
 
 /** What one player may see: Zetteli only while describing them, everything at the end. */
@@ -634,12 +640,13 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
           : Math.max(0, cleanSettings(room.settings).heckles - (room.heckled?.[idx] ?? 0))
         : 0,
     heckleDone: room.phase === "turn" && (room.heckledMs ?? 0) >= heckleBudget(room.endsAt - room.turnStart),
+    heckleGranted: room.phase === "turn" && idx >= 0 ? (room.heckleGranted?.[room.teams[idx]] ?? 0) : 0,
     scores: room.scores,
     lastTurn: room.turns.at(-1) ?? null,
     done,
     iDone,
     myWrite,
     turnNo: room.turnNo,
-    stats: room.phase === "end" ? { words: room.words, authors: room.authors, log: room.log, turns: room.turns, drawings: room.drawings ?? [] } : null,
+    stats: room.phase === "end" ? { words: room.words, authors: room.authors, log: room.log, turns: room.turns, drawings: room.drawings ?? [], heckles: room.heckleLog ?? [], bonusGot: room.bonusGot ?? [] } : null,
   };
 }

@@ -965,7 +965,7 @@ export function Turn({ v, left, send, live, mode }: P & { left: number }) {
     setHeckleBusy(false);
   };
   const auto = v.settings.heckleMode === "auto";
-  const heckleButton = mode === "online" && !me && v.settings.heckle && v.players[v.me]?.team !== p.team && (!auto || v.heckles > 0 || v.heckleDone) && (
+  const heckleButton = mode === "online" && !me && v.settings.heckle && v.players[v.me]?.team !== p.team && (!auto || v.heckleGranted > 0) && ( // auto: only a team that got a bonus this turn
     <button onClick={heckle} disabled={up || heckleBusy || v.pausedLeft > 0 || v.heckles <= 0 || v.heckleDone || heckleRuns} className={`${btn2} min-h-14 flex-col gap-0 leading-tight`}>
       <span className="flex items-center gap-2">
         <Megaphone className="size-5" aria-hidden /> {auto ? t.heckleBonus : t.heckle}
@@ -994,6 +994,26 @@ export function Turn({ v, left, send, live, mode }: P & { left: number }) {
     </div>
   );
   const heckleSlip = fx ? { ms: fx.ms } : null;
+  // the heckler's teammates see who used the (shared) bonus or pressed
+  const [mateHeckle, setMateHeckle] = useState<{ n: number; by: number } | null>(null);
+  const [mateSeen, setMateSeen] = useState(h?.n ?? 0);
+  if (h && h.n !== mateSeen) {
+    setMateSeen(h.n);
+    if (mode === "online" && !me && h.by !== v.me && v.players[h.by]?.team === v.players[v.me]?.team) setMateHeckle({ n: h.n, by: h.by });
+  }
+  useEffect(() => {
+    if (!mateHeckle) return;
+    const id = setTimeout(() => setMateHeckle(null), 2200);
+    return () => clearTimeout(id);
+  }, [mateHeckle]);
+  const mateToast = mateHeckle && (
+    <div role="status" data-testid="heckled-mate" className="pointer-events-none fixed inset-x-0 top-1/4 z-40 flex justify-center px-4">
+      <p key={mateHeckle.n} className="pop flex max-w-full items-center gap-2 rounded-full bg-surface px-4 py-2 font-bold text-ink shadow-xl">
+        <Megaphone className="size-5 shrink-0 text-accent" aria-hidden />
+        <span className="truncate">{t.heckledByMate(v.players[mateHeckle.by]?.name ?? "?")}</span>
+      </p>
+    </div>
+  );
 
 
   const [wipes, setWipes] = useState(0);
@@ -1094,6 +1114,7 @@ export function Turn({ v, left, send, live, mode }: P & { left: number }) {
         </div>
         {teamButton}
         {heckleButton}
+        {mateToast}
       </div>
     );
   }
@@ -1127,6 +1148,7 @@ export function Turn({ v, left, send, live, mode }: P & { left: number }) {
         </p>
         {teamButton && <div className="w-full">{teamButton}</div>}
         {heckleButton && <div className="w-full">{heckleButton}</div>}
+        {mateToast}
       </div>
     );
   }

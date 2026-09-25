@@ -344,7 +344,39 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
 
       {/* several phones only: one phone draws on paper, nothing to replay */}
       {showMe && <Drawings code={v.code} drawings={st.drawings ?? []} words={st.words} players={v.players} t={t} />}
+      <HeckleStats v={v} t={t} />
     </div>
+  );
+}
+
+/** who heckled how often, and which teams got a heckle bonus (only when anybody heckled or got one) */
+function HeckleStats({ v, t }: { v: View; t: Dict }) {
+  const heckles = v.stats?.heckles ?? [];
+  const bonus = v.stats?.bonusGot ?? [];
+  if (!heckles.length && !bonus.some(Boolean)) return null;
+  const by = [...heckles.reduce((m, h) => m.set(h.by, (m.get(h.by) ?? 0) + 1), new Map<number, number>())].sort((a, b) => b[1] - a[1]);
+  return (
+    <Section title={t.statsHeckle} note={t.statsHeckleNote}>
+      {bonus.some(Boolean) && (
+        <ul className="mb-3 flex flex-wrap gap-2">
+          {bonus.map((n, team) =>
+            n ? (
+              <li key={team} className={`rounded-full px-3 py-1 text-sm font-semibold ${TEAM[team].soft} ${TEAM[team].text}`}>
+                {v.teamNames[team]}: {t.bonusGot(n)}
+              </li>
+            ) : null,
+          )}
+        </ul>
+      )}
+      <ul className="flex flex-col gap-1.5">
+        {by.map(([p, n]) => (
+          <li key={p} className="flex items-baseline justify-between gap-3">
+            <span className={`truncate font-semibold ${TEAM[v.players[p]?.team ?? 0].text}`}>{v.players[p]?.name ?? "?"}</span>
+            <span className="shrink-0 text-sm text-muted tabular-nums">{t.heckledN(n)}</span>
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }
 

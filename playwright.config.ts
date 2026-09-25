@@ -12,5 +12,5 @@ export default defineConfig({
   use: { ...devices["Pixel 7"], baseURL, trace: "retain-on-failure", screenshot: "only-on-failure" },
   webServer: process.env.BASE_URL
     ? undefined
-    : { command: `OPENAI_API_KEY= npm run build && OPENAI_API_KEY= npx next start -p ${port}` /* AI off: fast, free, deterministic */, url: baseURL, reuseExistingServer: true, timeout: 180_000 },
+    : { command: `OPENAI_API_KEY= npm run build && OPENAI_API_KEY= E2E_HECKLE_DICE=always npx next start -p ${port}` /* AI off: fast, free, deterministic */, url: baseURL, reuseExistingServer: true, timeout: 180_000 },
 });

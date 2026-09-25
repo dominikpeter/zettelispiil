@@ -563,3 +563,82 @@ test("game language: the host picks English for the Zetteli while the app stays 
   await expect.poll(() => langs.at(-1)).toBe("en");
   await expect(page.getByRole("button", { name: "In die Schüssel" })).toBeVisible(); // UI still German
 });
+
+test("heckle auto: over several turns the team that falls behind gets a bonus; its mates see who used it; the stats tell", async ({ browser }) => {
+  test.skip(!!process.env.BASE_URL, "needs the test server's loaded dice (E2E_HECKLE_DICE=always)");
+  test.setTimeout(120_000);
+  const host = await phone(browser);
+  await host.goto("/");
+  await host.getByRole("button", { name: /Mehrere Handys/ }).click();
+  await host.getByLabel("Dein Name").fill("Lisa");
+  await host.getByRole("button", { name: "Raum erstellen" }).click();
+  await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
+  const code = host.url().split("/").pop()!;
+  const names = ["Lisa", "Nora", "Tim", "Beni"]; // teams alternate on join: Lisa+Tim, Nora+Beni
+  const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
+  for (const [i, n] of names.slice(1).entries()) {
+    await others[i].goto(`/r/${code}`);
+    await others[i].getByLabel("Dein Name").fill(n);
+    await others[i].getByRole("button", { name: "Beitreten" }).click();
+    await expect(others[i].getByText("(du)")).toBeVisible();
+  }
+  const phones = [host, ...others];
+  await host.getByRole("switch", { name: /Stören erlaubt/ }).check(); // auto is the default
+  for (let i = 0; i < 2; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click(); // 2 each: 8 in the bowl
+  for (let i = 0; i < 4; i++) await host.getByRole("button", { name: "Sekunden pro Zug weniger" }).click(); // 10 s turns
+  for (const r of ["Pantomime", "Ein Wort", "Geräusch"]) await host.getByRole("button", { name: `${r} weglassen` }).click();
+  await host.getByRole("button", { name: "Spiel starten" }).click();
+  for (const [i, p] of phones.entries()) {
+    for (const z of [1, 2]) await p.getByLabel(`Zetteli ${z}`, { exact: true }).fill(`Wort${i}${z}`);
+    await p.getByRole("button", { name: "In die Schüssel" }).click();
+  }
+
+  const go = (p: Page) => p.getByRole("button", { name: "Los, Zetteli ziehen" });
+  const bonus = (p: Page) => p.getByRole("button", { name: /^Stör-Bonus!/ });
+  const describer = async () => {
+    await expect.poll(async () => (await Promise.all(phones.map((p) => go(p).isVisible()))).filter(Boolean).length, { timeout: 20_000 }).toBe(1);
+    return (await Promise.all(phones.map((p) => go(p).isVisible()))).indexOf(true);
+  };
+  const guess = async (d: Page, n: number) => {
+    for (let i = 0; i < n; i++) {
+      const w = await d.getByTestId("word").innerText();
+      await d.getByRole("button", { name: "Erraten" }).click();
+      await expect(d.getByTestId("word").filter({ hasText: w })).toHaveCount(0);
+    }
+  };
+
+  // turn 1: team A guesses one, then time runs out. Nobody was behind at the start: no bonus anywhere
+  const a = await describer();
+  await go(phones[a]).click();
+  await expect(phones[a].getByTestId("word")).toBeVisible();
+  for (const p of phones) await expect(bonus(p)).toHaveCount(0);
+  await guess(phones[a], 1);
+
+  // turn 2: team B describes (it's behind, but describing), guesses nothing: team A leads, so no bonus either
+  const b = await describer();
+  expect(b % 2).not.toBe(a % 2);
+  await go(phones[b]).click();
+  await expect(phones[b].getByTestId("word")).toBeVisible();
+  for (const p of phones) await expect(bonus(p)).toHaveCount(0);
+
+  // turn 3: team A again; team B is 1 behind and gets the bonus (the test server's dice always say yes)
+  const a2 = await describer();
+  expect(a2 % 2).toBe(a % 2);
+  await go(phones[a2]).click();
+  const [b1, b2] = phones.filter((_, i) => i % 2 !== a % 2);
+  await expect(bonus(b1)).toBeVisible();
+  await expect(bonus(b2)).toContainText("noch 1×"); // one bonus for the whole team
+  await expect(bonus(phones[(a2 + 2) % 4])).toHaveCount(0); // the describer's mate: nothing
+  await bonus(b1).click();
+  const hecklerName = names[phones.indexOf(b1)];
+  await expect(phones[a2].getByTestId("heckled")).toHaveText(`${hecklerName} stört!`); // the describer is disturbed
+  await expect(b2.getByTestId("heckled-mate")).toHaveText(`${hecklerName} hat gestört`); // the teammate sees who used it
+  await expect(bonus(b2)).toBeDisabled(); // the team's bonus is spent
+  await guess(phones[a2], 7); // empty the bowl: the game ends (one round)
+
+  // the end stats mention it
+  await expect(host.getByText(/Gewonnen hat|Unentschieden/)).toBeVisible({ timeout: 20_000 });
+  await expect(host.getByRole("heading", { name: "Stören" })).toBeVisible();
+  await expect(host.getByText(/1× Stör-Bonus/)).toBeVisible();
+  await expect(host.getByText("1× gestört")).toBeVisible();
+});
