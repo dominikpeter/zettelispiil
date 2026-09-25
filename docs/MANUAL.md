@@ -4,7 +4,7 @@ Zettelispiil ist das Schweizer Partyspiel mit Zetteli, direkt im Browser auf [ze
 
 ## Worum geht's?
 
-Alle schreiben Begriffe auf Zetteli: Personen, Orte, Dinge, Filme, alles, was sich erklären lässt. Die Zetteli kommen in die Schüssel. Zwei Teams spielen abwechselnd: Eine Person zieht Zetteli und bringt ihr Team dazu, so viele wie möglich zu erraten, bevor die Zeit abläuft.
+Alle schreiben Begriffe auf Zetteli: Personen, Orte, Dinge, Filme, alles, was sich erklären lässt. Die Zetteli kommen in die Schüssel. Zwei bis vier Teams spielen abwechselnd: Eine Person zieht Zetteli und bringt ihr Team dazu, so viele wie möglich zu erraten, bevor die Zeit abläuft.
 
 Ist die Schüssel leer, ist die Runde vorbei und alle Zetteli kommen wieder hinein. Es bleiben immer dieselben Begriffe, aber die Regeln werden von Runde zu Runde strenger. Gespielt wird in bis zu fünf Runden. Am Schluss gewinnt das Team mit den meisten erratenen Zetteli.
 
@@ -18,7 +18,7 @@ Auf der Startseite wählst du, wie ihr spielt.
 
 - Die Spieler stehen gleich auf der Startseite. Zu Beginn sind es Lisa, Nora, Tim und Beni. Tippe einen Namen an, um ihn zu ändern, oder erfinde mit dem Funkel-Knopf («Lustigen Namen erfinden») einen lustigen. Steht schon ein Name da, baut die KI ihn ein: aus «Beni» wird etwa «Tramhopser-Beni». Nochmals drücken gibt eine neue Idee, wieder mit «Beni».
 - Mit **Spieler hinzufügen** kommen weitere dazu, mit dem X entfernst du jemanden.
-- Ihr braucht mindestens 4 Spieler, 2 pro Team.
+- Ihr braucht mindestens 2 Spieler pro Team, bei zwei Teams also 4.
 - Tippe auf **Neues Spiel**. Ein laufendes Spiel kannst du später mit **Weiterspielen** fortsetzen, auch nach einem Neuladen der Seite.
 - Das Handy sagt jeweils, wem ihr es geben sollt («Gib das Handy an …»). Wer bestätigt («Ich bin …»), ist dran.
 
@@ -37,8 +37,8 @@ Auf der Startseite wählst du, wie ihr spielt.
 
 - Neue Teams bekommen einen zufälligen, lustigen Namen. Tippe auf den Namen, um ihn zu ändern (**Umbenennen**), oder lass dir mit dem Funkel-Knopf einen neuen erfinden.
 - Spielernamen lassen sich ebenfalls antippen und ändern.
-- Mit **Zu … wechseln** wechselst du das Team.
-- **Mischen** verteilt alle zufällig neu auf die zwei Teams.
+- Mit **Zu … wechseln** wechselst du das Team. Bei mehr als zwei Teams geht es jeweils zum nächsten Team, mehrmals tippen führt zu jedem Team.
+- **Mischen** verteilt alle zufällig neu auf die Teams.
 - Jedes Team braucht mindestens 2 Leute, sonst lässt sich das Spiel nicht starten.
 - Bei einem Handy kommen auch in der Lobby noch Spieler dazu (**Spieler hinzufügen**).
 
@@ -46,6 +46,7 @@ Auf der Startseite wählst du, wie ihr spielt.
 
 Die Spielleitung legt mit Plus und Minus fest:
 
+- **Teams**: 2 bis 4, Standard 2. Neue Teams bekommen einen lustigen Namen und füllen sich mit neuen Spielern. Fällt ein Team weg, wechseln seine Spieler ins kleinste verbleibende Team.
 - **Zetteli pro Person**: 1 bis 10, Standard 4.
 - **Sekunden pro Zug**: 10 bis 120 in 5er-Schritten, Standard 30.
 - **Überspringen pro Zug**: 0 bis 5 oder unbegrenzt (∞), Standard 1.
@@ -115,12 +116,12 @@ Vor jedem Zug siehst du, wer dran ist und für welches Team. Wer erklärt, tippt
 - **Nach rechts wischen**: erraten. Oder auf **Erraten** tippen.
 - **Nach links wischen**: überspringen. Oder auf **Weiter** tippen. Darunter steht, wie viele Überspringen noch übrig sind. Sind keine mehr übrig, erscheint «NICHT MEHR».
 - Der Ring oben zeigt die verbleibende Zeit.
-- Ist die Zeit um, erscheint **Zeit um!** und das Zetteli lässt sich nicht mehr wischen. Das Zetteli in der Hand geht zurück in die Schüssel, dann ist das andere Team dran.
+- Ist die Zeit um, erscheint **Zeit um!** und das Zetteli lässt sich nicht mehr wischen. Das Zetteli in der Hand geht zurück in die Schüssel, dann ist das nächste Team dran.
 - Ist ein Zetteli mit Hinweis geschrieben und die Hinweise sind an, steht der Hinweis klein unter dem Begriff.
 
 ### Mitraten mit mehreren Handys
 
-- Dein Team sieht «Ratet!», das andere Team «Zuhören».
+- Dein Team sieht «Ratet!», die anderen Teams «Zuhören».
 - Wer miträt, kann auf dem eigenen Handy auf **Erraten** tippen. Ein Zetteli zählt immer nur einmal, egal wer zuerst tippt.
 - Jedes erratene Zetteli blitzt kurz auf allen anderen Handys auf.
 - Ist jemand nicht da, kann die Spielleitung diese Person überspringen («… ist nicht da, überspringen»).
@@ -143,7 +144,7 @@ Der Pause-Knopf oben öffnet das Spielmenü:
 Das Spiel zeigt, wer gewonnen hat (oder «Unentschieden»), dazu eine Übersicht: wie viele Zetteli, Züge und wie oft übersprungen wurde.
 
 - **Spielverlauf**: Punktestand nach jedem Zug. Tippen und ziehen, um einzelne Züge nachzulesen.
-- **Punkte pro Runde** für beide Teams.
+- **Punkte pro Runde** für jedes Team.
 - **Tempo**: durchschnittliche Sekunden, bis ein Zetteli erraten war, pro Runde.
 - **Spieler**: erratene Zetteli beim Erklären und Sekunden pro Zetteli.
 - **Die Zetteli**: am schnellsten erraten, am längsten gedauert, am meisten übersprungen und die schwierigsten Begriffe über alle Runden.
@@ -168,4 +169,4 @@ Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 - Merkt euch in der ersten Runde gut, welche Begriffe vorkommen. Später hilft das enorm.
 - In «Ein Wort» zählt das richtige Wort: Knüpft an Erklärungen aus den früheren Runden an.
 - Ein schwieriges Zetteli lieber früh überspringen und später zurücktauschen, statt Zeit zu verlieren.
-- Bei einem Handy: Handy flach halten, damit niemand vom anderen Team mitliest.
+- Bei einem Handy: Handy flach halten, damit niemand aus einem anderen Team mitliest.

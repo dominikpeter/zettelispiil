@@ -9,7 +9,7 @@ import { computeStats, playerDetail, wordDetail } from "@/lib/stats";
 import { Confetti, RoundIcon, Slip, TEAM, press } from "@/lib/ui";
 
 const fmt = (ms: number) => (ms / 1000).toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: ms < 10_000 ? 1 : 0 });
-const CHART = ["var(--color-chart-a)", "var(--color-chart-b)"];
+const CHART = ["var(--color-chart-a)", "var(--color-chart-b)", "var(--color-chart-c)", "var(--color-chart-d)"]; // one per team
 const W = 340;
 // tappable row that expands in place; the chevron flips when open
 const expand = "group [&[open]>summary>svg]:rotate-180";
@@ -60,7 +60,7 @@ function Race({ race, turns, players, names, teams, t }: { race: number[][]; tur
   const x = (i: number) => pad.l + (i / Math.max(1, race.length - 1)) * (W - pad.l - pad.r);
   const y = (v: number) => H - pad.b - (v / max) * (H - pad.t - pad.b);
   const [hover, setHover] = useState<number | null>(null);
-  const path = (t: 0 | 1) => race.map((p, i) => `${i ? `H${x(i)}V` : `M${x(0)} `}${y(p[t])}`).join("");
+  const path = (t: number) => race.map((p, i) => `${i ? `H${x(i)}V` : `M${x(0)} `}${y(p[t])}`).join("");
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const box = e.currentTarget.getBoundingClientRect();
     const px = ((e.clientX - box.left) / box.width) * W;
@@ -69,14 +69,15 @@ function Race({ race, turns, players, names, teams, t }: { race: number[][]; tur
   };
   const h = hover !== null ? turns[hover - 1] : null;
   const end = race.at(-1)!;
-  // keep the two end labels from overlapping
-  const ly = [y(end[0]), y(end[1])];
-  if (Math.abs(ly[0] - ly[1]) < 16) {
-    const mid = (ly[0] + ly[1]) / 2;
-    const up = end[0] >= end[1] ? 0 : 1;
-    ly[up] = mid - 8;
-    ly[1 - up] = mid + 8;
-  }
+  const all = end.map((_, i) => i);
+  // keep the end labels from overlapping: top to bottom, each at least 16 px below the one above, then centred on the points again
+  const ly = end.map((e) => y(e));
+  const order = [...all].sort((a, b) => ly[a] - ly[b] || end[b] - end[a]);
+  const want = order.map((i) => ly[i]);
+  const placed = [...want];
+  for (let k = 1; k < placed.length; k++) placed[k] = Math.max(placed[k], placed[k - 1] + 16);
+  const shift = (want.reduce((a, v) => a + v, 0) - placed.reduce((a, v) => a + v, 0)) / placed.length;
+  order.forEach((i, k) => (ly[i] = Math.max(pad.t, placed[k] + shift)));
 
   return (
     <div className="relative">
@@ -99,10 +100,10 @@ function Race({ race, turns, players, names, teams, t }: { race: number[][]; tur
           </g>
         ))}
         <line x1={pad.l} x2={W - pad.r} y1={y(0)} y2={y(0)} stroke="var(--color-line)" />
-        {([0, 1] as const).map((t) => (
+        {all.map((t) => (
           <path key={t} d={path(t)} fill="none" stroke={CHART[t]} strokeWidth="2.5" strokeLinejoin="round" className="draw" pathLength={1} style={{ "--len": 1 } as React.CSSProperties} />
         ))}
-        {([0, 1] as const).map((t) => (
+        {all.map((t) => (
           <g key={`e${t}`}>
             <circle cx={x(race.length - 1)} cy={y(end[t])} r="4.5" fill={CHART[t]} stroke="var(--color-surface)" strokeWidth="2" />
             <text x={x(race.length - 1) + 9} y={ly[t] + 4} className="fill-ink text-xs font-bold">
@@ -113,7 +114,7 @@ function Race({ race, turns, players, names, teams, t }: { race: number[][]; tur
         {hover !== null && (
           <g>
             <line x1={x(hover)} x2={x(hover)} y1={pad.t} y2={y(0)} stroke="var(--color-muted)" strokeWidth="1" />
-            {([0, 1] as const).map((t) => (
+            {all.map((t) => (
               <circle key={t} cx={x(hover)} cy={y(race[hover][t])} r="5" fill={CHART[t]} stroke="var(--color-surface)" strokeWidth="2" />
             ))}
           </g>
@@ -137,7 +138,7 @@ function Race({ race, turns, players, names, teams, t }: { race: number[][]; tur
             +{h.got} {t.inRound(names[h.r])}
           </div>
           <div className="mt-1 tabular-nums">
-            {race[hover][0]} : {race[hover][1]}
+            {race[hover].join(" : ")}
           </div>
         </div>
       )}
@@ -149,7 +150,8 @@ function RoundBars({ scores, names, teams, t }: { scores: number[][]; names: str
   const H = 150;
   const max = Math.max(1, ...scores.flat());
   const gw = W / scores.length;
-  const bw = Math.min(34, gw / 3);
+  const n = scores[0]?.length ?? 2; // teams
+  const bw = Math.min(34, (gw * 2) / (3 * n)); // two teams: a third of the group each, like before
   return (
     <>
       <Legend names={teams} />
@@ -159,7 +161,7 @@ function RoundBars({ scores, names, teams, t }: { scores: number[][]; names: str
           <g key={r}>
             {s.map((v, t) => {
               const h = (v / max) * (H - 50);
-              const bx = gw * r + gw / 2 + (t ? 1 : -bw - 1);
+              const bx = gw * r + gw / 2 - (n * bw + (n - 1) * 2) / 2 + t * (bw + 2);
               return (
                 <g key={t}>
                   <rect x={bx} y={H - 26 - h} width={bw} height={h} rx="4" fill={CHART[t]} className="grow" style={{ animationDelay: `${r * 0.08 + t * 0.04}s` }}>
@@ -224,10 +226,13 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
       <header className="pop pt-4 pb-2 text-center">
         <p className="text-lg text-muted">{w === null ? t.noWinner : t.winnerIs}</p>
         <h1 className={`mt-1 text-5xl font-extrabold tracking-tight text-balance break-words ${w === null ? "text-ink" : TEAM[w].text}`}>{w === null ? t.tie : v.teamNames[w]}</h1>
-        <p className="mt-4 flex items-baseline justify-center gap-3 text-6xl font-extrabold tabular-nums">
-          <span className="text-team-a">{s.totals[0]}</span>
-          <span className="text-3xl text-muted">:</span>
-          <span className="text-team-b">{s.totals[1]}</span>
+        <p data-testid="totals" className={`mt-4 flex flex-wrap items-baseline justify-center font-extrabold tabular-nums ${s.totals.length > 2 ? "gap-2 text-4xl" : "gap-3 text-6xl"}`} aria-label={v.teamNames.map((n, i) => `${n} ${s.totals[i]}`).join(", ")}>
+          {s.totals.map((n, i) => (
+            <span key={i} className="contents">
+              {i > 0 && <span className={`text-muted ${s.totals.length > 2 ? "text-2xl" : "text-3xl"}`}>:</span>}
+              <span className={TEAM[i].text}>{n}</span>
+            </span>
+          ))}
         </p>
         <p className="mt-3 text-muted">{t.summary(v.total, s.turnsTotal, s.skipsTotal)}</p>
       </header>

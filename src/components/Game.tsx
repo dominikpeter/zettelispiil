@@ -11,7 +11,7 @@ import { useHints, useT } from "@/lib/prefs";
 import { LANGS } from "@/lib/i18n";
 import { Segmented } from "./TopControls";
 import { funnyName } from "@/lib/roomClient";
-import { norm, ROUND_TYPES, type Action, type RoundType, type Stroke, type Settings, type Slip as SlipT, type Team, type View } from "@/lib/room";
+import { MAX_TEAMS, norm, ROUND_TYPES, type Action, type RoundType, type Stroke, type Settings, type Slip as SlipT, type Team, type View } from "@/lib/room";
 import { Bowl, btn, btn2, buzz, field, fitLine, ghost, panel, pill, pillBtn, press, round_btn, RoundIcon, Slip, TEAM, TimerRing, WhatsAppIcon, whatsappHref } from "@/lib/ui";
 import { DrawPad, DrawView, INKS } from "./DrawBoard";
 import { Stats } from "./Stats";
@@ -41,18 +41,33 @@ export function Cta({ children }: { children: ReactNode }) {
 }
 
 export function Score({ v }: { v: View }) {
-  const tot = [0, 1].map((t) => v.scores.reduce((s, r) => s + r[t], 0));
+  const tot = v.teamNames.map((_, t) => v.scores.reduce((s, r) => s + (r[t] ?? 0), 0));
+  const label = v.teamNames.map((n, t) => `${n} ${tot[t]}`).join(", ");
+  if (tot.length === 2)
+    return (
+      <div className="flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-lg font-bold tabular-nums" aria-label={label}>
+        <span className="size-2.5 rounded-full bg-team-a" />
+        <span key={`a${tot[0]}`} className="bump text-team-a">
+          {tot[0]}
+        </span>
+        <span className="text-muted">:</span>
+        <span key={`b${tot[1]}`} className="bump text-team-b">
+          {tot[1]}
+        </span>
+        <span className="size-2.5 rounded-full bg-team-b" />
+      </div>
+    );
+  // three or more teams: a dot and a number each, tight enough for the smallest phones
   return (
-    <div className="flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-lg font-bold tabular-nums" aria-label={`${v.teamNames[0]} ${tot[0]}, ${v.teamNames[1]} ${tot[1]}`}>
-      <span className="size-2.5 rounded-full bg-team-a" />
-      <span key={`a${tot[0]}`} className="bump text-team-a">
-        {tot[0]}
-      </span>
-      <span className="text-muted">:</span>
-      <span key={`b${tot[1]}`} className="bump text-team-b">
-        {tot[1]}
-      </span>
-      <span className="size-2.5 rounded-full bg-team-b" />
+    <div className="flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-lg font-bold tabular-nums max-xs:gap-1.5 max-xs:px-2.5 max-xs:text-base" aria-label={label}>
+      {tot.map((n, t) => (
+        <span key={t} className="flex items-center gap-1">
+          <span className={`size-2.5 rounded-full ${TEAM[t].bg}`} />
+          <span key={`${t}-${n}`} className={`bump ${TEAM[t].text}`}>
+            {n}
+          </span>
+        </span>
+      ))}
     </div>
   );
 }
@@ -274,9 +289,11 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
     setPending((m) => ({ ...m, ...patch }));
     queue.current = queue.current.then(() => send({ type: "settings", settings: patch }));
   };
-  const counts = [0, 1].map((x) => v.players.filter((p) => p.team === x).length);
+  const teams = v.teamNames.map((_, ti) => ti);
+  const counts = teams.map((x) => v.players.filter((p) => p.team === x).length);
   const canStart = counts.every((c) => c >= 2);
   const mine = v.players[v.me]?.team ?? 0;
+  const next = (team: Team) => ((team + 1) % teams.length) as Team; // two teams: the other one; more: the next in turn
   const skipStep = s.skips === -1 ? 6 : s.skips; // stepper runs 0…5, then ∞
   const off = ROUND_TYPES.filter((r) => !s.rounds.includes(r));
   const [adding, setAdding] = useState("");
@@ -316,7 +333,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
       )}
 
       <section className="flex flex-col gap-3">
-        {([0, 1] as const).map((ti) => (
+        {teams.map((ti) => (
           <div key={ti} className={`rounded-3xl px-4 py-3 ${TEAM[ti].soft}`}>
             <div className={`flex items-center justify-between gap-2 text-lg font-extrabold ${TEAM[ti].text}`}>
               {local || v.isHost || mine === ti ? (
@@ -343,7 +360,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
                     {!local && i === v.me && <span className="shrink-0 text-sm text-muted">({t.you})</span>}
                     {!local && i === v.hostIndex && <Crown className="size-4 shrink-0 text-hi" aria-label={t.host} />}
                     {local && (
-                      <button onClick={() => send({ type: "team", team: (1 - p.team) as Team }, i)} disabled={busy} aria-label={t.switchTo(v.teamNames[1 - p.team])} className={mini}>
+                      <button onClick={() => send({ type: "team", team: next(p.team) }, i)} disabled={busy} aria-label={t.switchTo(v.teamNames[next(p.team)])} className={mini}>
                         <ArrowLeftRight className="size-4" aria-hidden />
                       </button>
                     )}
@@ -382,9 +399,9 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
       ) : null}
       <div className="-mt-1 flex gap-2">
         {!local && (
-          <button onClick={() => send({ type: "team", team: (1 - mine) as Team })} disabled={busy} className={`${btn2} min-w-0`}>
+          <button onClick={() => send({ type: "team", team: next(mine) })} disabled={busy} className={`${btn2} min-w-0`}>
             <ArrowLeftRight className="size-4 shrink-0" aria-hidden />
-            <span className="truncate">{t.switchTo(v.teamNames[1 - mine])}</span>
+            <span className="truncate">{t.switchTo(v.teamNames[next(mine)])}</span>
           </button>
         )}
         {v.isHost && (
@@ -399,6 +416,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
         {v.isHost ? (
           <>
             <div className="mt-2 divide-y divide-line">
+              <Stepper label={t.teamsCount} value={s.teams} set={(n) => set({ teams: n })} min={2} max={MAX_TEAMS} />
               <Stepper label={t.perPlayer} value={s.perPlayer} set={(n) => set({ perPlayer: n })} min={1} max={10} />
               <Stepper label={t.seconds} value={s.seconds} set={(n) => set({ seconds: s.seconds + (n - s.seconds) * 5 })} min={10} max={120} />
               <Stepper label={t.skips} value={skipStep} display={s.skips === -1 ? <Inf className="size-6" aria-label="∞" /> : undefined} set={(n) => set({ skips: n >= 6 ? -1 : n })} min={0} max={6} />
@@ -433,6 +451,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
           </>
         ) : (
           <ul className="mt-2 flex flex-col gap-1 text-muted">
+            <li>{t.sumTeams(s.teams)}</li>
             <li>{t.sumPerPlayer(s.perPlayer)}</li>
             <li>{t.sumSeconds(s.seconds)}</li>
             <li>{t.sumSkips(s.skips)}</li>
@@ -1079,6 +1098,7 @@ export function Turn({ v, left, send, live, mode }: P & { left: number }) {
 export function RoundEnd({ v, send, busy, mode }: P) {
   const t = useT();
   const r = v.scores[v.round];
+  const many = v.teamNames.length > 2; // three or four columns: smaller type so they fit a 320 px phone
   const carry = Math.round(v.carryMs / 1000);
   const starter = v.lastTurn ? v.players[v.lastTurn.p] : null;
   return (
@@ -1088,11 +1108,11 @@ export function RoundEnd({ v, send, busy, mode }: P) {
         <h1 className="mt-2 text-4xl font-extrabold tracking-tight short:mt-0 short:text-3xl tiny:text-2xl">{t.bowlEmpty}</h1>
         <p className="text-muted tiny:hidden">{t.roundDone(t.round[v.settings.rounds[v.round]].name)}</p>
       </div>
-      <section className={`${panel} enter grid grid-cols-2 gap-3 text-center short:py-3 tiny:py-2 [animation-delay:100ms]`}>
-        {([0, 1] as const).map((i) => (
+      <section className={`${panel} enter grid gap-3 text-center short:py-3 tiny:py-2 [animation-delay:100ms] ${many ? "max-xs:gap-1.5 max-xs:px-3" : ""}`} style={{ gridTemplateColumns: `repeat(${v.teamNames.length}, minmax(0, 1fr))` }}>
+        {v.teamNames.map((name, i) => (
           <div key={i} className="min-w-0">
-            <p className={`truncate font-semibold ${TEAM[i].text}`}>{v.teamNames[i]}</p>
-            <p className="text-4xl font-extrabold tabular-nums short:text-3xl tiny:text-2xl">+{r[i]}</p>
+            <p className={`truncate font-semibold ${TEAM[i].text} ${many ? "text-sm" : ""}`}>{name}</p>
+            <p className={`font-extrabold tabular-nums ${many ? "text-3xl short:text-2xl" : "text-4xl short:text-3xl tiny:text-2xl"}`}>+{r[i] ?? 0}</p>
           </div>
         ))}
       </section>

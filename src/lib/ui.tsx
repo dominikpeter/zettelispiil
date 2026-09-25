@@ -25,6 +25,8 @@ export const round_btn = `grid size-11 place-items-center rounded-full border bo
 export const TEAM = [
   { text: "text-team-a", bg: "bg-team-a", soft: "bg-team-a/15", border: "border-team-a" },
   { text: "text-team-b", bg: "bg-team-b", soft: "bg-team-b/15", border: "border-team-b" },
+  { text: "text-team-c", bg: "bg-team-c", soft: "bg-team-c/15", border: "border-team-c" },
+  { text: "text-team-d", bg: "bg-team-d", soft: "bg-team-d/15", border: "border-team-d" },
 ] as const;
 
 const ROUND_ICON: Record<RoundType, LucideIcon> = { describe: MessageSquareText, pantomime: PersonStanding, oneword: WholeWord, sound: Volume2, draw: Brush };

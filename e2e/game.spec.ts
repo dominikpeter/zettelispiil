@@ -67,6 +67,55 @@ test("one phone: default players, write, swipe through every round, stats at the
   await expect(page.locator("details[open]").filter({ has: page.getByLabel(/^Lisa: /) }).getByText(/× übersprungen/)).toBeVisible();
 });
 
+for (const teams of [3, 4]) {
+  test(`${teams} teams on one small phone: host sets the count, new players fill the empty teams, play to the end, stats for every team`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 }); // iPhone SE
+    const sideways = () => page.evaluate("(() => { const y = scrollY; scrollTo(80, y); const x = scrollX; scrollTo(0, y); return x; })()");
+    const fitsTall = (where: string) => expect.poll(() => page.evaluate("document.scrollingElement.scrollHeight - innerHeight"), { message: `${where} scrolls`, timeout: 3000 }).toBeLessThanOrEqual(1);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Neues Spiel" }).click();
+    await page.waitForURL(/\/local$/);
+    await expect(page.getByText("Lisa", { exact: true })).toBeVisible();
+    for (let i = 2; i < teams; i++) await page.getByRole("button", { name: "Teams mehr" }).click();
+    await expect(page.getByRole("button", { name: "Teams mehr" })).toBeEnabled({ enabled: teams < 4 });
+    await expect(page.getByRole("button", { name: "Jedes Team braucht 2 Leute" })).toBeDisabled(); // the new teams are still empty
+    const extra = ["Mia", "Jan", "Eva", "Luc"].slice(0, (teams - 2) * 2);
+    for (const n of extra) {
+      await page.getByLabel("Spieler hinzufügen").fill(n);
+      await page.getByRole("button", { name: "+", exact: true }).click();
+      await expect(page.getByText(n, { exact: true })).toBeVisible();
+    }
+    expect(await sideways()).toBe(0);
+    for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
+    for (const r of ["Pantomime", "Geräusch"]) await page.getByRole("button", { name: `${r} weglassen` }).click();
+    await page.getByRole("button", { name: "Spiel starten" }).click();
+
+    for (let i = 0; i < 4 + extra.length; i++) {
+      await page.getByRole("button", { name: /^Ich bin / }).click();
+      await page.getByLabel("Zetteli 1", { exact: true }).fill(`Wort${i}`);
+      await page.getByRole("button", { name: "In die Schüssel" }).click();
+    }
+
+    const end = page.getByText("Gewonnen hat").or(page.getByText("Unentschieden"));
+    for (let guard = 0; guard < 60 && !(await end.isVisible()); guard++) {
+      const go = page.getByRole("button", { name: "Los, Zetteli ziehen" });
+      const next = page.getByRole("button", { name: /^Runde \d starten/ });
+      await expect(go.or(next).or(page.getByTestId("word")).or(end).first()).toBeVisible();
+      if (await go.isVisible()) (await fitsTall("ready"), await go.click());
+      else if (await next.isVisible()) (await fitsTall("round end"), expect(await sideways()).toBe(0), await next.click());
+      else if (await page.getByTestId("word").isVisible()) {
+        const before = await word(page);
+        await page.getByRole("button", { name: "Erraten" }).click();
+        await expect(page.getByTestId("word").filter({ hasText: before })).toHaveCount(0);
+      }
+    }
+
+    await expect(end).toBeVisible();
+    await expect(page.getByTestId("totals").locator(":scope > span")).toHaveCount(teams); // one score per team
+    expect(await sideways()).toBe(0);
+  });
+}
+
 test("every phone: only the describer sees the Zetteli, one skip with swap back, time up hands over", async ({ browser }) => {
   const host = await phone(browser);
   await host.goto("/");
