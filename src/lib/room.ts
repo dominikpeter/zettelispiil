@@ -13,6 +13,9 @@ const MAX_SHEET = 3000; // strokes per drawing sheet; a wipe or the next Zetteli
 const MAX_LOG = 5000; // events kept for the stats; a real game has a few hundred, so only skip-spamming hits this
 const MIN_CARRY = 5000; // less time left than this when the bowl empties → next player starts the new round
 export const MAX_PLAYERS = 20;
+export const MAX_AI_WORDS = 120; // "KI schreibt": at most this many Zetteli per game (20 players × 6)
+/** how many Zetteli the AI writes for a game: players × Zetteli each, capped */
+export const aiWordCount = (players: number, perPlayer: number) => Math.min(MAX_AI_WORDS, players * perPlayer);
 
 /** one written Zetteli; the hint is shown small to the describer (AI-suggested, the writer may change it) */
 export type Slip = { word: string; hint: string };
@@ -203,6 +206,22 @@ export async function pullStrokes(db: Store, code: string, sheet: number, from: 
   return { sheet: current, from: 0, strokes: fresh.items };
 }
 
+/** a Zetteli as sent by a phone: word and hint trimmed and bounded */
+const cleanSlip = (w: unknown): Slip => {
+  const o = (typeof w === "string" ? { word: w } : (w ?? {})) as Partial<Slip>;
+  return { word: String(o.word ?? "").trim().slice(0, 40), hint: String(o.hint ?? "").trim().slice(0, 80) };
+};
+
+/** the Zetteli are all written (author -1: the AI): into the bowl, and the first turn is up */
+function fillBowl(room: Room, slips: Slip[], authors: number[]) {
+  room.words = slips.map((x) => x.word);
+  room.hints = slips.map((x) => x.hint);
+  room.authors = authors;
+  room.bowl = room.words.map((_, i) => i);
+  room.scores = room.settings.rounds.map(() => room.teamNames.map(() => 0));
+  room.phase = "ready";
+}
+
 const teamPlayers = (room: Room, t: Team) => room.teams.flatMap((x, i) => (x === t ? [i] : []));
 /** who describes next (ready) or now (turn) */
 export const describer = (room: Room) => {
@@ -268,13 +287,14 @@ function settle(room: Room, now: number) {
 }
 
 export type Action =
-  | { type: "start" | "go" | "nextRound" | "pass" | "lobby" | "shuffle" | "pause" | "resume" | "cancel" | "heckle" }
+  | { type: "start" | "go" | "nextRound" | "pass" | "lobby" | "shuffle" | "pause" | "resume" | "cancel" | "heckle" | "selfWrite" }
   | { type: "settings"; settings: Partial<Settings> }
   | { type: "team"; team: Team }
   | { type: "rename"; name: string }
   | { type: "kick"; player: number }
   | { type: "teamName"; team: Team; name: string }
   | { type: "words"; words: (string | Partial<Slip>)[] }
+  | { type: "fill"; words: Partial<Slip>[] } // host, "KI schreibt": the AI's Zetteli go straight into the bowl
   | { type: "got" | "skip"; w: number }
   | { type: "teamGot"; seen: number } // a teammate taps "Erraten"; `seen` = turnGot on their screen, so a word counts once
   | { type: "back"; w: number; to: number }
@@ -366,11 +386,8 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       break;
     }
     case "words": {
-      need(room.phase === "write" && idx >= 0);
-      const slips: Slip[] = (Array.isArray(a.words) ? a.words : []).map((w) => {
-        const o = typeof w === "string" ? { word: w } : (w ?? {});
-        return { word: String(o.word ?? "").trim().slice(0, 40), hint: String(o.hint ?? "").trim().slice(0, 80) };
-      });
+      need(room.phase === "write" && idx >= 0 && room.settings.source !== "ai");
+      const slips = (Array.isArray(a.words) ? a.words : []).map(cleanSlip);
       const n = room.settings.perPlayer;
       if (slips.length !== n || slips.some((x) => !norm(x.word)) || new Set(slips.map((x) => norm(x.word))).size !== n) throw new RoomError("bad_request");
       const key = `room:${code}:words:${room.writeNo}`;
@@ -391,14 +408,23 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       if (!room.ids.every((_, i) => now2[String(i)]?.words.length === n)) return; // others still writing; room itself unchanged
       // ponytail: two last writers racing both build the same bowl from the same hash, so the double write is harmless
       const entries = room.ids.map((_, i) => now2[String(i)].words);
-      room.words = entries.flatMap((ws) => ws.map((x) => x.word));
-      room.hints = entries.flatMap((ws) => ws.map((x) => x.hint));
-      room.authors = entries.flatMap((ws, i) => ws.map(() => i));
-      room.bowl = room.words.map((_, i) => i);
-      room.scores = room.settings.rounds.map(() => room.teamNames.map(() => 0));
-      room.phase = "ready";
+      fillBowl(room, entries.flat(), entries.flatMap((ws, i) => ws.map(() => i)));
       break;
     }
+    case "fill": {
+      need(host && room.phase === "write" && room.settings.source === "ai");
+      // the same word twice counts once; never more than the game needs, never fewer than one per player
+      const seen = new Set<string>();
+      const slips = (Array.isArray(a.words) ? a.words : []).map(cleanSlip).filter((x) => norm(x.word) && !seen.has(norm(x.word)) && seen.add(norm(x.word)));
+      if (slips.length < room.ids.length) throw new RoomError("bad_request");
+      const bowl = slips.slice(0, aiWordCount(room.ids.length, room.settings.perPlayer));
+      fillBowl(room, bowl, bowl.map(() => -1));
+      break;
+    }
+    case "selfWrite": // the AI couldn't write them: everyone writes their own after all
+      need(host && room.phase === "write" && room.settings.source === "ai");
+      room.settings = cleanSettings({ ...room.settings, source: "players" });
+      break;
     case "go": {
       need(room.phase === "ready" && idx === describer(room));
       const ms = room.carryMs || room.settings.seconds * 1000;

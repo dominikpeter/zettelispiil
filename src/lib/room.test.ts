@@ -642,3 +642,58 @@ test("auto heckling in a room: a team behind shares its bonus, and it shows in t
     else process.env.E2E_HECKLE_DICE = dice;
   }
 });
+
+test("AI writes the Zetteli: only the host fills the bowl, once, in the write phase; nobody writes, nobody sees a word early", async () => {
+  const { as, see } = await setup(); // 4 players, 1 Zetteli each
+  const slips = ["Raclette", "Matterhorn", "Velo", "Heidi"].map((word) => ({ word, hint: `Tipp ${word}` }));
+  await assert.rejects(as(0, { type: "fill", words: slips }), RoomError); // lobby: no
+  await as(0, { type: "settings", settings: { source: "ai", topics: ["switzerland", "food"] } });
+  await as(0, { type: "start" });
+  const w = await see(1);
+  assert.equal(w.phase, "write");
+  assert.equal(w.settings.source, "ai");
+  await assert.rejects(as(1, { type: "words", words: ["Schoggi"] }), RoomError); // nobody writes their own
+  await assert.rejects(as(1, { type: "fill", words: slips }), RoomError); // only the host
+  await as(0, { type: "fill", words: [...slips.slice(0, 2), { word: "raclette!", hint: "" }, ...slips.slice(2), { word: "Zug", hint: "" }] }); // a duplicate and one too many
+  const r = await see(2);
+  assert.equal(r.phase, "ready");
+  assert.equal(r.total, 4); // players × perPlayer, the duplicate gone
+  assert.equal(r.word, null); // nobody sees a word before their turn
+  await assert.rejects(as(0, { type: "fill", words: slips }), RoomError); // once
+
+  const d = r.active!;
+  await as(d, { type: "go" });
+  const turn = await see(d);
+  assert.ok(slips.some((s) => s.word === turn.word!.text));
+  assert.equal(turn.word!.hint, `Tipp ${turn.word!.text}`); // hints reach the describer
+});
+
+test("AI writes the Zetteli: the end stats name the AI as author (-1)", async () => {
+  const { as, see, tick } = await setup();
+  await as(0, { type: "settings", settings: { source: "ai", rounds: ["describe"] } });
+  await as(0, { type: "start" });
+  await as(0, { type: "fill", words: ["A", "B", "C", "D"].map((word) => ({ word, hint: "" })) });
+  const d = (await see(0)).active!;
+  await as(d, { type: "go" });
+  for (let n = 0; n < 4; n++) {
+    tick(1000);
+    await as(d, { type: "got", w: (await see(d)).word!.id });
+  }
+  const end = await see(0);
+  assert.equal(end.phase, "end");
+  assert.deepEqual(end.stats!.authors, [-1, -1, -1, -1]);
+});
+
+test("AI writes the Zetteli: too few words are refused; the host can switch back to writing themselves", async () => {
+  const { as, see } = await setup();
+  await as(0, { type: "settings", settings: { source: "ai" } });
+  await as(0, { type: "start" });
+  await assert.rejects(as(0, { type: "fill", words: [{ word: "A", hint: "" }, { word: "a", hint: "" }] }), RoomError); // fewer than one per player
+  await assert.rejects(as(1, { type: "selfWrite" }), RoomError); // only the host
+  await as(0, { type: "selfWrite" });
+  const v = await see(1);
+  assert.equal(v.phase, "write");
+  assert.equal(v.settings.source, "players");
+  for (const i of [0, 1, 2, 3]) await as(i, { type: "words", words: [`w${i}`] });
+  assert.equal((await see(0)).phase, "ready");
+});
