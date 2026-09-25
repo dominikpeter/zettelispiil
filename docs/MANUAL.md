@@ -55,7 +55,8 @@ Die Spielleitung legt mit Plus und Minus fest:
   - Bei ∞ darfst du beliebig oft überspringen.
   - Am Ende des Zugs kommen beiseitegelegte Zetteli zurück in die Schüssel.
 - **Stören erlaubt** (nur mit mehreren Handys): Schalter, standardmässig aus. Ist er an, dürfen die anderen Teams die erklärende Person ablenken (siehe «Stören» unten).
-  - **Stören pro Person und Zug**: 1 bis 5, Standard 2. Erscheint erst, wenn Stören an ist.
+  - **Auto** (Standard) oder **Fix**: Bei «Auto» bekommt ein Team, das zurückliegt, manchmal einen Stör-Bonus (siehe unten). Bei «Fix» darf jede Person der anderen Teams gleich oft stören.
+  - **Stören pro Person und Zug** (nur bei «Fix»): 1 bis 5, Standard 2.
 - **Sprache der Zetteli**: Deutsch, English oder Français. Startet mit der Sprache des Handys, das den Raum erstellt. Die KI prüft Rechtschreibung, schreibt Hinweise und schlägt Ideen und lustige Namen in dieser Sprache vor. Jedes Handy zeigt die App trotzdem in seiner eigenen Sprache an.
 
 Unten fasst eine kurze Übersicht die Einstellungen zusammen. Dann tippt die Spielleitung auf **Spiel starten**.
@@ -130,13 +131,15 @@ Vor jedem Zug siehst du, wer dran ist und für welches Team. Wer erklärt, tippt
 
 ### Stören
 
-Hat die Spielleitung **Stören erlaubt** eingeschaltet, sieht das andere Team («Zuhören») während des Zugs den Knopf **Stören**. Darunter steht, wie oft du in diesem Zug noch stören darfst («noch 2×»).
+Hat die Spielleitung **Stören erlaubt** eingeschaltet, dürfen die anderen Teams («Zuhören») die erklärende Person ablenken. Unter dem Knopf steht, wie oft ihr in diesem Zug noch stören dürft («noch 2×»).
+
+- **Auto** (Standard): Zu Beginn jedes Zugs kann ein Team, das hinten liegt, einen **Stör-Bonus** bekommen: 30 % Chance, pro Punkt Rückstand 10 % mehr, höchstens 80 %. Der Bonus gilt fürs ganze Team: 1× stören, bei 5 oder mehr Punkten Rückstand 2×. Wer vorne liegt oder gleichauf ist, bekommt nie einen. Der Knopf **Stör-Bonus!** erscheint nur, wenn euer Team einen hat.
+- **Fix**: Jede Person der anderen Teams darf pro Zug so oft stören, wie eingestellt. Im nächsten Zug geht es wieder von vorne los.
 
 - Tippst du darauf, blitzt, zittert und verschwimmt das Zetteli der erklärenden Person, erst stark, dann immer weniger. Ihr Handy vibriert und zeigt «<Name> stört!». Die Knöpfe **Erraten** und **Weiter** bleiben ruhig, Wischen und Tippen funktionieren weiter.
 - Ein Stören dauert einen Zehntel des Zugs, mindestens 2 und höchstens 5 Sekunden (bei 30 Sekunden also 3 Sekunden).
 - Immer nur eins aufs Mal: Solange ein Stören läuft, ist der Knopf bei allen grau.
 - Höchstens ein Drittel des Zugs darf gestört werden (bei 30 Sekunden also 10 Sekunden). Ist das erreicht, steht «Genug gestört für diesen Zug».
-- Jede Person darf pro Zug so oft stören, wie eingestellt. Im nächsten Zug geht es wieder von vorne los.
 - Das eigene Team der erklärenden Person kann nicht stören. In der Pause und nach Ablauf der Zeit geht Stören nicht, eine Pause hält ein laufendes Stören an.
 - Wer auf dem Handy «Bewegung reduzieren» eingestellt hat, sieht statt des Zitterns nur ein sanftes Verschwimmen.
 

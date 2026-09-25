@@ -429,7 +429,17 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
                   <input type="checkbox" role="switch" checked={s.heckle} onChange={(e) => set({ heckle: e.target.checked })} className="size-6 shrink-0 accent-accent" />
                 </label>
               )}
-              {!local && s.heckle && <Stepper label={t.heckles} value={s.heckles} set={(n) => set({ heckles: n })} min={1} max={5} />}
+              {!local && s.heckle && (
+                <div className="py-2">
+                  <Segmented
+                    options={[{ id: "auto" as const, label: t.heckleAuto }, { id: "fixed" as const, label: t.heckleFixed }]}
+                    value={s.heckleMode}
+                    onChange={(heckleMode) => set({ heckleMode })}
+                  />
+                  <p className="mt-1.5 text-sm text-muted">{s.heckleMode === "auto" ? t.heckleAutoHelp : t.heckleFixedHelp}</p>
+                </div>
+              )}
+              {!local && s.heckle && s.heckleMode === "fixed" && <Stepper label={t.heckles} value={s.heckles} set={(n) => set({ heckles: n })} min={1} max={5} />}
             </div>
             <h3 className="mt-4 font-semibold">{t.wordLang}</h3>
             <p className="text-sm text-muted">{t.wordLangHelp}</p>
@@ -465,7 +475,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
             <li>{t.sumPerPlayer(s.perPlayer)}</li>
             <li>{t.sumSeconds(s.seconds)}</li>
             <li>{t.sumSkips(s.skips)}</li>
-            {s.heckle && <li>{t.sumHeckle(s.heckles)}</li>}
+            {s.heckle && <li>{s.heckleMode === "auto" ? t.sumHeckleAuto : t.sumHeckle(s.heckles)}</li>}
             <li>{t.sumLang(LANGS.find((l) => l.id === s.lang)!.label)}</li>
             <li className="mt-2 flex flex-wrap gap-2">
               {s.rounds.map((r, i) => (
@@ -954,10 +964,11 @@ export function Turn({ v, left, send, live, mode }: P & { left: number }) {
     await send({ type: "heckle" });
     setHeckleBusy(false);
   };
-  const heckleButton = mode === "online" && !me && v.settings.heckle && v.players[v.me]?.team !== p.team && (
+  const auto = v.settings.heckleMode === "auto";
+  const heckleButton = mode === "online" && !me && v.settings.heckle && v.players[v.me]?.team !== p.team && (!auto || v.heckles > 0 || v.heckleDone) && (
     <button onClick={heckle} disabled={up || heckleBusy || v.pausedLeft > 0 || v.heckles <= 0 || v.heckleDone || heckleRuns} className={`${btn2} min-h-14 flex-col gap-0 leading-tight`}>
       <span className="flex items-center gap-2">
-        <Megaphone className="size-5" aria-hidden /> {t.heckle}
+        <Megaphone className="size-5" aria-hidden /> {auto ? t.heckleBonus : t.heckle}
       </span>
       <span className="text-xs font-medium text-muted">{v.heckleDone ? t.heckleDone : t.heckleLeft(v.heckles)}</span>
     </button>

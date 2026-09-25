@@ -31,7 +31,7 @@ e2e *args:
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -n "{{args}}" ]; then npx playwright test --workers=2 {{args}}; exit; fi
-    npx playwright test --workers=2 e2e/game.spec.ts e2e/auth.spec.ts
+    npx playwright test --workers=2 $(ls e2e/*.spec.ts | grep -v layout) # every spec except the heavy layout one
     npx playwright test --workers=1 e2e/layout.spec.ts
 
 # e2e against the live site

@@ -214,6 +214,9 @@ test("heckle: the other team disturbs the describer twice, then the button is us
   // host turns heckling on (2 per player and turn is the default); the others see it in the summary
   await expect(host.getByRole("button", { name: "Stören pro Person und Zug mehr" })).toHaveCount(0);
   await host.getByRole("switch", { name: /Stören erlaubt/ }).check();
+  await expect(others[0].getByText("Stören: Stör-Bonus fürs Team, das zurückliegt")).toBeVisible(); // auto by default
+  await expect(host.getByRole("button", { name: "Stören pro Person und Zug mehr" })).toHaveCount(0);
+  await host.getByRole("button", { name: "Fix", exact: true }).click(); // a fixed number per player instead
   await expect(host.getByRole("button", { name: "Stören pro Person und Zug mehr" })).toBeVisible();
   await expect(others[0].getByText("Stören erlaubt, 2× pro Person und Zug")).toBeVisible();
   for (let i = 0; i < 3; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click();

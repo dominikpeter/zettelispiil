@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { act, claimAi, cleanSettings, createRoom, heckleMs, joinRoom, pullStrokes, roomAi, pushStrokes, RoomError, sheetStrokes, view, type View } from "./room.ts";
+import { act, claimAi, cleanSettings, createRoom, heckleBonus, heckleMs, joinRoom, pullStrokes, roomAi, pushStrokes, RoomError, sheetStrokes, view, type View } from "./room.ts";
 import { computeStats } from "./stats.ts";
 import { db as envStore, memoryStore, persistent } from "./store.ts";
 
@@ -455,7 +455,7 @@ test("drawings: only in drawing rounds", async () => {
 /** a running turn with heckling on; o = someone on the other team */
 async function heckleTurn(heckles = 2) {
   const t = await setup();
-  await t.as(0, { type: "settings", settings: { heckle: true, heckles } });
+  await t.as(0, { type: "settings", settings: { heckle: true, heckleMode: "fixed", heckles } });
   await writeAll(t.as);
   const { i } = await describerView(t.see);
   await t.as(i, { type: "go" });
@@ -563,4 +563,30 @@ test("changing the team count evens the teams out with as few moves as possible"
   assert.deepEqual((await sizes()).sort(), [1, 1, 2, 2]);
   await act(db, host.code, host.pid, host.token, { type: "settings", settings: { teams: 2 } });
   assert.deepEqual(await sizes(), [3, 3]);
+});
+
+test("auto heckling: only teams behind the leader may get a bonus, more likely and bigger the further behind", () => {
+  const always = () => 0; // the dice always allow it
+  const never = () => 0.99;
+  assert.deepEqual(heckleBonus([3, 3], 0, always), [0, 0]); // level: nobody
+  assert.deepEqual(heckleBonus([5, 3], 0, always), [0, 1]); // team 2 is 2 behind
+  assert.deepEqual(heckleBonus([5, 3], 1, always), [0, 0]); // …but it's describing now
+  assert.deepEqual(heckleBonus([9, 3, 8, 9], 0, always), [0, 2, 1, 0]); // 6 behind: 2 presses; the co-leader: none
+  assert.deepEqual(heckleBonus([9, 3], 0, never), [0, 0]); // the dice can say no
+  assert.deepEqual(heckleBonus([4, 3], 0, () => 0.39), [0, 1]); // 1 behind: 40 % chance
+  assert.deepEqual(heckleBonus([4, 3], 0, () => 0.41), [0, 0]);
+  assert.deepEqual(heckleBonus([20, 0], 0, () => 0.79), [0, 2]); // capped at 80 %
+  assert.deepEqual(heckleBonus([20, 0], 0, () => 0.81), [0, 0]);
+});
+
+test("auto heckling in a room: with nobody behind there is no bonus, so nobody can heckle", async () => {
+  const { as, see } = await setup();
+  await as(0, { type: "settings", settings: { heckle: true } }); // auto is the default
+  assert.equal((await see(0)).settings.heckleMode, "auto");
+  await writeAll(as);
+  const { i } = await describerView(see);
+  await as(i, { type: "go" }); // first turn: 0:0, nobody is behind
+  const foe = (i + 1) % 4;
+  assert.equal((await see(foe)).heckles, 0);
+  await assert.rejects(as(foe, { type: "heckle" }), RoomError);
 });
