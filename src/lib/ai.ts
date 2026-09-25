@@ -67,14 +67,21 @@ const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
 const shuffle = <T,>(xs: T[]) => xs.map((x) => [Math.random(), x] as const).sort((a, b) => a[0] - b[0]).map(([, x]) => x);
 
 /** fresh funny names for players or teams: asks for a handful around a random theme and hands back a random few */
-export async function funnyNames(kind: "player" | "team", lang: Lang, n: number, avoid: string[]): Promise<string[]> {
+export async function funnyNames(kind: "player" | "team", lang: Lang, n: number, avoid: string[], base = ""): Promise<string[]> {
+  // a name typed already: dress it up instead of replacing it ("Beni" → "Alphornbläser-Beni")
+  const others = avoid.filter((a) => a.toLowerCase() !== base.toLowerCase()); // the typed name itself is kept, not avoided
+  const around = base
+    ? ` Every name must keep "${base}" exactly as written and add something funny around it, like "Alphornbläser-Beni" for "Beni". At most 24 characters.`
+    : "";
   const { output } = await generateText({
     model: model(),
     output: Output.object({ schema: Names }),
     system: `You invent short, funny, friendly ${kind === "team" ? "team names (1-3 words)" : "player nicknames (1-2 words)"} for a Swiss party game, in ${LANG_NAME[lang]}. No offensive words. Be surprising: vary the style, never reuse a word stem twice.`,
-    prompt: `Give 8 different names, loosely inspired by ${pick(THEMES)}. Do not use or resemble any of these: ${avoid.join(", ") || "none"}.`,
+    prompt: `Give 8 different names, loosely inspired by ${pick(THEMES)}.${around} Do not use or resemble any of these: ${others.join(", ") || "none"}.`,
   });
   const taken = new Set(avoid.map((a) => a.toLowerCase()));
-  const names = output.names.map((s) => s.trim().slice(0, 24)).filter((s) => s && !taken.has(s.toLowerCase()));
+  const names = output.names
+    .map((s) => s.trim().slice(0, 24))
+    .filter((s) => s && !taken.has(s.toLowerCase()) && (!base || s.toLowerCase().includes(base.toLowerCase()))); // the typed name must survive
   return shuffle(names).slice(0, n);
 }

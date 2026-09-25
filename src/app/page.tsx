@@ -24,8 +24,9 @@ const NO_PLAYERS: string[] = [];
 const HERO = [
   { w: "Schoggi", tilt: -6, x: "left-[3%] top-0 max-xs:hidden", size: "text-lg", d: "0s" },
   { w: "Gipfeli", tilt: 6, x: "right-[3%] top-[1%]", size: "text-lg", d: "0.08s" },
-  { w: "Aare", tilt: -3, x: "left-[27%] top-[42%] max-xs:hidden", size: "text-lg", d: "0.16s" },
-  { w: "Rösti", tilt: 5, x: "right-[25%] top-[43%] max-xs:hidden", size: "text-lg", d: "0.22s" },
+  // these two are in the bowl: small, fanned out from its middle, their lower part hidden behind its front
+  { w: "Aare", tilt: -9, x: "right-1/2 translate-x-0.5 bottom-[31%]", size: "text-sm", pad: "px-2 pt-1", d: "0.16s" },
+  { w: "Rösti", tilt: 8, x: "left-1/2 -translate-x-0.5 bottom-[29%]", size: "text-sm", pad: "px-2 pt-1", d: "0.22s" },
   { w: "Fondue", tilt: -9, x: "left-0 top-[28%]", size: "text-2xl", d: "0.3s" },
   { w: "Velo", tilt: 9, x: "right-1 top-[27%]", size: "text-2xl", d: "0.38s" },
   { w: "Matterhorn", tilt: 2, x: "left-1/2 -translate-x-1/2 top-[6%]", size: "text-[1.55rem]", d: "0.46s" },
@@ -92,11 +93,11 @@ export default function Home() {
       </header>
       <div className="relative mt-4 h-44" aria-hidden>
         {HERO.map((h, i) => (
-          <Slip key={i} tilt={h.tilt} className={`unfold absolute px-3.5 pt-1.5 ${h.x}`} style={{ animationDelay: h.d }}>
+          <Slip key={i} tilt={h.tilt} className={`unfold absolute ${"pad" in h ? h.pad : "px-3.5 pt-1.5"} ${h.x}`} style={{ animationDelay: h.d }}>
             <span className={`font-hand font-bold whitespace-nowrap ${h.size}`}>{hero[i]}</span>
           </Slip>
         ))}
-        <Bowl className="absolute bottom-0 left-1/2 w-36 -translate-x-1/2" />
+        <Bowl pile={false} className="absolute bottom-0 left-1/2 w-36 -translate-x-1/2" /> {/* the two slips above are its pile */}
       </div>
 
       <h1 translate="no" className="mt-3 text-[2.75rem] leading-[0.95] font-extrabold tracking-tight text-hi">Zettelispiil</h1>
@@ -145,7 +146,7 @@ export default function Home() {
                   />
                   <AiNameButton
                     label={`${t.playerN(i + 1)}: ${t.aiName}`}
-                    make={() => funnyName("player", lang, players, t.funnyPlayers)}
+                    make={() => funnyName("player", lang, players, t.funnyPlayers, null, players[i], t.namePrefixes)}
                     onName={(n) => setPlayers((ps) => (ps ?? players).map((x, j) => (j === i ? n : x)))}
                     className={`grid size-10 shrink-0 place-items-center rounded-full text-muted hover:bg-raised hover:text-accent ${press}`}
                   />
@@ -170,7 +171,7 @@ export default function Home() {
           <div key="online" className="enter flex flex-col gap-3">
             <div className="flex gap-2">
           <input aria-label={t.yourName} className={`${field} min-w-0 flex-1 font-semibold`} value={name} onChange={(e) => setName(e.target.value)} placeholder={t.yourName} maxLength={24} autoComplete="nickname" />
-          <AiNameButton label={t.aiName} make={() => funnyName("player", lang, [name], t.funnyPlayers)} onName={setName} className={`grid size-[3.4rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent ${press}`} />
+          <AiNameButton label={t.aiName} make={() => funnyName("player", lang, [name], t.funnyPlayers, null, name, t.namePrefixes)} onName={setName} className={`grid size-[3.4rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent ${press}`} />
         </div>
 
 

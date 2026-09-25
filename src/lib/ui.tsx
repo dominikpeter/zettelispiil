@@ -46,12 +46,12 @@ export function RoundIcon({ type, className = "size-6" }: { type: RoundType; cla
 }
 
 /** the bowl with slips peeking out; `count` sits on its belly */
-export function Bowl({ count, className = "w-24" }: { count?: number; className?: string }) {
+export function Bowl({ count, className = "w-24", pile = true }: { count?: number; className?: string; pile?: boolean }) {
   return (
     <div className={className}>
       <div className="relative">
       <svg viewBox="0 0 120 80" className="w-full" aria-hidden>
-        {count !== 0 && (
+        {pile && count !== 0 && (
           <>
             <rect x="38" y="10" width="20" height="28" rx="2" fill="var(--color-paper)" transform="rotate(-14 48 24)" />
             <rect x="58" y="6" width="20" height="30" rx="2" fill="var(--color-gold-800)" transform="rotate(9 68 21)" />

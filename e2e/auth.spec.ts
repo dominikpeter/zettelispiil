@@ -41,8 +41,22 @@ test("signed out: no AI anywhere, sign-in only in the settings sheet", async ({ 
 
 test("signed in: AI features show, the settings sheet names the account, and switching AI off hides them again", async ({ page }) => {
   await status(page, { name: "Lisa Muster", email: "lisa@example.ch" });
+  const bases: string[] = [];
+  await page.route("**/api/ai/names", async (r) => {
+    const { base } = r.request().postDataJSON();
+    bases.push(base);
+    await r.fulfill({ json: { ai: true, names: [`Alphornbläser-${base}`] } });
+  });
   await page.goto("/");
   await expect(aiButtons(page).first()).toBeVisible();
+
+  // a name typed already gets dressed up, not replaced; pressing again starts from the typed name, not the suggestion
+  const lisa = page.getByLabel("Spieler 1", { exact: true });
+  await expect(lisa).toHaveValue("Lisa");
+  await page.getByRole("button", { name: "Spieler 1: Lustigen Namen erfinden" }).click();
+  await expect(lisa).toHaveValue("Alphornbläser-Lisa");
+  await page.getByRole("button", { name: "Spieler 1: Lustigen Namen erfinden" }).click();
+  await expect.poll(() => bases).toEqual(["Lisa", "Lisa"]);
   await openSettings(page);
   await expect(page.getByText("Lisa Muster")).toBeVisible();
   await expect(page.getByRole("heading", { name: "KI-Hilfe" })).toBeVisible();

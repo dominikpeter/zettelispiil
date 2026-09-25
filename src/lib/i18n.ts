@@ -224,6 +224,7 @@ const de = {
     sound: { name: "Geräusch", rule: "Nur Töne und Geräusche. Keine Wörter, keine Gesten." },
     draw: { name: "Zeichnen", rule: "Zeichne den Begriff auf deinem Handy, die anderen sehen live mit. Keine Buchstaben, keine Zahlen." },
   } as Record<RoundType, { name: string; rule: string }>,
+  namePrefixes: ["Turbo", "Alpen", "Gipfel", "Schoggi", "Blitz", "Super", "Chäs", "Rüebli"], // no AI answer: typed name gets one of these in front
   funnyPlayers: ["Fondue-Fritz", "Rösti-Rosa", "Velo-Vreni", "Schoggi-Sepp", "Gipfeli-Gabi", "Alphorn-Anni", "Zmorge-Zoe", "Raclette-Ruedi", "Chäsli-Chrigi", "Murmeli-Mia"],
   funnyTeams: ["Rösti-Raketen", "Fondue-Gang", "Schoggi-Bande", "Gipfelstürmer", "Zetteli-Zauberer", "Murmeltiere", "Alphorn-Allstars", "Bergziegen", "Käse-Kommando", "Gipfeli-Gang"],
 };
@@ -439,6 +440,7 @@ const en: Dict = {
     sound: { name: "Sounds", rule: "Only noises and sounds. No words, no gestures." },
     draw: { name: "Drawing", rule: "Draw the word on your phone, the others watch live. No letters, no numbers." },
   },
+  namePrefixes: ["Turbo", "Captain", "Disco", "Super", "Lightning", "Mega", "Cheesy", "Funky"],
   funnyPlayers: ["Captain Cheese", "Sir Snacksalot", "Waffle Wizard", "Noodle Ninja", "Pickle Pro", "Disco Llama", "Muffin Mayhem", "Taco Tornado", "Banana Bandit", "Nacho Libre"],
   funnyTeams: ["Mighty Muffins", "Snack Attack", "The Clueless", "Pun Intended", "Team Spaghetti", "Guess Who", "Slip Happens", "The Wild Guesses", "Bowl Busters", "Word Nerds"],
 };
@@ -652,6 +654,7 @@ const fr: Dict = {
     sound: { name: "Bruitage", rule: "Seulement des bruits et des sons. Pas de mots, pas de gestes." },
     draw: { name: "Dessin", rule: "Dessine le mot sur ton téléphone, les autres regardent en direct. Pas de lettres, pas de chiffres." },
   },
+  namePrefixes: ["Turbo", "Super", "Capitaine", "Disco", "Éclair", "Méga", "Fromage", "Baguette"],
   funnyPlayers: ["Baguette Bernard", "Croissant Claire", "Fromage Fifi", "Crêpe Camille", "Raclette René", "Escargot Émile", "Madeleine Mimi", "Fondue Fanfan", "Macaron Max", "Brioche Bibi"],
   funnyTeams: ["Croissants Volants", "Fromages Qui Rient", "Baguettes Magiques", "Escargots Turbo", "Crêpes Sauvages", "Papiers Froissés", "Bols Pleins", "Mimes Masqués", "Cerveaux Frits", "Quiches Lorraines"],
 };

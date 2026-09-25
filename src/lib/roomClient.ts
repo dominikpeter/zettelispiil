@@ -53,18 +53,47 @@ export const errKey = (e: string): (typeof KNOWN)[number] | "offline" => (KNOWN 
 
 /** one funny name from the AI when it's available, otherwise from our own list */
 const recent: string[] = []; // names this phone was already offered: asked again, the AI must come up with something new
+// suggestion → the typed name it was built on, so pressing again restarts from "Beni", not from "Alphornbläser-Beni".
+// Kept on the phone: the name you joined with comes back pre-filled next time.
+const BUILT_KEY = "zettelispiil:builtOn";
+const builtOn = new Map<string, string>(
+  (() => {
+    try {
+      return JSON.parse(localStorage.getItem(BUILT_KEY) ?? "[]") as [string, string][];
+    } catch {
+      return [];
+    }
+  })(),
+);
+const remember = (name: string, base: string) => {
+  builtOn.set(name, base);
+  try {
+    localStorage.setItem(BUILT_KEY, JSON.stringify([...builtOn].slice(-30)));
+  } catch {}
+};
+const MAX_NAME = 24;
 
-export async function funnyName(kind: "player" | "team", lang: string, avoid: string[], fallback: string[], room?: AiRoom | null) {
+/** a funny name from the AI; with `base` (a name typed already) it builds on that name, e.g. "Beni" → "Alphornbläser-Beni" */
+export async function funnyName(kind: "player" | "team", lang: string, avoid: string[], fallback: string[], room?: AiRoom | null, base = "", prefixes: string[] = []) {
+  base = builtOn.get(base.trim()) ?? base.trim();
   try {
     if (aiPref.get() === "off") throw 0; // AI help switched off on this phone
-    const r = await fetch("/api/ai/names", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, lang, n: 1, avoid: [...avoid, ...recent].slice(-40), room }) }).then((x) => x.json());
+    const r = await fetch("/api/ai/names", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, lang, n: 1, avoid: [...avoid, ...recent].slice(-40), room, base }) }).then((x) => x.json());
     if (r?.ai && r.names?.[0]) {
       const name = String(r.names[0]);
+      if (base) remember(name, base);
       recent.push(name);
       if (recent.length > 20) recent.shift();
       return name;
     }
   } catch {}
+  // no AI answer: still keep the typed name, when it fits with a prefix
+  const fits = prefixes.map((p) => `${p}-${base}`).filter((n) => base && n.length <= MAX_NAME);
+  if (fits.length) {
+    const name = fits[Math.floor(Math.random() * fits.length)];
+    remember(name, base);
+    return name;
+  }
   const pool = fallback.filter((n) => !avoid.includes(n));
   return (pool.length ? pool : fallback)[Math.floor(Math.random() * (pool.length || fallback.length))];
 }

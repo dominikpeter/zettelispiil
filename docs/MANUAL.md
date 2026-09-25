@@ -16,7 +16,7 @@ Auf der Startseite wählst du, wie ihr spielt.
 
 «Ihr reicht ein Handy herum.» Alles läuft auf einem Gerät.
 
-- Die Spieler stehen gleich auf der Startseite. Zu Beginn sind es Lisa, Nora, Tim und Beni. Tippe einen Namen an, um ihn zu ändern, oder erfinde mit dem Funkel-Knopf («Lustigen Namen erfinden») einen lustigen.
+- Die Spieler stehen gleich auf der Startseite. Zu Beginn sind es Lisa, Nora, Tim und Beni. Tippe einen Namen an, um ihn zu ändern, oder erfinde mit dem Funkel-Knopf («Lustigen Namen erfinden») einen lustigen. Steht schon ein Name da, baut die KI ihn ein: aus «Beni» wird etwa «Tramhopser-Beni». Nochmals drücken gibt eine neue Idee, wieder mit «Beni».
 - Mit **Spieler hinzufügen** kommen weitere dazu, mit dem X entfernst du jemanden.
 - Ihr braucht mindestens 4 Spieler, 2 pro Team.
 - Tippe auf **Neues Spiel**. Ein laufendes Spiel kannst du später mit **Weiterspielen** fortsetzen, auch nach einem Neuladen der Seite.
@@ -69,7 +69,7 @@ Unten fasst eine kurze Übersicht die Einstellungen zusammen. Dann tippt die Spi
 
 Standardmässig sind die ersten vier Runden dabei. **Zeichnen** kannst du zusätzlich hinzufügen:
 
-- **Mit mehreren Handys** zeichnest du auf deinem Handy, alle anderen sehen live mit. Du hast mehrere Stifte zur Auswahl und kannst mit **Alles löschen** neu anfangen.
+- **Mit mehreren Handys** zeichnest du auf deinem Handy, alle anderen sehen live mit: die Linie entsteht bei ihnen Strich für Strich, ein Punkt zeigt, wo dein Stift gerade ist. Du hast mehrere Stifte zur Auswahl und kannst mit **Alles löschen** neu anfangen.
 - **Mit einem Handy** zeichnest du auf ein Flipchart oder Papier, das Handy zeigt nur den Begriff.
 
 Runden anpassen («Reihenfolge ändern oder Runden weglassen»):

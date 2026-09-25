@@ -371,7 +371,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
           <input value={adding} onChange={(e) => setAdding(e.target.value)} maxLength={24} placeholder={t.addPlayer} aria-label={t.addPlayer} className={`${field} min-w-0 flex-1 py-2.5 font-semibold`} />
           <AiNameButton
             label={t.aiName}
-            make={() => funnyName("player", s.lang, v.players.map((p) => p.name), t.funnyPlayers, aiRoom)}
+            make={() => funnyName("player", s.lang, v.players.map((p) => p.name), t.funnyPlayers, aiRoom, adding, t.namePrefixes)}
             onName={setAdding}
             className={`grid size-[3.2rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent ${press}`}
           />
