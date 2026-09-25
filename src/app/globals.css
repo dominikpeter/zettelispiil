@@ -131,6 +131,15 @@
   --l-team-b: #1f7ecf;
   --l-chart-a: #f06aa6;
   --l-chart-b: #4aa8ee;
+  /* teams three and four: a green and an orange that read on every palette (palettes only override them on a clash) */
+  --d-team-c: #5fdc8f;
+  --d-team-d: #ffa552;
+  --d-chart-c: #2fbf6a;
+  --d-chart-d: #f08a24;
+  --l-team-c: #16803f;
+  --l-team-d: #bd5400;
+  --l-chart-c: #2fbf6a;
+  --l-chart-d: #f08a24;
 }
 :root[data-palette="night"] {
   --d-canvas: #0c0014;
@@ -357,6 +366,10 @@
   --l-team-b: #111111;
   --l-chart-a: #e30613;
   --l-chart-b: #3a3a3a;
+  --d-team-d: #6fb0ff; /* orange sits too close to the Aarau red */
+  --d-chart-d: #4a90e2;
+  --l-team-d: #1f63c4;
+  --l-chart-d: #4a90e2;
 }
 :root {
   --c-canvas: var(--l-canvas);
@@ -372,8 +385,12 @@
   --c-cta-edge: var(--l-cta-edge);
   --c-team-a: var(--l-team-a);
   --c-team-b: var(--l-team-b);
+  --c-team-c: var(--l-team-c);
+  --c-team-d: var(--l-team-d);
   --c-chart-a: var(--l-chart-a);
   --c-chart-b: var(--l-chart-b);
+  --c-chart-c: var(--l-chart-c);
+  --c-chart-d: var(--l-chart-d);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -391,8 +408,16 @@
     --c-cta-edge: var(--d-cta-edge);
     --c-team-a: var(--d-team-a);
     --c-team-b: var(--d-team-b);
+  --c-team-c: var(--d-team-c);
+  --c-team-d: var(--d-team-d);
+    --c-team-c: var(--d-team-c);
+    --c-team-d: var(--d-team-d);
     --c-chart-a: var(--d-chart-a);
     --c-chart-b: var(--d-chart-b);
+  --c-chart-c: var(--d-chart-c);
+  --c-chart-d: var(--d-chart-d);
+    --c-chart-c: var(--d-chart-c);
+    --c-chart-d: var(--d-chart-d);
     color-scheme: dark;
   }
 }
@@ -410,8 +435,12 @@
   --c-cta-edge: var(--d-cta-edge);
   --c-team-a: var(--d-team-a);
   --c-team-b: var(--d-team-b);
+  --c-team-c: var(--d-team-c);
+  --c-team-d: var(--d-team-d);
   --c-chart-a: var(--d-chart-a);
   --c-chart-b: var(--d-chart-b);
+  --c-chart-c: var(--d-chart-c);
+  --c-chart-d: var(--d-chart-d);
   color-scheme: dark;
 }
 
@@ -429,8 +458,12 @@
   --color-cta-edge: var(--c-cta-edge);
   --color-team-a: var(--c-team-a);
   --color-team-b: var(--c-team-b);
+  --color-team-c: var(--c-team-c);
+  --color-team-d: var(--c-team-d);
   --color-chart-a: var(--c-chart-a);
   --color-chart-b: var(--c-chart-b);
+  --color-chart-c: var(--c-chart-c);
+  --color-chart-d: var(--c-chart-d);
 }
 
 html {
