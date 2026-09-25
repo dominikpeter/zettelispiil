@@ -4,7 +4,8 @@ import { Plus, Smartphone, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { ScanCode } from "@/components/ScanCode";
-import { AiNameButton } from "@/components/Game";
+import { AiNameButton } from "@/components/game/common"; // not the Game barrel: that pulls every game screen into the home page
+import { loadDnd } from "@/components/game/RoundRow";
 import { TopControls } from "@/components/TopControls";
 import { loadLocalGame, loadPlayers, newLocalGame } from "@/lib/localGame";
 import { langPref, useT } from "@/lib/prefs";
@@ -60,6 +61,7 @@ export default function Home() {
 
   const go = async (path: string, body: object) => {
     setBusy(true);
+    if (!path) loadDnd(); // a new room: the host's lobby will want to drag rounds, so fetch that code while the room is made
     setErr("");
     try {
       const r = await api<Identity & { code: string }>(path, body);
@@ -73,6 +75,7 @@ export default function Home() {
   const join = (c = code) => go(`/${c}`, { type: "join", name });
   const startLocal = async () => {
     setBusy(true);
+    loadDnd(); // the lobby's round list, fetched while the game is set up
     await newLocalGame(named, lang);
     router.push("/local");
   };

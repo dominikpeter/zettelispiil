@@ -1,22 +1,20 @@
 "use client";
 
 import {
-  ArrowLeftRight, Briefcase, Car, Castle, Check, Clapperboard, Crown, Globe, GripVertical, Infinity as Inf, Minus, Mountain, Music, Palette, PartyPopper,
+  ArrowLeftRight, Briefcase, Car, Castle, Check, Clapperboard, Crown, Globe, Infinity as Inf, Minus, Mountain, Music, Palette, PartyPopper,
   PawPrint, Pencil, PersonStanding, Plus, Share2, Shuffle, Sofa, Sparkles, Star, Trees, Trophy, UserPlus, UtensilsCrossed, X, type LucideIcon,
 } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
-import { DragDropProvider } from "@dnd-kit/react";
-import { useSortable } from "@dnd-kit/react/sortable";
-import { move as moved } from "@dnd-kit/helpers";
 import { useAiOn, useAiRoom } from "@/lib/aiAccess";
 import { langPref, useT } from "@/lib/prefs";
 import { LANGS } from "@/lib/i18n";
 import { Segmented } from "../TopControls";
 import { funnyName } from "@/lib/roomClient";
-import { MAX_TEAMS, ROUND_TYPES, type RoundType, type Settings, type Team } from "@/lib/room";
+import { MAX_TEAMS, ROUND_TYPES, type Settings, type Team } from "@/lib/room";
 import { TOPIC_IDS, TOPICS, topicById, type TopicIcon } from "@/lib/topics";
 import { btn, btn2, field, ghost, panel, press, round_btn, RoundIcon, TEAM, WhatsAppIcon, whatsappHref } from "@/lib/ui";
 import { mini, Waiting, Cta, AiNameButton, type P } from "./common";
+import { RoundRowView, useDnd } from "./RoundRow";
 
 /** a name with a pencil; tap to edit inline */
 function EditableName({ value, label, onSave, className = "" }: { value: string; label: string; onSave: (n: string) => void; className?: string }) {
@@ -66,23 +64,6 @@ function Stepper({ label, value, display, set, min, max }: { label: string; valu
         </button>
       </div>
     </div>
-  );
-}
-
-// a round in the host's list: drag it by the handle (long-press on touch; keyboard: focus the handle, Space, arrow keys, Space)
-function RoundRow({ r, i, children }: { r: RoundType; i: number; children: ReactNode }) {
-  const t = useT();
-  const { ref, handleRef, isDragging } = useSortable({ id: r, index: i });
-  return (
-    <li ref={ref} data-round={r} className={`enter flex items-center gap-2 rounded-2xl bg-raised py-1.5 pr-1 ${isDragging ? "relative z-10 shadow-lg ring-2 ring-accent" : ""}`}>
-      <button ref={handleRef} type="button" aria-label={t.moveRound(t.round[r].name)} className="flex min-w-0 flex-1 cursor-grab items-center gap-2 self-stretch rounded-xl pl-1.5 text-left select-none active:cursor-grabbing">
-        <GripVertical className="size-4 shrink-0 text-muted max-xs:hidden" aria-hidden />
-        <span className="w-3 shrink-0 text-sm font-bold text-muted tabular-nums">{i + 1}</span>
-        <RoundIcon type={r} className="size-5 shrink-0 text-accent" />
-        <span className="min-w-0 flex-1 truncate font-semibold">{t.round[r].name}</span>
-      </button>
-      {children}
-    </li>
   );
 }
 
@@ -156,6 +137,10 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
   const next = (team: Team) => ((team + 1) % teams.length) as Team; // two teams: the other one; more: the next in turn
   const skipStep = s.skips === -1 ? 6 : s.skips; // stepper runs 0…5, then ∞
   const off = ROUND_TYPES.filter((r) => !s.rounds.includes(r));
+  // the host's rounds can be dragged into a new order once dnd-kit is here (it loads on its own); until then the same list, still
+  const dnd = useDnd(v.isHost);
+  const Row = dnd ? dnd.SortableRow : RoundRowView;
+  const wrapRounds = (list: ReactNode) => (dnd ? <dnd.Sortable rounds={s.rounds} onOrder={(rounds) => set({ rounds })}>{list}</dnd.Sortable> : list);
   const [adding, setAdding] = useState("");
   const addPlayer = async () => {
     if (!adding.trim() || !onAdd) return;
@@ -309,14 +294,14 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
             </div>
             <h3 className="mt-4 font-semibold">{t.rounds}</h3>
             <p className="text-sm text-muted">{t.roundsHelp}</p>
-            <DragDropProvider onDragEnd={(e) => { if (!e.canceled) set({ rounds: moved(s.rounds, e) }); }}>
+            {wrapRounds(
             <ol className="mt-3 flex flex-col gap-2">
               {s.rounds.map((r, i) => (
-                <RoundRow key={r} r={r} i={i}>
+                <Row key={r} r={r} i={i}>
                   <button onClick={() => set({ rounds: s.rounds.filter((x) => x !== r) })} disabled={s.rounds.length === 1} aria-label={t.drop(t.round[r].name)} className={mini}>
                     <X className="size-4" aria-hidden />
                   </button>
-                </RoundRow>
+                </Row>
               ))}
               {off.map((r) => (
                 <li key={r}>
@@ -327,8 +312,8 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
                   </button>
                 </li>
               ))}
-            </ol>
-            </DragDropProvider>
+            </ol>,
+            )}
           </>
         ) : (
           <ul className="mt-2 flex flex-col gap-1 text-muted">

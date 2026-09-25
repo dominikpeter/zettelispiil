@@ -1,7 +1,6 @@
 "use client";
 // who may use AI on this phone: fetched once from /api/ai/status, refreshed after signing out
 import { createContext, useContext, useSyncExternalStore } from "react";
-import { authClient } from "./authClient";
 import { aiPref } from "./prefs";
 
 export type Provider = "google" | "github" | "microsoft";
@@ -45,8 +44,12 @@ export function useAiOn() {
 }
 
 /** off to the provider and back to this very page */
-export const signIn = (provider: Provider) => authClient.signIn.social({ provider, callbackURL: location.pathname + location.search });
+// the auth client (better-auth) only loads when someone taps sign in or out: every page stays lighter without it
+const auth = () => import("./authClient").then((m) => m.authClient);
+/** start loading the auth client as the finger lands, so the tap itself doesn't wait for it */
+export const warmAuth = () => void auth().catch(() => {});
+export const signIn = async (provider: Provider) => (await auth()).signIn.social({ provider, callbackURL: location.pathname + location.search });
 export async function signOut() {
-  await authClient.signOut();
+  await (await auth()).signOut();
   await load();
 }

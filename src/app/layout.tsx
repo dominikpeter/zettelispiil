@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Caveat } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: ["latin", "latin-ext"] });
-const caveat = Caveat({ variable: "--font-caveat", subsets: ["latin", "latin-ext"], weight: ["600", "700"] });
+// `subsets` only picks what is preloaded: latin covers DE/EN/FR; the latin-ext files still load on demand when a word needs them
+const bricolage = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: ["latin"] });
+const caveat = Caveat({ variable: "--font-caveat", subsets: ["latin"], weight: ["600", "700"] });
 
 export const metadata: Metadata = {
   title: "Zettelispiil",
@@ -27,9 +27,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="de" className={`${bricolage.variable} ${caveat.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
-        <Script id="prefs" strategy="beforeInteractive">
-          {prefsScript}
-        </Script>
+        {/* a plain inline script runs as the parser reaches it; next/script's beforeInteractive only queues it for Next's runtime, so the saved theme came in late */}
+        <script dangerouslySetInnerHTML={{ __html: prefsScript }} />
       </head>
       <body className="flex min-h-full flex-col font-sans pt-[env(safe-area-inset-top)]">
         {children}

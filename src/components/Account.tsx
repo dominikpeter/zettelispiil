@@ -3,7 +3,7 @@
 import { LogOut } from "lucide-react";
 import { useState } from "react";
 import { useT } from "@/lib/prefs";
-import { signIn, signOut, useAiStatus, type Provider } from "@/lib/aiAccess";
+import { signIn, signOut, useAiStatus, warmAuth, type Provider } from "@/lib/aiAccess";
 import { press } from "@/lib/ui";
 
 // provider marks, drawn small and in their own colors as the providers ask for
@@ -54,7 +54,7 @@ export function Account() {
         <p className="min-w-0 truncate text-sm text-muted">
           {t.signedInAs} <b className="truncate text-ink">{s.user.name || s.user.email}</b>
         </p>
-        <button type="button" onClick={signOut} className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-raised hover:text-ink ${press}`}>
+        <button type="button" onPointerDown={warmAuth} onClick={signOut} className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-raised hover:text-ink ${press}`}>
           <LogOut className="size-4" aria-hidden /> {t.signOut}
         </button>
       </div>
@@ -67,6 +67,7 @@ export function Account() {
           <button
             key={p}
             type="button"
+            onPointerDown={warmAuth}
             onClick={() => go(p)}
             aria-label={t.signInWith(NAME[p])}
             className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 font-semibold text-ink hover:bg-raised ${press}`}
