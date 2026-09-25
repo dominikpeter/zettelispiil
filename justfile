@@ -61,3 +61,28 @@ release version notes: check e2e secrets
 # OAuth sign-in keys for AI features; prompts for secrets, never echoes them
 auth-setup:
     bash scripts/setup-auth.sh
+
+# phone apps (Capacitor): a native shell around zettelispiil.ch, so web releases reach them without a store update.
+# Android needs JDK 21 and the Android SDK (`brew install openjdk@21 android-commandlinetools`); iOS needs Xcode.
+export JAVA_HOME := env("JAVA_HOME", "/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home")
+export ANDROID_HOME := env("ANDROID_HOME", env("HOME", "") + "/Library/Android/sdk")
+
+# Android test build: android/app/build/outputs/apk/debug/app-debug.apk
+android:
+    npx cap sync android
+    cd android && ./gradlew assembleDebug -q
+    @echo "APK: android/app/build/outputs/apk/debug/app-debug.apk"
+
+# install and start the Android test build on a phone connected by USB (USB debugging on)
+android-run: android
+    $ANDROID_HOME/platform-tools/adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+    $ANDROID_HOME/platform-tools/adb shell am start -n ch.zettelispiil.app/.MainActivity
+
+# iOS: sync and open the project in Xcode (build, sign and run from there)
+ios:
+    npx cap sync ios
+    npx cap open ios
+
+# app icons and splash screens for Android and iOS from assets/*.png
+app-icons:
+    npx @capacitor/assets generate --iconBackgroundColor '#25003d' --splashBackgroundColor '#f5f1e8' --splashBackgroundColorDark '#1f1d1a'

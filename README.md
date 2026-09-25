@@ -50,6 +50,14 @@ Writing the same word as someone else cancels both copies, with or without AI; b
 
 German by default, plus English and French. Light and dark mode and eight color themes (Post-it by default, Nacht, Tinte, Gold, Abendrot, Ozean, Arosa, Aarau) in the settings sheet. Player and team names are editable; teams start with a funny random name.
 
+## Install and apps
+
+- **Web app (PWA):** "Add to Home Screen" on iPhone or Android starts Zettelispiil full screen with its own icon (`src/app/manifest.ts`, icons from `src/lib/appIcon.tsx`). A running game keeps the screen on (Screen Wake Lock).
+- **Phone apps (Capacitor 8):** `android/` and `ios/` are native shells that load zettelispiil.ch, so every web release reaches them without a store update; `native-shell/offline.html` shows when there's no connection. Inside the apps, `src/lib/native.ts` uses real haptics, the system share sheet and keep-awake.
+  - Android: `just android` builds a test APK (JDK 21 + Android SDK: `brew install openjdk@21 android-commandlinetools`), `just android-run` installs it on a USB phone.
+  - iOS: install Xcode, then `just ios` opens the project; sign with your Apple developer account.
+  - Store release needs a Google Play ($25 once) and an Apple developer account ($99/year). Sign-in with Google inside the app needs the system browser (Google blocks embedded browsers); until that is wired up, sign in on the web.
+
 ## Security
 
 - Rooms: every action needs the player's random token; host-only and describer-only actions are checked on the server.

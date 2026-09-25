@@ -24,6 +24,9 @@ Run `just` to list recipes. Prefer them over raw commands so everyone runs the s
 | `just deploy` | `vercel deploy --prod` |
 | `just release X.Y.Z "notes"` | check, e2e, secret scan, bump, tag, push, GitHub release, deploy |
 | `just auth-setup` | OAuth keys for sign-in; the user runs it, it prompts for secrets |
+| `just android` / `just android-run` | Android test build (APK) / install it on a USB phone. Needs JDK 21 + Android SDK |
+| `just ios` | sync the iOS project and open it in Xcode |
+| `just app-icons` | regenerate app icons and splash screens from `assets/` |
 
 ## Script standards
 

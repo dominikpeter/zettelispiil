@@ -1,4 +1,5 @@
 // shared look & feel
+import { feel } from "./native";
 import type { CSSProperties, ReactNode } from "react";
 import { Brush, MessageSquareText, PersonStanding, Volume2, WholeWord, type LucideIcon } from "lucide-react";
 import type { RoundType } from "./room";
@@ -129,8 +130,4 @@ export function Confetti({ n = 60 }: { n?: number }) {
   );
 }
 
-export const buzz = (p: number | number[]) => {
-  try {
-    navigator.vibrate?.(p);
-  } catch {}
-};
+export const buzz = (p: number | number[]) => feel(p); // real haptics in the phone apps, navigator.vibrate on the web

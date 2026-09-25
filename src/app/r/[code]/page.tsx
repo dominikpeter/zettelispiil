@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { AiNameButton, BackButton, GameMenu, Lobby, Phase, Score, Waiting } from "@/components/Game";
 import { TopControls } from "@/components/TopControls";
 import { AiRoomContext, useAiStatus } from "@/lib/aiAccess";
+import { share as share_ } from "@/lib/native";
 import { langPref, useT } from "@/lib/prefs";
 import type { Action, Stroke, View } from "@/lib/room";
 import { api, errKey, funnyName, loadIdentity, saveIdentity, type Identity } from "@/lib/roomClient";
@@ -109,7 +110,7 @@ export default function Room() {
 
   const share = async () => {
     try {
-      if (navigator.share) return await navigator.share({ title: "Zettelispiil", text: t.shareText(code), url });
+      if (await share_({ title: "Zettelispiil", text: t.shareText(code), url })) return; // the app's or the browser's share sheet
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);

@@ -1,5 +1,6 @@
 "use client";
 
+import { stayAwake } from "@/lib/native";
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useT } from "@/lib/prefs";
@@ -50,6 +51,9 @@ function GotFlash({ v }: { v: View }) {
 /** every phase of a running game; lobby and joining are handled by the page */
 export function Phase(props: P & { left: number }) {
   const { v } = props;
+  // a running game keeps the screen on: nobody wants the phone to lock mid-turn
+  const playing = v.phase !== "end";
+  useEffect(() => (playing ? stayAwake() : undefined), [playing]);
   const body =
     v.phase === "write" && v.settings.source === "ai" ? <AiWrite key="ai" {...props} />
     : v.phase === "write" ? <Write key={`w${v.settings.perPlayer}-${v.me}-${v.myWrite?.cancelled.length ?? 0}`} {...props} />
