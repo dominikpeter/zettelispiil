@@ -545,3 +545,22 @@ test("heckle: a pause freezes a running heckle", async () => {
   await as(0, { type: "resume" });
   assert.equal((await see(d)).lastHeckle!.until, until + 5000);
 });
+
+test("changing the team count evens the teams out with as few moves as possible", async () => {
+  const db = store();
+  const host = await createRoom(db, "P0");
+  for (let i = 1; i < 6; i++) await joinRoom(db, host.code, `P${i}`); // 3 : 3 on two teams
+  const sizes = async () => {
+    const v = await view(db, host.code, host.pid, host.token);
+    return v.teamNames.map((_, t) => v.players.filter((p) => p.team === t).length);
+  };
+  const before = (await view(db, host.code, host.pid, host.token)).players.map((p) => p.team);
+  await act(db, host.code, host.pid, host.token, { type: "settings", settings: { teams: 3 } });
+  assert.deepEqual(await sizes(), [2, 2, 2]); // the new team gets players right away
+  const after = (await view(db, host.code, host.pid, host.token)).players.map((p) => p.team);
+  assert.equal(after.filter((t, i) => t !== before[i]).length, 2); // only two had to move
+  await act(db, host.code, host.pid, host.token, { type: "settings", settings: { teams: 4 } });
+  assert.deepEqual((await sizes()).sort(), [1, 1, 2, 2]);
+  await act(db, host.code, host.pid, host.token, { type: "settings", settings: { teams: 2 } });
+  assert.deepEqual(await sizes(), [3, 3]);
+});

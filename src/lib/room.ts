@@ -319,14 +319,20 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       room.settings = cleanSettings({ ...room.settings, ...a.settings });
       const n = room.settings.teams;
       if (n !== room.teamNames.length) {
-        // more teams: new funny names; fewer: players of a dropped team go to the smallest remaining one
+        // more teams: new funny names; fewer: dropped names. Then even out: players move from the biggest team to the
+        // smallest until sizes differ by at most one (as few moves as possible, the rest stay where they chose)
         room.teamNames = n > room.teamNames.length ? [...room.teamNames, ...funnyTeams(room.settings.lang, n - room.teamNames.length, room.teamNames)] : room.teamNames.slice(0, n);
-        const kept = members.filter((m) => m.team < n);
-        for (const m of members.filter((m) => m.team >= n)) {
-          const moved = { ...m, team: smallest(kept, n) };
-          kept.push(moved);
-          await db.hset(k(code).members, m.id, moved, TTL);
+        const team = new Map(members.map((m) => [m.id, m.team < n ? m.team : 0])); // a dropped team's players start in team 1, then spread out
+        const size = (t: number) => [...team.values()].filter((x) => x === t).length;
+        for (;;) {
+          const sizes = Array.from({ length: n }, (_, t) => size(t));
+          const big = sizes.indexOf(Math.max(...sizes));
+          const low = sizes.indexOf(Math.min(...sizes));
+          if (sizes[big] - sizes[low] <= 1) break;
+          const mover = [...members].reverse().find((m) => team.get(m.id) === big && m.id !== room.hostId) ?? members.find((m) => team.get(m.id) === big)!;
+          team.set(mover.id, low); // the latest joiner moves first
         }
+        await Promise.all(members.filter((m) => team.get(m.id) !== m.team).map((m) => db.hset(k(code).members, m.id, { ...m, team: team.get(m.id)! }, TTL)));
       }
       break;
     }

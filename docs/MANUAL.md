@@ -46,7 +46,7 @@ Auf der Startseite wählst du, wie ihr spielt.
 
 Die Spielleitung legt mit Plus und Minus fest:
 
-- **Teams**: 2 bis 4, Standard 2. Neue Teams bekommen einen lustigen Namen und füllen sich mit neuen Spielern. Fällt ein Team weg, wechseln seine Spieler ins kleinste verbleibende Team.
+- **Teams**: 2 bis 4, Standard 2. Neue Teams bekommen einen lustigen Namen. Beim Ändern der Anzahl werden die Teams automatisch ausgeglichen: So wenige Spieler wie nötig wechseln, alle anderen bleiben, wo sie sind.
 - **Zetteli pro Person**: 1 bis 10, Standard 4.
 - **Sekunden pro Zug**: 10 bis 120 in 5er-Schritten, Standard 30.
 - **Überspringen pro Zug**: 0 bis 5 oder unbegrenzt (∞), Standard 1.
