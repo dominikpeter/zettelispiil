@@ -27,6 +27,10 @@ async function switchAi(form: FormData) {
 }
 const fmt = (n: number) => n.toLocaleString("de-CH");
 const when = (t: number) => new Date(t).toLocaleString("de-CH", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Zurich" });
+// gpt-6-luna list prices, USD per million tokens (openai.com, Sep 2026); the priority lane costs more, so this is the floor
+const PRICE = { in: 0.1, out: 0.5 };
+const usd = (tokIn: number, tokOut: number) => (tokIn * PRICE.in + tokOut * PRICE.out) / 1e6;
+const money = (n: number) => `$${n < 1 ? n.toFixed(3) : n.toFixed(2)}`;
 const sum = (days: Day[], ...keys: (keyof Day)[]) => days.reduce((s, d) => s + keys.reduce((t, k) => t + (Number(d[k]) || 0), 0), 0);
 
 export default async function Admin() {
@@ -53,6 +57,9 @@ export default async function Admin() {
     ["KI-Aufrufe", sum(days, "ai_check", "ai_names", "ai_ideas")],
     ["Tokens", tokens("check") + tokens("names") + tokens("ideas")],
   ] as const;
+  const cost = usd(sum(days, "tokens_in_check", "tokens_in_names", "tokens_in_ideas"), sum(days, "tokens_out_check", "tokens_out_names", "tokens_out_ideas"));
+  const fromCache = sum(days, "cache_check", "cache_names", "cache_ideas");
+  const asked = sum(days, "ai_check", "ai_names", "ai_ideas");
   const max = Math.max(1, ...days.map((d) => d.games ?? 0));
   const W = 300;
   const H = 90;
@@ -89,6 +96,14 @@ export default async function Admin() {
             <span className="text-3xl font-extrabold tabular-nums">{fmt(n)}</span>
           </div>
         ))}
+        <div className={`${panel} flex flex-col gap-1`}>
+          <span className="text-sm text-muted">KI-Kosten (mind.)</span>
+          <span className="text-3xl font-extrabold tabular-nums">{money(cost)}</span>
+        </div>
+        <div className={`${panel} flex flex-col gap-1`}>
+          <span className="text-sm text-muted">Aus dem Cache</span>
+          <span className="text-3xl font-extrabold tabular-nums">{asked + fromCache ? Math.round((fromCache / (asked + fromCache)) * 100) : 0}%</span>
+        </div>
       </section>
 
       <section className={panel}>
@@ -112,13 +127,16 @@ export default async function Admin() {
 
       <section className={panel}>
         <h2 className="font-bold">KI nach Funktion</h2>
-        <table className="mt-2 w-full text-sm tabular-nums">
+        <div className="mt-2 overflow-x-auto">
+        <table className="w-full text-sm tabular-nums">
           <thead className="text-left text-muted">
             <tr>
               <th className="py-1 font-medium">Funktion</th>
               <th className="py-1 text-right font-medium">Aufrufe</th>
+              <th className="py-1 text-right font-medium">Cache</th>
               <th className="py-1 text-right font-medium">Tokens rein</th>
               <th className="py-1 text-right font-medium">Tokens raus</th>
+              <th className="py-1 text-right font-medium">Kosten</th>
             </tr>
           </thead>
           <tbody>
@@ -132,12 +150,15 @@ export default async function Admin() {
               <tr key={k} className="border-t border-line">
                 <td className="py-1.5">{label}</td>
                 <td className="py-1.5 text-right">{fmt(sum(days, `ai_${k}`))}</td>
+                <td className="py-1.5 text-right">{fmt(sum(days, `cache_${k}`))}</td>
                 <td className="py-1.5 text-right">{fmt(sum(days, `tokens_in_${k}`))}</td>
                 <td className="py-1.5 text-right">{fmt(sum(days, `tokens_out_${k}`))}</td>
+                <td className="py-1.5 text-right">{money(usd(sum(days, `tokens_in_${k}`), sum(days, `tokens_out_${k}`)))}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       </section>
 
       <section className={panel}>

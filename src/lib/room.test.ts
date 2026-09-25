@@ -4,7 +4,7 @@ import { act, claimAi, cleanSettings, createRoom, joinRoom, pullStrokes, roomAi,
 import { computeStats } from "./stats.ts";
 import { db as envStore, memoryStore, persistent } from "./store.ts";
 
-// in-memory by default; set UPSTASH_REDIS_REST_URL/TOKEN (e.g. scripts/upstash-local.mjs) to run against Redis
+// in-memory by default; set UPSTASH_REDIS_REST_URL/TOKEN to run the same tests against a real Redis
 const store = () => (persistent ? envStore : memoryStore());
 
 // 4 players, alternating teams on join (A, B, A, B), 1 word each, 30 s turns, 2 rounds

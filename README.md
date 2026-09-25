@@ -38,6 +38,8 @@ With `OPENAI_API_KEY` set (Vercel AI SDK, model `OPENAI_MODEL`, default `gpt-6-l
 
 Stuck for words? Type a topic and the AI suggests three to pick from.
 
+AI answers are reused through Redis: a word checked once (by anyone) is answered from the cache for 30 days, the model writes names six at a time into a pool (per typed name) and topic ideas nine at a time, so most taps need no model call at all. The rest run on `gpt-6-luna` without reasoning, with short answers and in OpenAI's priority lane (~2 s). Cached are only words and topics, never who wrote them.
+
 AI help needs an account (Google or GitHub). Signed out, no AI features show at all. A room opened by a signed-in host (or whose host signs in later) has AI for everyone in it, on the host's budget: 120 calls per minute and 300 per day per room, 1000 per day per host.
 
 The host sets the language of the Zetteli (German, English or French) in the lobby; the AI checks, hints and suggests in that language while every phone keeps its own app language.
@@ -53,7 +55,7 @@ German by default, plus English and French. Light and dark mode and eight color 
 - AI needs sign-in (Google, GitHub, Microsoft via Better Auth, encrypted cookie sessions, 7 days), is rate limited per account and overall, and its answers are length-bounded.
 - Headers: Content-Security-Policy (same origin only), `X-Frame-Options: DENY`, `nosniff`, strict referrer, camera only for the QR scanner.
 - Commits run a secret scan, lint, type check and unit tests (prek).
-- `/admin` shows usage (rooms, games, joins, sign-ins, AI calls and tokens per feature, accounts) to the verified accounts in `ADMIN_EMAIL` only; everyone else gets a 404. Counters live in Redis per day, nothing players write is stored.
+- `/admin` shows usage (rooms, games, joins, sign-ins, AI calls and tokens per feature, accounts) to the verified accounts in `ADMIN_EMAIL` only; everyone else gets a 404. Counters live in Redis per day.
 
 ## Stack
 
@@ -86,14 +88,6 @@ just e2e             # Playwright: Pixel 7 plus WebKit iPhone SE / 15 / 15 Pro M
 ```
 
 `just` lists every recipe. The player manual is in [docs/MANUAL.md](docs/MANUAL.md).
-
-To run rooms against a real Redis locally:
-
-```bash
-redis-server --port 6380 --daemonize yes
-npm run redis:local  # Upstash-compatible REST API on :8079, token "local"
-UPSTASH_REDIS_REST_URL=http://localhost:8079 UPSTASH_REDIS_REST_TOKEN=local npm run dev
-```
 
 ## Deploy
 

@@ -8,8 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "tsx --test src/**/*.test.ts",
-    "e2e": "playwright test",
-    "redis:local": "node scripts/upstash-local.mjs"
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.74",
@@ -37,7 +36,6 @@
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.3.6",
-    "ioredis": "^6.0.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3"

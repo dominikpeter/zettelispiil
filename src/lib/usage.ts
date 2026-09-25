@@ -27,7 +27,8 @@ export type Counter =
   | "games" // games started (online)
   | "signins"
   | `ai_${"check" | "names" | "ideas"}` // AI calls per feature
-  | `tokens_${"in" | "out"}_${"check" | "names" | "ideas"}`;
+  | `tokens_${"in" | "out"}_${"check" | "names" | "ideas"}`
+  | `cache_${"check" | "names" | "ideas"}`; // answered from the cache: no model call
 
 /** add to today's counters; never throws */
 export async function count(add: Partial<Record<Counter, number>>, now = new Date(), r = client()) {
