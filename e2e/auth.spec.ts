@@ -111,6 +111,7 @@ test("the sign-in buttons lead to Google and GitHub (live providers)", async ({ 
     await openSettings(page);
     await page.getByRole("button", { name: `Mit ${p} anmelden` }).click();
     await page.waitForURL((u) => u.hostname === host);
-    expect(new URL(page.url()).searchParams.get("redirect_uri") ?? page.url()).toContain("zettelispiil.ch/api/auth/callback/");
+    // the way back to us; GitHub tucks it (encoded twice) into return_to on its login page
+    expect(decodeURIComponent(decodeURIComponent(page.url()))).toContain("zettelispiil.ch/api/auth/callback/");
   }
 });
