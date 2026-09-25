@@ -86,10 +86,11 @@ const pick = (n: number) => Math.floor(Math.random() * n);
 const uid = () =>
   crypto.randomUUID?.() ?? Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
 
+// both at once: one Redis round trip (Upstash pipelines what's sent together), not two, on every poll and every action
 async function load(db: Store, code: string) {
-  const room = await db.get<Room>(k(code).room);
+  const [room, hash] = await Promise.all([db.get<Room>(k(code).room), db.hgetall<Member>(k(code).members)]);
   if (!room) throw new RoomError("not_found");
-  const members = Object.values(await db.hgetall<Member>(k(code).members)).sort((a, b) => a.at - b.at);
+  const members = Object.values(hash).sort((a, b) => a.at - b.at);
   return { room, members };
 }
 
@@ -518,9 +519,8 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       throw new RoomError("bad_request");
   }
   await keepDrawings(db, room, drawn);
-  await save(db, room);
-  // the drawer record only matters around drawing turns
-  if (room.settings.rounds.includes("draw") && (wasTurn || room.phase === "turn")) await syncDrawer(db, room, members);
+  // the drawer record only matters around drawing turns; it's a key of its own, so it goes out together with the room
+  await Promise.all([save(db, room), room.settings.rounds.includes("draw") && (wasTurn || room.phase === "turn") && syncDrawer(db, room, members)]);
 }
 
 export type View = {
