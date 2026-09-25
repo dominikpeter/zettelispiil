@@ -21,14 +21,15 @@ export type UsageRedis = {
 };
 const client = () => live as unknown as UsageRedis | null;
 
+type AiKind = "check" | "names" | "ideas" | "zetteli";
 export type Counter =
   | "rooms" // online rooms created
   | "joins" // players who joined a room
   | "games" // games started (online)
   | "signins"
-  | `ai_${"check" | "names" | "ideas"}` // AI calls per feature
-  | `tokens_${"in" | "out"}_${"check" | "names" | "ideas"}`
-  | `cache_${"check" | "names" | "ideas"}`; // answered from the cache: no model call
+  | `ai_${AiKind}` // AI calls per feature
+  | `tokens_${"in" | "out"}_${AiKind}`
+  | `cache_${AiKind}`; // answered from the cache: no model call (zetteli: Zetteli from the pool)
 
 /** add to today's counters; never throws */
 export async function count(add: Partial<Record<Counter, number>>, now = new Date(), r = client()) {

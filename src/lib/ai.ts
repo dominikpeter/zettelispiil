@@ -6,6 +6,9 @@ import type { Lang } from "./i18n";
 import { aiSwitchedOff } from "./aiSwitch";
 import { count } from "./usage";
 import { cachedEach, fromPool, ideasFor, key, shuffle } from "./aiCache";
+import { supplyZetteli } from "./aiZetteli";
+import { norm, type Slip } from "./room";
+import { topicById } from "./topics";
 
 export const aiEnabled = () => !!process.env.OPENAI_API_KEY;
 /** AI is set up and the owner hasn't switched it off in /admin */
@@ -32,7 +35,7 @@ const Check = z.object({
 export type WordCheck = z.infer<typeof Check>["results"][number];
 
 /** count the call and its tokens for the admin page */
-const meter = (kind: "check" | "names" | "ideas", u: { inputTokens?: number; outputTokens?: number }) =>
+const meter = (kind: "check" | "names" | "ideas" | "zetteli", u: { inputTokens?: number; outputTokens?: number }) =>
   count({ [`ai_${kind}`]: 1, [`tokens_in_${kind}`]: u.inputTokens ?? 0, [`tokens_out_${kind}`]: u.outputTokens ?? 0 });
 
 /** spelling, difficulty and a hint for each Zetteli of one player; words checked before (by anyone) come from the cache */
@@ -84,6 +87,50 @@ async function askIdeas(topic: string, lang: Lang): Promise<string[]> {
   });
   await meter("ideas", usage);
   return output.words.map((w) => w.trim().slice(0, 40)).filter(Boolean).slice(0, 9);
+}
+
+const Zetteli = z.object({
+  words: z.array(
+    z.object({
+      word: z.string().describe("the Zetteli: 1-3 words"),
+      hint: z.string().describe("max 8 words that help the describer; never contains the word or part of it"),
+    }),
+  ),
+});
+
+/** "KI schreibt": `count` different Zetteli with hints over `topics` (ids from topics.ts), from the pools or the model */
+export async function aiZetteli(n: number, topics: string[], lang: Lang): Promise<Slip[]> {
+  const { slips, pooled } = await supplyZetteli({ lang, topics, count: n, write: (topic, _l, k, avoid) => askZetteli(topic, lang, k, avoid) });
+  if (pooled) await count({ cache_zetteli: pooled });
+  return slips;
+}
+
+// only a topic from our own list and AI-written words (the ones used lately) go in, never what a player typed
+async function askZetteli(topicId: string, lang: Lang, n: number, avoid: string[]): Promise<Slip[]> {
+  const topic = topicById(topicId);
+  if (!topic) return [];
+  const { output, usage } = await generateText({
+    model: model(),
+    providerOptions: fast,
+    output: Output.object({ schema: Zetteli }),
+    system:
+      "You write the Zetteli for Zettelispiil, a Swiss salad-bowl party game: teams guess the words from descriptions, charades, a single word, sounds and drawings. " +
+      `Write words and hints in ${LANG_NAME[lang]}, the way people there say it (no translations from English; names and titles as they are known there). ` +
+      "Every word must be something most adults at a party know and could act out or describe: " +
+      "concrete nouns, well-known names, titles and places; 1-3 words; no explanations, no generic categories, no near-duplicates. " +
+      "About four in five are classic and easy; about one in five is more original or surprising, yet still known to most people. " +
+      "Each hint (max 8 words) helps the describer understand what is meant, and never contains the word itself or part of it.",
+    prompt:
+      `Topic: ${topic.name.en}. Write ${n} different Zetteli with hints.` +
+      (avoid.length ? `\nAlready used lately, do not repeat: ${avoid.join(", ")}` : ""),
+  });
+  await meter("zetteli", usage);
+  // the model's answer is untrusted too: bounded, and a hint that gives the word away is dropped
+  return output.words.map((w) => {
+    const word = w.word.trim().slice(0, 40);
+    const hint = w.hint.trim().split(/\s+/).slice(0, 8).join(" ").slice(0, 80);
+    return { word, hint: norm(word) && norm(hint).includes(norm(word)) ? "" : hint };
+  });
 }
 
 const Names = z.object({ names: z.array(z.string()) });

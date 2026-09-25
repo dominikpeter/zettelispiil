@@ -48,18 +48,18 @@ export default async function Admin() {
 
   const [{ days, accounts, live }, aiOff] = await Promise.all([report(30), aiSwitchedOff()]);
   const today = days.at(-1)!;
-  const tokens = (k: "check" | "names" | "ideas") => sum(days, `tokens_in_${k}`, `tokens_out_${k}`);
+  const tokens = (k: "check" | "names" | "ideas" | "zetteli") => sum(days, `tokens_in_${k}`, `tokens_out_${k}`);
   const tiles = [
     ["Räume", sum(days, "rooms")],
     ["Spiele gestartet", sum(days, "games")],
     ["Beitritte", sum(days, "joins")],
     ["Anmeldungen", sum(days, "signins")],
-    ["KI-Aufrufe", sum(days, "ai_check", "ai_names", "ai_ideas")],
-    ["Tokens", tokens("check") + tokens("names") + tokens("ideas")],
+    ["KI-Aufrufe", sum(days, "ai_check", "ai_names", "ai_ideas", "ai_zetteli")],
+    ["Tokens", tokens("check") + tokens("names") + tokens("ideas") + tokens("zetteli")],
   ] as const;
-  const cost = usd(sum(days, "tokens_in_check", "tokens_in_names", "tokens_in_ideas"), sum(days, "tokens_out_check", "tokens_out_names", "tokens_out_ideas"));
-  const fromCache = sum(days, "cache_check", "cache_names", "cache_ideas");
-  const asked = sum(days, "ai_check", "ai_names", "ai_ideas");
+  const cost = usd(sum(days, "tokens_in_check", "tokens_in_names", "tokens_in_ideas", "tokens_in_zetteli"), sum(days, "tokens_out_check", "tokens_out_names", "tokens_out_ideas", "tokens_out_zetteli"));
+  const fromCache = sum(days, "cache_check", "cache_names", "cache_ideas", "cache_zetteli");
+  const asked = sum(days, "ai_check", "ai_names", "ai_ideas", "ai_zetteli");
   const max = Math.max(1, ...days.map((d) => d.games ?? 0));
   const W = 300;
   const H = 90;
@@ -145,6 +145,7 @@ export default async function Admin() {
                 ["Rechtschreibung & Hinweise", "check"],
                 ["Namen", "names"],
                 ["Ideen", "ideas"],
+                ["KI schreibt die Zetteli", "zetteli"],
               ] as const
             ).map(([label, k]) => (
               <tr key={k} className="border-t border-line">
