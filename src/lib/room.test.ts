@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { act, claimAi, cleanSettings, createRoom, joinRoom, pullStrokes, roomAi, pushStrokes, RoomError, sheetStrokes, view, type View } from "./room.ts";
+import { act, claimAi, cleanSettings, createRoom, heckleMs, joinRoom, pullStrokes, roomAi, pushStrokes, RoomError, sheetStrokes, view, type View } from "./room.ts";
 import { computeStats } from "./stats.ts";
 import { db as envStore, memoryStore, persistent } from "./store.ts";
 
@@ -450,4 +450,98 @@ test("drawings: only in drawing rounds", async () => {
     }
   }
   assert.deepEqual((await see(0)).stats!.drawings, []);
+});
+
+/** a running turn with heckling on; o = someone on the other team */
+async function heckleTurn(heckles = 2) {
+  const t = await setup();
+  await t.as(0, { type: "settings", settings: { heckle: true, heckles } });
+  await writeAll(t.as);
+  const { i } = await describerView(t.see);
+  await t.as(i, { type: "go" });
+  return { ...t, d: i, o: (i + 1) % 4 }; // teams alternate: the next player is on the other team
+}
+
+test("heckle: off by default and in the lobby settings, 1–5 presses", async () => {
+  const { as, see } = await setup();
+  const s = (await see(0)).settings;
+  assert.deepEqual([s.heckle, s.heckles], [false, 2]);
+  assert.deepEqual([cleanSettings({ heckles: 9 }).heckles, cleanSettings({ heckles: -3 }).heckles], [5, 1]);
+  await writeAll(as);
+  const { i } = await describerView(see);
+  await as(i, { type: "go" });
+  await assert.rejects(as((i + 1) % 4, { type: "heckle" }), RoomError); // setting off
+  assert.equal((await see(i)).lastHeckle, null);
+  assert.equal((await see((i + 1) % 4)).heckles, 0);
+});
+
+test("heckle: a tenth of the turn, 2–5 s", () => {
+  assert.deepEqual([heckleMs(30_000), heckleMs(10_000), heckleMs(120_000), heckleMs(45_000)], [3000, 2000, 5000, 4500]);
+});
+
+test("heckle: only the other team, a few presses each, one at a time, fresh every turn", async () => {
+  const { as, see, tick, now, d, o } = await heckleTurn();
+  assert.equal((await see(o)).heckles, 2);
+  await as(o, { type: "heckle" });
+  assert.deepEqual((await see(d)).lastHeckle, { n: 1, by: o, until: now() + 3000 }); // 30 s turn: 3 s
+  assert.equal((await see(o)).heckles, 1);
+  await assert.rejects(as(d, { type: "heckle" }), RoomError); // the describer can't
+  await assert.rejects(as((d + 2) % 4, { type: "heckle" }), RoomError); // nor their team
+  assert.equal((await see((d + 2) % 4)).heckles, 0);
+  // no stacking: while it runs, a press does nothing and costs nothing
+  tick(2000);
+  await as((d + 3) % 4, { type: "heckle" });
+  assert.equal((await see(d)).lastHeckle!.n, 1);
+  assert.equal((await see((d + 3) % 4)).heckles, 2);
+  tick(1000); // over
+  await as(o, { type: "heckle" });
+  assert.equal((await see(d)).lastHeckle!.n, 2);
+  assert.equal((await see(o)).heckles, 0);
+  tick(3000);
+  await assert.rejects(as(o, { type: "heckle" }), RoomError); // used up
+  // paused: nothing happens
+  await as(0, { type: "pause" });
+  await as((d + 3) % 4, { type: "heckle" });
+  assert.equal((await see(d)).lastHeckle!.n, 2);
+  await as(0, { type: "resume" });
+
+  // next turn: the other team describes, the first describer's team heckles, counts start fresh
+  tick(30_000);
+  const n = await describerView(see);
+  assert.notEqual(n.i % 2, d % 2);
+  await as(n.i, { type: "go" });
+  await as(d, { type: "heckle" });
+  assert.deepEqual({ ...(await see(n.i)).lastHeckle, until: 0 }, { n: 3, by: d, until: 0 });
+  await assert.rejects(as(o, { type: "heckle" }), RoomError); // now on the describing team
+  tick(33_000);
+  const n2 = await describerView(see);
+  await as(n2.i, { type: "go" });
+  assert.equal((await see((n2.i + 1) % 4)).heckles, 2); // same team as the first turn, fresh presses
+});
+
+test("heckle: at most a third of the turn is disturbed, the last one gets what's left", async () => {
+  const { as, see, tick, now, d, o } = await heckleTurn(5);
+  for (let k = 0; k < 3; k++) {
+    await as(o, { type: "heckle" });
+    tick(3000);
+  }
+  assert.equal((await see(o)).heckleDone, false);
+  await as(o, { type: "heckle" });
+  assert.equal((await see(d)).lastHeckle!.until, now() + 1000); // 10 s of a 30 s turn, 9 s used
+  assert.equal((await see(o)).heckleDone, true);
+  tick(1000);
+  await as((d + 3) % 4, { type: "heckle" }); // enough for this turn
+  assert.equal((await see(d)).lastHeckle!.n, 4);
+  assert.equal((await see((d + 3) % 4)).heckles, 5); // nothing spent
+});
+
+test("heckle: a pause freezes a running heckle", async () => {
+  const { as, see, tick, now, d, o } = await heckleTurn();
+  await as(o, { type: "heckle" });
+  const until = now() + 3000;
+  tick(1000);
+  await as(0, { type: "pause" });
+  tick(5000);
+  await as(0, { type: "resume" });
+  assert.equal((await see(d)).lastHeckle!.until, until + 5000);
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ArrowLeft, ArrowLeftRight, Check, Eraser, Loader2, Sparkles, Home, Pause, Play, ChevronDown, Crown, GripVertical, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowLeftRight, Check, Eraser, Loader2, Sparkles, Home, Pause, Play, ChevronDown, Crown, GripVertical, Infinity as Inf, Megaphone, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { DragDropProvider } from "@dnd-kit/react";
@@ -402,6 +402,16 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
               <Stepper label={t.perPlayer} value={s.perPlayer} set={(n) => set({ perPlayer: n })} min={1} max={10} />
               <Stepper label={t.seconds} value={s.seconds} set={(n) => set({ seconds: s.seconds + (n - s.seconds) * 5 })} min={10} max={120} />
               <Stepper label={t.skips} value={skipStep} display={s.skips === -1 ? <Inf className="size-6" aria-label="∞" /> : undefined} set={(n) => set({ skips: n >= 6 ? -1 : n })} min={0} max={6} />
+              {!local && (
+                <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
+                  <span>
+                    <span className="block font-medium">{t.heckleOn}</span>
+                    <span className="block text-sm text-muted">{t.heckleHelp}</span>
+                  </span>
+                  <input type="checkbox" role="switch" checked={s.heckle} onChange={(e) => set({ heckle: e.target.checked })} className="size-6 shrink-0 accent-accent" />
+                </label>
+              )}
+              {!local && s.heckle && <Stepper label={t.heckles} value={s.heckles} set={(n) => set({ heckles: n })} min={1} max={5} />}
             </div>
             <h3 className="mt-4 font-semibold">{t.wordLang}</h3>
             <p className="text-sm text-muted">{t.wordLangHelp}</p>
@@ -436,6 +446,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
             <li>{t.sumPerPlayer(s.perPlayer)}</li>
             <li>{t.sumSeconds(s.seconds)}</li>
             <li>{t.sumSkips(s.skips)}</li>
+            {s.heckle && <li>{t.sumHeckle(s.heckles)}</li>}
             <li>{t.sumLang(LANGS.find((l) => l.id === s.lang)!.label)}</li>
             <li className="mt-2 flex flex-wrap gap-2">
               {s.rounds.map((r, i) => (
@@ -796,7 +807,16 @@ export function Ready({ v, send, busy, mode }: P) {
 
 // ---------- the turn ----------
 
-function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe }: { text: string; hint: string; locked: boolean; canSkip: boolean; fling: "r" | "l" | null; onSwipe: (d: "r" | "l") => void }) {
+/** the describer's Zetteli while someone heckles: jitter, blur and a flash, strong first, easing out. Only the Zetteli, never the buttons */
+function HeckleFx({ fx, className = "", children }: { fx: { ms: number } | null; className?: string; children: ReactNode }) {
+  return (
+    <div data-heckled={fx ? "" : undefined} className={`${fx ? "heckle-fx" : ""} ${className}`} style={fx ? { animationDuration: `${Math.round(fx.ms)}ms` } : undefined}>
+      {children}
+    </div>
+  );
+}
+
+function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe, heckle = null }: { text: string; hint: string; locked: boolean; canSkip: boolean; fling: "r" | "l" | null; onSwipe: (d: "r" | "l") => void; heckle?: { ms: number } | null }) {
   const t = useT();
   const showHint = useHints();
   const [dx, setDx] = useState(0);
@@ -836,19 +856,21 @@ function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe }: { text: stri
         className={fling === "r" ? "fling-r" : fling === "l" ? "fling-l" : shake ? "shake" : ""}
         style={{ transform: `translateX(${dx}px) rotate(${dx / 14}deg)`, transition: dragging ? "none" : "transform 0.3s var(--ease-spring)" }}
       >
-        <Slip tilt={-1.5} className={`unfold relative @container px-5 pt-10 pb-12 text-center [@media(max-height:640px)]:pt-6 [@media(max-height:640px)]:pb-8 ${locked ? "opacity-70 grayscale" : ""}`}>
-          <p data-testid="word" className="font-hand leading-tight font-bold" style={fitLine(text)}>
-            {text}
-          </p>
-          {showHint && hint && <p className="mt-3 text-base text-paper-ink/60">{hint}</p>}
-          {/* stamps that fade in while dragging */}
-          <span className="absolute top-3 left-4 -rotate-12 rounded-md border-2 border-stamp px-2 text-sm font-extrabold text-stamp" style={{ opacity: Math.max(0, Math.min(1, dx / SWIPE)) }}>
-            {t.stampGot}
-          </span>
-          <span className="absolute top-3 right-4 rotate-12 rounded-md border-2 border-paper-ink/60 px-2 text-sm font-extrabold text-paper-ink/60" style={{ opacity: Math.max(0, Math.min(1, -dx / SWIPE)) }}>
-            {canSkip ? t.stampSkip : t.stampNoSkip}
-          </span>
-        </Slip>
+        <HeckleFx fx={heckle}>
+          <Slip tilt={-1.5} className={`unfold relative @container px-5 pt-10 pb-12 text-center [@media(max-height:640px)]:pt-6 [@media(max-height:640px)]:pb-8 ${locked ? "opacity-70 grayscale" : ""}`}>
+            <p data-testid="word" className="font-hand leading-tight font-bold" style={fitLine(text)}>
+              {text}
+            </p>
+            {showHint && hint && <p className="mt-3 text-base text-paper-ink/60">{hint}</p>}
+            {/* stamps that fade in while dragging */}
+            <span className="absolute top-3 left-4 -rotate-12 rounded-md border-2 border-stamp px-2 text-sm font-extrabold text-stamp" style={{ opacity: Math.max(0, Math.min(1, dx / SWIPE)) }}>
+              {t.stampGot}
+            </span>
+            <span className="absolute top-3 right-4 rotate-12 rounded-md border-2 border-paper-ink/60 px-2 text-sm font-extrabold text-paper-ink/60" style={{ opacity: Math.max(0, Math.min(1, -dx / SWIPE)) }}>
+              {canSkip ? t.stampSkip : t.stampNoSkip}
+            </span>
+          </Slip>
+        </HeckleFx>
       </div>
       {locked && (
         <p role="alert" className="pop absolute inset-x-0 top-1/2 mx-auto w-max -translate-y-1/2 -rotate-6 rounded-xl bg-cta px-5 py-2 text-3xl font-extrabold text-cta-ink shadow-xl">{t.timeUp}</p>
@@ -902,6 +924,48 @@ export function Turn({ v, left, send, live, mode }: P & { left: number }) {
     </button>
   );
 
+  // heckling: the other teams press a button, the describer's Zetteli jitters, blurs and flashes for a moment.
+  // The server says until when (its clock); the turn timer gives us that clock: server now = endsAt - left
+  const h = v.lastHeckle;
+  const heckleRuns = !!h && left !== Infinity && h.until - (v.endsAt - left) > 0;
+  const [heckleBusy, setHeckleBusy] = useState(false);
+  const heckle = async () => {
+    setHeckleBusy(true);
+    buzz(15);
+    await send({ type: "heckle" });
+    setHeckleBusy(false);
+  };
+  const heckleButton = mode === "online" && !me && v.settings.heckle && v.players[v.me]?.team !== p.team && (
+    <button onClick={heckle} disabled={up || heckleBusy || v.pausedLeft > 0 || v.heckles <= 0 || v.heckleDone || heckleRuns} className={`${btn2} min-h-14 flex-col gap-0 leading-tight`}>
+      <span className="flex items-center gap-2">
+        <Megaphone className="size-5" aria-hidden /> {t.heckle}
+      </span>
+      <span className="text-xs font-medium text-muted">{v.heckleDone ? t.heckleDone : t.heckleLeft(v.heckles)}</span>
+    </button>
+  );
+  // the describer's side: a new heckle starts the effect for the time it has left
+  const [heckleSeen, setHeckleSeen] = useState(0);
+  const [heckleFx, setHeckleFx] = useState<{ n: number; by: number; ms: number } | null>(null);
+  if (h && h.n !== heckleSeen && left !== Infinity) {
+    setHeckleSeen(h.n);
+    const ms = h.until - (v.endsAt - left);
+    if (me && mode === "online" && ms > 0) setHeckleFx({ n: h.n, by: h.by, ms });
+  }
+  useEffect(() => {
+    if (heckleFx) buzz([60, 40, 60]);
+  }, [heckleFx]);
+  const fx = heckleFx && heckleRuns && h?.n === heckleFx.n ? heckleFx : null;
+  const heckleToast = fx && (
+    <div role="status" data-testid="heckled" className="pointer-events-none fixed inset-x-0 top-1/4 z-40 flex justify-center px-4">
+      <p key={fx.n} className="pop flex max-w-full items-center gap-2 rounded-full bg-ink px-4 py-2 font-bold text-canvas shadow-xl">
+        <Megaphone className="size-5 shrink-0" aria-hidden />
+        <span className="truncate">{t.heckled(v.players[fx.by]?.name ?? "?")}</span>
+      </p>
+    </div>
+  );
+  const heckleSlip = fx ? { ms: fx.ms } : null;
+
+
   const [wipes, setWipes] = useState(0);
 
   const topBar = (
@@ -933,14 +997,17 @@ export function Turn({ v, left, send, live, mode }: P & { left: number }) {
     const sheet = v.sheet;
     return (
       <div className="flex flex-1 flex-col gap-2">
+        {heckleToast}
         {topBar}
         {word && (
-          <Slip key={word.id} tilt={-1} className="unfold @container w-full max-w-xs self-center px-5 pt-1.5 text-center">
-            <span data-testid="word" className="font-hand block font-bold" style={fitLine(word.text, "2.25rem")}>
-              {word.text}
-            </span>
-            {showHint && word.hint && <span className="block text-center text-sm text-paper-ink/60">{word.hint}</span>}
-          </Slip>
+          <HeckleFx fx={heckleSlip} className="w-full max-w-xs self-center">
+            <Slip key={word.id} tilt={-1} className="unfold @container w-full px-5 pt-1.5 text-center">
+              <span data-testid="word" className="font-hand block font-bold" style={fitLine(word.text, "2.25rem")}>
+                {word.text}
+              </span>
+              {showHint && word.hint && <span className="block text-center text-sm text-paper-ink/60">{word.hint}</span>}
+            </Slip>
+          </HeckleFx>
         )}
         {/* the paper takes what's left of the screen, never more: no scrolling while drawing */}
         <div className="mx-auto w-full" style={{ maxWidth: "min(100%, calc(100dvh - 24rem))" }}>
@@ -996,6 +1063,7 @@ export function Turn({ v, left, send, live, mode }: P & { left: number }) {
           {live && v.sheet !== null && <DrawView code={live.code} sheet={v.sheet} label={t.explains(p.name, type)} />}
         </div>
         {teamButton}
+        {heckleButton}
       </div>
     );
   }
@@ -1028,12 +1096,14 @@ export function Turn({ v, left, send, live, mode }: P & { left: number }) {
           </span>
         </p>
         {teamButton && <div className="w-full">{teamButton}</div>}
+        {heckleButton && <div className="w-full">{heckleButton}</div>}
       </div>
     );
   }
 
   return (
     <div className="flex flex-1 flex-col gap-3">
+      {heckleToast}
       {/* always visible: time, score this turn, bowl */}
       {topBar}
       <div className="flex items-start gap-2 rounded-2xl bg-surface px-3 py-2 text-sm text-muted">
@@ -1044,7 +1114,7 @@ export function Turn({ v, left, send, live, mode }: P & { left: number }) {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center">
-        {v.word && <SwipeSlip key={v.word.id} text={v.word.text} hint={v.word.hint} locked={up} canSkip={v.canSkip} fling={fling} onSwipe={act} />}
+        {v.word && <SwipeSlip key={v.word.id} text={v.word.text} hint={v.word.hint} locked={up} canSkip={v.canSkip} fling={fling} onSwipe={act} heckle={heckleSlip} />}
         {!up && <p className="mt-4 text-center text-sm text-muted [@media(max-height:640px)]:hidden">{t.swipeHint}</p>}
       </div>
 

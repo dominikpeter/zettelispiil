@@ -9,6 +9,10 @@ const MAX_SHEET = 3000; // strokes per drawing sheet; a wipe or the next Zetteli
 const MAX_LOG = 5000; // events kept for the stats; a real game has a few hundred, so only skip-spamming hits this
 const MIN_CARRY = 5000; // less time left than this when the bowl empties → next player starts the new round
 export const MAX_PLAYERS = 20;
+/** one heckle disturbs the describer for a tenth of the turn, 2–5 s */
+export const heckleMs = (turnMs: number) => Math.min(5000, Math.max(2000, Math.round(turnMs / 10)));
+/** at most a third of a turn may be disturbed */
+const heckleBudget = (turnMs: number) => Math.round(turnMs / 3);
 
 export const ROUND_TYPES = ["describe", "pantomime", "oneword", "sound", "draw"] as const;
 export type RoundType = (typeof ROUND_TYPES)[number];
@@ -24,7 +28,7 @@ export const norm = (w: string) =>
 export type Stroke = number[];
 export type Team = number; // 0 … settings.teams - 1
 export const MAX_TEAMS = 4; // the app is built for any number; colours exist for four
-export type Settings = { perPlayer: number; seconds: number; rounds: RoundType[]; skips: number; lang: Lang; teams: number }; // skips: per turn, -1 = unlimited; lang: of the Zetteli (AI check, hints, ideas), each phone keeps its own UI language
+export type Settings = { perPlayer: number; seconds: number; rounds: RoundType[]; skips: number; lang: Lang; teams: number; heckle: boolean; heckles: number }; // skips: per turn, -1 = unlimited; lang: of the Zetteli (AI check, hints, ideas), each phone keeps its own UI language; heckle: the other teams may disturb the describer, `heckles` times each per turn
 export type Phase = "lobby" | "write" | "ready" | "turn" | "roundEnd" | "end";
 /** one moment a Zetteli was in someone's hand: guessed, skipped, or still there when time ran out */
 export type Ev = { w: number; r: number; p: number; ms: number; res: "got" | "skip" | "time" };
@@ -59,6 +63,9 @@ type Room = {
   carryMs: number;
   turnGot: number;
   lastGot: { n: number; text: string; by: number } | null; // flashed on every phone; n changes with each guess
+  heckled?: Record<number, number>; // presses per player index in the running turn, cleared when a turn starts
+  heckledMs?: number; // disturbed time in the running turn
+  lastHeckle?: { n: number; by: number; until: number } | null; // disturbs the describer's Zetteli until `until`; n changes with each press
   scores: number[][]; // per round, per team
   log: Ev[];
   turns: TurnLog[];
@@ -94,6 +101,8 @@ export function cleanSettings(s: Partial<Settings>): Settings {
     skips: s.skips === -1 ? -1 : clamp(s.skips ?? 1, 0, 5, 0),
     lang: s.lang === "en" || s.lang === "fr" ? s.lang : "de",
     teams: clamp(s.teams, 2, MAX_TEAMS, 2),
+    heckle: s.heckle === true,
+    heckles: clamp(s.heckles, 1, 5, 2),
   };
 }
 
@@ -261,7 +270,7 @@ function settle(room: Room, now: number) {
 }
 
 export type Action =
-  | { type: "start" | "go" | "nextRound" | "pass" | "lobby" | "shuffle" | "pause" | "resume" | "cancel" }
+  | { type: "start" | "go" | "nextRound" | "pass" | "lobby" | "shuffle" | "pause" | "resume" | "cancel" | "heckle" }
   | { type: "settings"; settings: Partial<Settings> }
   | { type: "team"; team: Team }
   | { type: "rename"; name: string }
@@ -399,7 +408,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
     case "go": {
       need(room.phase === "ready" && idx === describer(room));
       const ms = room.carryMs || room.settings.seconds * 1000;
-      Object.assign(room, { carryMs: 0, turnStart: now, endsAt: now + ms, turnGot: 0, phase: "turn", turnNo: room.turnNo + 1 });
+      Object.assign(room, { carryMs: 0, turnStart: now, endsAt: now + ms, turnGot: 0, phase: "turn", turnNo: room.turnNo + 1, heckled: {}, heckledMs: 0 });
       draw(room, now);
       break;
     }
@@ -416,6 +425,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       room.endsAt += d;
       room.shownAt += d;
       room.turnStart += d;
+      if (room.lastHeckle && room.lastHeckle.until > room.pausedAt) room.lastHeckle.until += d; // a running heckle resumes too
       room.pausedAt = 0;
       break;
     }
@@ -433,6 +443,21 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       need(idx >= 0 && room.teams[idx] === room.team);
       guessed(room, now, idx);
       break;
+    case "heckle": {
+      // someone from another team disturbs the describer: one at a time, a few presses each, at most a third of the turn
+      if (room.phase !== "turn" || room.pausedAt || now > room.endsAt) return;
+      need(room.settings.heckle && idx >= 0 && room.teams[idx] !== room.team);
+      const used = room.heckled?.[idx] ?? 0;
+      if (used >= cleanSettings(room.settings).heckles) throw new RoomError("bad_request");
+      const turnMs = room.endsAt - room.turnStart;
+      const budget = heckleBudget(turnMs) - (room.heckledMs ?? 0);
+      if (now < (room.lastHeckle?.until ?? 0) || budget <= 0) return; // one is running, or enough for this turn: someone was faster
+      const ms = Math.min(heckleMs(turnMs), budget);
+      room.heckled = { ...room.heckled, [idx]: used + 1 };
+      room.heckledMs = (room.heckledMs ?? 0) + ms;
+      room.lastHeckle = { n: (room.lastHeckle?.n ?? 0) + 1, by: idx, until: now + ms };
+      break;
+    }
     case "got": {
       if (room.phase !== "turn" || room.pausedAt || a.w !== room.current) return; // double tap on a Zetteli already counted
       need(idx === describer(room));
@@ -511,6 +536,9 @@ export type View = {
   total: number;
   turnGot: number; // guessed so far in the running turn
   lastGot: { n: number; text: string; by: number } | null; // the latest guessed Zetteli, flashed on the other phones
+  lastHeckle: { n: number; by: number; until: number } | null; // the latest heckle; the describer's Zetteli is disturbed until `until` (server clock), nobody heckles meanwhile
+  heckles: number; // heckles I have left this turn
+  heckleDone: boolean; // this turn has been disturbed enough
   scores: number[][];
   lastTurn: TurnLog | null;
   done: number; // players who wrote their words
@@ -572,6 +600,9 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
     total: room.words.length,
     turnGot: room.turnGot,
     lastGot: room.lastGot ?? null,
+    lastHeckle: room.lastHeckle ?? null,
+    heckles: room.phase === "turn" && room.settings.heckle && idx >= 0 && room.teams[idx] !== room.team ? Math.max(0, cleanSettings(room.settings).heckles - (room.heckled?.[idx] ?? 0)) : 0,
+    heckleDone: room.phase === "turn" && (room.heckledMs ?? 0) >= heckleBudget(room.endsAt - room.turnStart),
     scores: room.scores,
     lastTurn: room.turns.at(-1) ?? null,
     done,
