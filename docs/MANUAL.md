@@ -194,6 +194,13 @@ Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 - **Hinweise beim Erklären**: An oder Aus. Zeigt den KI-Hinweis klein unter dem Zetteli. Braucht KI-Hilfe.
 - **Konto**: Für die KI-Hilfe meldest du dich mit Google, GitHub oder Microsoft an. Spielen geht auch ohne Konto.
 
+## Aufs Handy holen
+
+- **iPhone**: zettelispiil.ch in Safari öffnen, **Teilen** → **Zum Home-Bildschirm**.
+- **Android**: in Chrome das Menü (⋮) → **App installieren** oder **Zum Startbildschirm hinzufügen**.
+
+Danach startet Zettelispiil mit eigenem Symbol und ohne Browserleiste. Während eines Spiels bleibt der Bildschirm an.
+
 ## Tipps
 
 - Schreibt Begriffe, die alle kennen. Zu schwierige Zetteli bremsen in der Pantomime- und Geräusch-Runde gewaltig.
