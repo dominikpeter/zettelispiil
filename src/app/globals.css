@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
 /* palette: note 100 = darkest, 900 = lightest (reverse of Tailwind default) */
+/* phone heights: single-screen views (ready, round end, writing, passing the phone) tighten up instead of scrolling a few pixels */
+@custom-variant short (@media (max-height: 760px));
+@custom-variant tiny (@media (max-height: 620px));
+
 @theme {
   --color-whatsapp: #25d366; /* WhatsApp's own green, so the share button is recognised at a glance */
   --breakpoint-xs: 22.5rem; /* below this: the smallest phones (320 px), where rows stack and extras hide */
@@ -287,6 +291,72 @@
   --l-team-b: #997800;
   --l-chart-a: #ae26f7;
   --l-chart-b: #cca000;
+}
+/* Arosa: the crest's deep blue, its sun yellow and the snow */
+:root[data-palette="arosa"] {
+  --d-canvas: #030626;
+  --d-surface: #070d3d;
+  --d-raised: #0d1654;
+  --d-line: #18236e;
+  --d-ink: #eef1ff;
+  --d-muted: #9ea9e8;
+  --d-accent: #ffe000;
+  --d-hi: #ffe44d;
+  --d-cta: #ffe000;
+  --d-cta-ink: #030626;
+  --d-cta-edge: #a89300;
+  --d-team-a: #ffd400;
+  --d-team-b: #8fb4ff;
+  --d-chart-a: #ffd400;
+  --d-chart-b: #8fb4ff;
+  --l-canvas: #f2f5ff;
+  --l-surface: #ffffff;
+  --l-raised: #e3e9ff;
+  --l-line: #c3cdf7;
+  --l-ink: #030a4a;
+  --l-muted: #4a5490;
+  --l-accent: #1532e0;
+  --l-hi: #0a1fd6;
+  --l-cta: #ffe000;
+  --l-cta-ink: #030a4a;
+  --l-cta-edge: #a89300;
+  --l-team-a: #1532e0;
+  --l-team-b: #8a6d00;
+  --l-chart-a: #1532e0;
+  --l-chart-b: #e0b800;
+}
+/* Aarau: FC Aarau's black, red and white */
+:root[data-palette="aarau"] {
+  --d-canvas: #0a0a0a;
+  --d-surface: #151515;
+  --d-raised: #202020;
+  --d-line: #2e2e2e;
+  --d-ink: #f5f5f5;
+  --d-muted: #a8a8a8;
+  --d-accent: #ff3b46;
+  --d-hi: #ffffff;
+  --d-cta: #e30613;
+  --d-cta-ink: #ffffff;
+  --d-cta-edge: #8a040c;
+  --d-team-a: #ff3b46;
+  --d-team-b: #e8e8e8;
+  --d-chart-a: #ff3b46;
+  --d-chart-b: #bdbdbd;
+  --l-canvas: #faf7f7;
+  --l-surface: #ffffff;
+  --l-raised: #f3ecec;
+  --l-line: #e2d6d6;
+  --l-ink: #111111;
+  --l-muted: #5c5454;
+  --l-accent: #d10511;
+  --l-hi: #d10511;
+  --l-cta: #e30613;
+  --l-cta-ink: #ffffff;
+  --l-cta-edge: #8a040c;
+  --l-team-a: #d10511;
+  --l-team-b: #111111;
+  --l-chart-a: #e30613;
+  --l-chart-b: #3a3a3a;
 }
 :root {
   --c-canvas: var(--l-canvas);

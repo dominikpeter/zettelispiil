@@ -3,9 +3,12 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import type { Lang } from "./i18n";
+import { aiSwitchedOff } from "./aiSwitch";
 import { count } from "./usage";
 
 export const aiEnabled = () => !!process.env.OPENAI_API_KEY;
+/** AI is set up and the owner hasn't switched it off in /admin */
+export const aiLive = async () => aiEnabled() && !(await aiSwitchedOff());
 // always the real API: a shell-wide OPENAI_BASE_URL (e.g. a local proxy) must not leak into the game
 const openai = createOpenAI({ baseURL: "https://api.openai.com/v1" });
 const model = () => openai(process.env.OPENAI_MODEL ?? "gpt-6-luna");

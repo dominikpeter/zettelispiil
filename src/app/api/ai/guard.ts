@@ -3,6 +3,7 @@ import { authEnabled, currentUser } from "@/lib/auth";
 import { roomAi } from "@/lib/room";
 import { db, ipOf, redis } from "@/lib/store";
 import { aiUsedBy } from "@/lib/usage";
+import { after } from "next/server";
 
 // every AI call costs money. Signed in: 60 per minute and 300 per day per account.
 // In a room a signed-in host opened: 120 per minute and 300 per day per room (a table writing at once; a leaked code can't drain more),
@@ -33,7 +34,8 @@ export async function refused(req: Request, room?: { code?: unknown; pid?: unkno
         ? [perRoomMin.limit(String(room!.code)), perRoomDay.limit(String(room!.code)), perHostDay.limit(host), perDay.limit("all")]
         : [perIp.limit(ipOf(req)), perDay.limit("all")];
     if (!(await Promise.all(checks)).every((r) => r.success)) return "rate_limited";
-    await aiUsedBy(user?.id ?? host); // whose account paid for it, for the admin page
+    const payer = user?.id ?? host;
+    after(() => aiUsedBy(payer)); // whose account paid for it, for the admin page; after the answer, not before
     return null;
   } catch {
     return "rate_limited"; // limiter unreachable: no AI rather than unmetered AI

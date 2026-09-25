@@ -3,14 +3,28 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { refresh } from "next/cache";
+import { Power } from "lucide-react";
 import { Account } from "@/components/Account";
 import { getAuth } from "@/lib/auth";
-import { panel } from "@/lib/ui";
 import { report, type Day } from "@/lib/usage";
+import { aiSwitchedOff, setAiSwitch } from "@/lib/aiSwitch";
+import { btn, btn2, panel } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "Admin · Zettelispiil", robots: { index: false, follow: false } };
 
 const admins = () => (process.env.ADMIN_EMAIL ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+const isAdmin = (u: { email: string; emailVerified: boolean } | undefined): u is { email: string; emailVerified: boolean } =>
+  !!u && u.emailVerified && admins().includes(u.email.toLowerCase());
+const me = async () => (await getAuth()?.api.getSession({ headers: await headers() }))?.user;
+
+/** the switch: AI on or off for everyone. Checked again here, a form post can come from anyone */
+async function switchAi(form: FormData) {
+  "use server";
+  if (!isAdmin(await me())) throw new Error("not allowed");
+  await setAiSwitch(form.get("ai") === "on");
+  refresh();
+}
 const fmt = (n: number) => n.toLocaleString("de-CH");
 const when = (t: number) => new Date(t).toLocaleString("de-CH", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Zurich" });
 const sum = (days: Day[], ...keys: (keyof Day)[]) => days.reduce((s, d) => s + keys.reduce((t, k) => t + (Number(d[k]) || 0), 0), 0);
@@ -18,7 +32,7 @@ const sum = (days: Day[], ...keys: (keyof Day)[]) => days.reduce((s, d) => s + k
 export default async function Admin() {
   const auth = getAuth();
   if (!auth || !admins().length) notFound(); // sign-in or the admin list isn't set up: there is no admin page
-  const user = (await auth.api.getSession({ headers: await headers() }))?.user;
+  const user = await me();
   if (!user)
     return (
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-4 px-4 py-8">
@@ -26,9 +40,9 @@ export default async function Admin() {
         <Account />
       </main>
     );
-  if (!user.emailVerified || !admins().includes(user.email.toLowerCase())) notFound();
+  if (!isAdmin(user)) notFound();
 
-  const { days, accounts, live } = await report(30);
+  const [{ days, accounts, live }, aiOff] = await Promise.all([report(30), aiSwitchedOff()]);
   const today = days.at(-1)!;
   const tokens = (k: "check" | "names" | "ideas") => sum(days, `tokens_in_${k}`, `tokens_out_${k}`);
   const tiles = [
@@ -54,6 +68,19 @@ export default async function Admin() {
         <p className="text-right text-xs text-muted">{user.email}</p>
       </header>
       {!live && <p className={`${panel} text-sm text-muted`}>Keine Redis-Verbindung: hier wird nichts gezählt.</p>}
+
+      <section className={`${panel} flex flex-wrap items-center justify-between gap-3`}>
+        <div className="min-w-0">
+          <h2 className="font-bold">KI für alle</h2>
+          <p className="text-sm text-muted">{aiOff ? "Aus: niemand sieht KI-Funktionen, es gibt keine KI-Aufrufe." : "An: angemeldete Spieler (und ihre Räume) nutzen die KI."}</p>
+        </div>
+        <form action={switchAi}>
+          <input type="hidden" name="ai" value={aiOff ? "on" : "off"} />
+          <button className={`${aiOff ? btn : btn2} w-auto! flex items-center gap-2 px-5`}>
+            <Power className="size-4" aria-hidden /> {aiOff ? "KI einschalten" : "KI ausschalten"}
+          </button>
+        </form>
+      </section>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {tiles.map(([label, n]) => (

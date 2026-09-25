@@ -37,7 +37,7 @@ export function Waiting({ text }: { text: string }) {
 
 export function Cta({ children }: { children: ReactNode }) {
   // own bottom padding: clears the iPhone home bar and leaves room for the button's 3D edge
-  return <div className="sticky bottom-0 z-20 -mx-4 mt-auto bg-gradient-to-t from-canvas from-75% to-transparent px-4 pt-6 pb-[max(0.9rem,env(safe-area-inset-bottom))]">{children}</div>;
+  return <div className="sticky bottom-0 z-20 -mx-4 mt-auto bg-gradient-to-t from-canvas from-75% to-transparent px-4 pt-6 pb-[max(0.9rem,env(safe-area-inset-bottom))] short:pt-3 tiny:pt-2">{children}</div>;
 }
 
 export function Score({ v }: { v: View }) {
@@ -153,14 +153,14 @@ function RoundCard({ v, n, mode, className = "" }: { v: View; n: number; mode: M
   const t = useT();
   const type = v.settings.rounds[n];
   return (
-    <section className={`${panel} flex gap-4 ${className}`}>
-      <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-raised text-accent">
+    <section className={`${panel} flex gap-4 short:gap-3 short:p-4 tiny:p-3 ${className}`}>
+      <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-raised text-accent short:size-10 tiny:hidden">
         <RoundIcon type={type} className="size-7" />
       </span>
       <div>
-        <p className="text-sm text-muted">{t.roundOf(n + 1, v.settings.rounds.length)}</p>
-        <h2 className="text-2xl font-extrabold tracking-tight">{t.round[type].name}</h2>
-        <p className="mt-1 text-muted">{ruleOf(t, type, mode)}</p>
+        <p className="text-sm text-muted tiny:hidden">{t.roundOf(n + 1, v.settings.rounds.length)}</p>
+        <h2 className="text-2xl font-extrabold tracking-tight short:text-xl">{t.round[type].name}</h2>
+        <p className="mt-1 text-muted short:text-sm">{ruleOf(t, type, mode)}</p>
       </div>
     </section>
   );
@@ -568,11 +568,11 @@ export function Write({ v, send, busy }: P) {
         e.preventDefault();
         if (!tossing) submit();
       }}
-      className="enter flex flex-1 flex-col gap-5"
+      className="enter flex flex-1 flex-col gap-5 short:gap-3"
     >
       <div>
-        <h2 className="text-3xl font-extrabold tracking-tight">{t.writeTitle(draft.length)}</h2>
-        <p className="mt-1 text-muted">{t.writeHelp}</p>
+        <h2 className="text-3xl font-extrabold tracking-tight short:text-2xl tiny:text-xl">{t.writeTitle(draft.length)}</h2>
+        <p className="mt-1 text-muted short:text-sm tiny:hidden">{t.writeHelp}</p>
       </div>
       {aiOn && (
         <Ideas
@@ -591,7 +591,7 @@ export function Write({ v, send, busy }: P) {
         </p>
       ))}
       {/* few Zetteli: each one grows into the free space; many: comfortable fixed size */}
-      <div className="flex flex-1 flex-col gap-5">
+      <div className="flex flex-1 flex-col gap-5 short:gap-3">
         {draft.map((d, i) => {
           const c = checks[d.word.trim()];
           const r = c && c !== "loading" ? c : null;
@@ -602,7 +602,7 @@ export function Write({ v, send, busy }: P) {
               ref={(el) => {
                 slipEls.current[i] = el;
               }}
-              className={`${draft.length <= 3 ? "flex max-h-72 min-h-40 flex-1 flex-col" : ""} ${paths ? "into-bowl pointer-events-none" : ""}`}
+              className={`${draft.length <= 3 ? "flex max-h-72 min-h-40 flex-1 flex-col short:min-h-32 tiny:min-h-24" : ""} ${paths ? "into-bowl pointer-events-none" : ""}`}
               style={paths?.[i] ? ({ "--dx": `${paths[i].dx}px`, "--dy": `${paths[i].dy}px`, "--spin": `${i % 2 ? -30 : 25}deg`, animationDelay: `${i * 110}ms` } as CSSProperties) : undefined}
             >
               <Slip
@@ -732,11 +732,11 @@ export function PassPhone({ name, team, teamName, onReady, note }: { name: strin
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-        <span className={`pop grid size-24 place-items-center rounded-4xl ${TEAM[team].soft}`}>
-          <Smartphone className={`size-12 ${TEAM[team].text}`} strokeWidth={1.75} aria-hidden />
+        <span className={`pop grid size-24 place-items-center rounded-4xl tiny:size-18 ${TEAM[team].soft}`}>
+          <Smartphone className={`size-12 tiny:size-9 ${TEAM[team].text}`} strokeWidth={1.75} aria-hidden />
         </span>
         <p className="enter mt-2 text-lg text-muted">{t.passTo}</p>
-        <h1 className={`enter text-6xl font-extrabold tracking-tight text-balance break-words ${TEAM[team].text}`}>{name}</h1>
+        <h1 className={`enter text-6xl font-extrabold tracking-tight text-balance break-words tiny:text-5xl ${TEAM[team].text}`}>{name}</h1>
         <p className="enter text-muted">{teamName}</p>
         {note && <p className="enter mt-4 max-w-[30ch] text-muted">{note}</p>}
       </div>
@@ -760,17 +760,17 @@ export function Ready({ v, send, busy, mode }: P) {
   const last = v.lastTurn && v.lastTurn.r === v.round ? v.lastTurn : null;
   const carry = Math.round(v.carryMs / 1000);
   return (
-    <div className="flex flex-1 flex-col gap-4">
+    <div className="flex flex-1 flex-col gap-4 short:gap-2">
       <RoundCard v={v} n={v.round} mode={mode} className="enter" />
       {last && (
-        <p aria-live="polite" className="pop self-center rounded-full bg-surface px-4 py-2 text-center">
+        <p aria-live="polite" className="pop self-center rounded-full bg-surface px-4 py-2 text-center tiny:py-1 tiny:text-sm">
           {t.gotLast(v.players[last.p].name, last.got)}
         </p>
       )}
       <div className="enter flex flex-1 flex-col items-center justify-center gap-2 text-center [animation-delay:120ms]">
-        <Bowl count={v.bowlLeft} className="w-28" />
-        <p className="mt-3 text-muted">{local ? t.passTo : me ? t.yourTurn : t.upNext}</p>
-        <h1 className={`text-5xl font-extrabold tracking-tight break-words ${TEAM[p.team].text}`}>{me && !local ? t.youBang : p.name}</h1>
+        <Bowl count={v.bowlLeft} className="w-28 short:w-20 tiny:w-16" />
+        <p className="mt-3 text-muted short:mt-1">{local ? t.passTo : me ? t.yourTurn : t.upNext}</p>
+        <h1 className={`text-5xl font-extrabold tracking-tight break-words short:text-4xl tiny:text-3xl ${TEAM[p.team].text}`}>{me && !local ? t.youBang : p.name}</h1>
         <p className="text-muted">
           {t.forTeam(v.teamNames[p.team])}
           {carry > 0 && `, ${t.carry(carry)}`}
@@ -785,7 +785,7 @@ export function Ready({ v, send, busy, mode }: P) {
           <Waiting text={v.players[v.me]?.team === p.team ? t.youGuess(p.name) : t.youListen(p.name)} />
         )}
         {v.isHost && (
-          <button onClick={() => send({ type: "pass" })} disabled={busy} className={`${ghost} w-full text-sm`}>
+          <button onClick={() => send({ type: "pass" })} disabled={busy} className={`${ghost} w-full text-sm tiny:min-h-9`}>
             {t.notHere(p.name)}
           </button>
         )}
@@ -1082,22 +1082,22 @@ export function RoundEnd({ v, send, busy, mode }: P) {
   const carry = Math.round(v.carryMs / 1000);
   const starter = v.lastTurn ? v.players[v.lastTurn.p] : null;
   return (
-    <div className="flex flex-1 flex-col gap-4">
-      <div className="pop flex flex-col items-center gap-2 pt-4 text-center">
-        <Bowl count={0} className="w-28" />
-        <h1 className="mt-2 text-4xl font-extrabold tracking-tight">{t.bowlEmpty}</h1>
-        <p className="text-muted">{t.roundDone(t.round[v.settings.rounds[v.round]].name)}</p>
+    <div className="flex flex-1 flex-col gap-4 short:gap-2">
+      <div className="pop flex flex-col items-center gap-2 pt-4 text-center short:gap-1 short:pt-0">
+        <Bowl count={0} className="w-28 short:w-20 tiny:w-14" />
+        <h1 className="mt-2 text-4xl font-extrabold tracking-tight short:mt-0 short:text-3xl tiny:text-2xl">{t.bowlEmpty}</h1>
+        <p className="text-muted tiny:hidden">{t.roundDone(t.round[v.settings.rounds[v.round]].name)}</p>
       </div>
-      <section className={`${panel} enter grid grid-cols-2 gap-3 text-center [animation-delay:100ms]`}>
+      <section className={`${panel} enter grid grid-cols-2 gap-3 text-center short:py-3 tiny:py-2 [animation-delay:100ms]`}>
         {([0, 1] as const).map((i) => (
           <div key={i} className="min-w-0">
             <p className={`truncate font-semibold ${TEAM[i].text}`}>{v.teamNames[i]}</p>
-            <p className="text-4xl font-extrabold tabular-nums">+{r[i]}</p>
+            <p className="text-4xl font-extrabold tabular-nums short:text-3xl tiny:text-2xl">+{r[i]}</p>
           </div>
         ))}
       </section>
       <RoundCard v={v} n={v.round + 1} mode={mode} className="enter [animation-delay:200ms]" />
-      {starter && carry > 0 && <p className="enter text-center text-muted [animation-delay:260ms]">{t.starts(starter.name, carry)}</p>}
+      {starter && carry > 0 && <p className="enter text-center text-muted tiny:text-sm [animation-delay:260ms]">{t.starts(starter.name, carry)}</p>}
       <Cta>
         {v.isHost ? (
           <button onClick={() => send({ type: "nextRound" })} disabled={busy} className={btn}>

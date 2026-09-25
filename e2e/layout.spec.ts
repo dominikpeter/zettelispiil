@@ -68,11 +68,11 @@ for (const name of PHONES) {
     const film = phones.find((p) => p !== d)!;
     await expect(film.locator("canvas")).toBeVisible();
     await film.bringToFront(); // a watcher looks at their own phone; background pages get throttled animation frames
-    // (a 64 × 64 copy per frame: reading the full canvas every frame would itself slow the page down)
-    await film.evaluate(`(() => { const c = document.querySelector("canvas"); const s = document.createElement("canvas"); s.width = s.height = 64;
+    // (a 128 × 128 copy per frame: reading the full canvas every frame would itself slow the page down)
+    await film.evaluate(`(() => { const c = document.querySelector("canvas"); const s = document.createElement("canvas"); s.width = s.height = 128;
       const sx = s.getContext("2d", { willReadFrequently: true }); window.__ink = []; const t0 = performance.now();
-      const f = () => { sx.clearRect(0, 0, 64, 64); sx.drawImage(c, 0, 0, 64, 64); const px = sx.getImageData(0, 0, 64, 64).data; let n = 0;
-        for (let i = 3; i < px.length; i += 4) if (px[i] > 0) n++; window.__ink.push(n); if (performance.now() - t0 < 6000) requestAnimationFrame(f); }; f(); })()`);
+      const f = () => { sx.clearRect(0, 0, 128, 128); sx.drawImage(c, 0, 0, 128, 128); const px = sx.getImageData(0, 0, 128, 128).data; let n = 0;
+        for (let i = 3; i < px.length; i += 4) if (px[i] > 0) n++; window.__ink.push([performance.now(), n]); if (performance.now() - t0 < 6000) requestAnimationFrame(f); }; f(); })()`);
 
     // draw a line; every watcher gets it, and no watcher screen scrolls either
     const box = (await d.getByRole("img", { name: "Hier zeichnen" }).boundingBox())!;
@@ -89,8 +89,13 @@ for (const name of PHONES) {
       }), { timeout: 5_000 }).toBeGreaterThan(30);
       expect(await fits(w)).toMatchObject({ scrolls: false, buttonsCut: false });
     }
-    const ink = (await film.evaluate("window.__ink")) as number[];
-    expect(new Set(ink.filter((n) => n > 0)).size, `the line is traced in smoothly, over many frames: ${[...new Set(ink)].join(",")}`).toBeGreaterThanOrEqual(5);
+    // traced in over time, not popped in within a frame (step counts depend on how fast the test machine renders)
+    const ink = (await film.evaluate("window.__ink")) as [number, number][];
+    const final = Math.max(...ink.map(([, n]) => n));
+    const start = ink.find(([, n]) => n > 0)![0];
+    const done = ink.find(([, n]) => n === final)![0];
+    const steps = new Set(ink.map(([, n]) => n).filter((n) => n > 0)).size;
+    expect({ tracedMs: done - start >= 100, steps: steps >= 3 }, `ink over time: ${ink.filter(([, n]) => n).map(([t, n]) => `${Math.round(t - start)}ms:${n}`).join(" ")}`).toEqual({ tracedMs: true, steps: true });
 
     // a teammate calls it: the word counts once and flashes on the other phones
     const mate = phones.find((p, i) => i !== di && i % 2 === di % 2)!; // teams alternate on join
@@ -123,10 +128,13 @@ test("iPhone SE: long words stay on one line and the swipe screen fits (one phon
   expect(await fits(page)).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });
 });
 
-test("iPhone SE: no screen ever scrolls sideways, through a whole one-phone game with drawing on paper", async ({ browser }) => {
+test("iPhone SE: no screen scrolls sideways and single-screen views fit, through a whole one-phone game with drawing on paper", async ({ browser }) => {
   test.setTimeout(180_000); // a whole game
   const page = await openPhone(browser, { ...devices["iPhone SE"] });
   const check = async (where: string) => expect(await sideways(page), `${where} scrolls sideways`).toBe(0);
+  // single-screen views must fit the phone, not scroll for a few pixels (once their animation has settled)
+  const fitsTall = (where: string) =>
+    expect.poll(() => page.evaluate("document.scrollingElement.scrollHeight - innerHeight"), { message: `${where} scrolls`, timeout: 3000 }).toBeLessThanOrEqual(1);
   await page.goto("/");
   await check("home");
   await page.getByRole("button", { name: "Einstellungen", exact: true }).first().click();
@@ -140,9 +148,10 @@ test("iPhone SE: no screen ever scrolls sideways, through a whole one-phone game
   await page.getByRole("button", { name: "Zeichnen hinzufügen" }).click();
   await page.getByRole("button", { name: "Spiel starten" }).click();
   for (const [i, w] of LONG.entries()) {
+    if (!i) await fitsTall("pass the phone");
     await page.getByRole("button", { name: /^Ich bin / }).click();
     await page.getByLabel("Zetteli 1", { exact: true }).fill(w);
-    if (!i) await check("write");
+    if (!i) (await check("write"), await fitsTall("write"));
     await page.getByRole("button", { name: "In die Schüssel" }).click();
   }
   const end = page.getByText("Gewonnen hat").or(page.getByText("Unentschieden"));
@@ -150,8 +159,8 @@ test("iPhone SE: no screen ever scrolls sideways, through a whole one-phone game
     const go = page.getByRole("button", { name: "Los, Zetteli ziehen" });
     const next = page.getByRole("button", { name: /^Runde \d starten/ });
     await expect(go.or(next).or(page.getByTestId("word")).or(end).first()).toBeVisible();
-    if (await go.isVisible()) (await check("ready"), await go.click());
-    else if (await next.isVisible()) (await check("round end"), await next.click());
+    if (await go.isVisible()) (await check("ready"), await fitsTall("ready"), await go.click());
+    else if (await next.isVisible()) (await check("round end"), await fitsTall("round end"), await next.click());
     else if (await page.getByTestId("word").isVisible()) {
       // settled, the turn screen fits (drawing on paper too); a moment between two screens may briefly be taller
       await expect.poll(() => fits(page), { message: "turn screen", timeout: 3000 }).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });

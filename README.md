@@ -44,7 +44,7 @@ The host sets the language of the Zetteli (German, English or French) in the lob
 
 Writing the same word as someone else cancels both copies, with or without AI; both writers write a new one.
 
-German by default, plus English and French. Light and dark mode and five color themes (Nacht, Tinte, Gold, Abendrot, Ozean) in the settings sheet. Player and team names are editable; teams start with a funny random name.
+German by default, plus English and French. Light and dark mode and eight color themes (Post-it by default, Nacht, Tinte, Gold, Abendrot, Ozean, Arosa, Aarau) in the settings sheet. Player and team names are editable; teams start with a funny random name.
 
 ## Security
 

@@ -1,9 +1,9 @@
-import { aiEnabled, suggestWords } from "@/lib/ai";
+import { aiLive, suggestWords } from "@/lib/ai";
 import { lang, refusal, refused } from "../guard";
 
 // POST { topic, lang, avoid, room? } → { ai: false } | { ai: true, words: string[3] }
 export async function POST(req: Request) {
-  if (!aiEnabled()) return Response.json({ ai: false });
+  if (!(await aiLive())) return Response.json({ ai: false });
   const body = await req.json().catch(() => ({}));
   const no = await refused(req, body?.room);
   if (no) return refusal(no);
