@@ -8,17 +8,16 @@ export function computeStats(
   turns: TurnLog[],
   words: string[],
   teams: Team[],
-  scores: [number, number][],
+  scores: number[][],
 ) {
-  const totals: [number, number] = [0, 1].map((t) => scores.reduce((s, r) => s + r[t], 0)) as [number, number];
-  const winner: Team | null = totals[0] === totals[1] ? null : totals[0] > totals[1] ? 0 : 1;
+  const n = scores[0]?.length ?? 2; // teams
+  const totals = Array.from({ length: n }, (_, t) => scores.reduce((s, r) => s + (r[t] ?? 0), 0));
+  const best = Math.max(...totals);
+  const winner: Team | null = totals.filter((x) => x === best).length > 1 ? null : totals.indexOf(best); // a tie at the top: no winner
 
-  // score after every turn, for the race chart
-  const race: [number, number][] = [[0, 0]];
-  for (const t of turns) {
-    const [a, b] = race.at(-1)!;
-    race.push(teams[t.p] === 0 ? [a + t.got, b] : [a, b + t.got]);
-  }
+  // score of every team after every turn, for the race chart
+  const race: number[][] = [totals.map(() => 0)];
+  for (const t of turns) race.push(race.at(-1)!.map((x, i) => (i === teams[t.p] ? x + t.got : x)));
 
   // time per Zetteli per round: every moment it was in someone's hand counts
   const hand = new Map<string, { w: number; r: number; ms: number; skips: number }>();

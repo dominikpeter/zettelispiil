@@ -352,3 +352,34 @@ test("a host who signs in after opening the room can turn AI on for it; nobody e
   await claimAi(db, host.code, host.pid, host.token, "user-other"); // the first account stays
   assert.equal(await roomAi(db, host.code, guest.pid, guest.token), "user-lisa");
 });
+
+test("three teams: players fill the smallest team, turns rotate through all three, scores per team", async () => {
+  const db = store();
+  const host = await createRoom(db, "P0");
+  await act(db, host.code, host.pid, host.token, { type: "settings", settings: { teams: 3, perPlayer: 1 } });
+  const others = [];
+  for (let i = 1; i < 6; i++) others.push(await joinRoom(db, host.code, `P${i}`));
+  const all = [host, ...others];
+  const v = await view(db, host.code, host.pid, host.token);
+  assert.equal(v.teamNames.length, 3);
+  assert.deepEqual([0, 1, 2].map((t) => v.players.filter((p) => p.team === t).length), [2, 2, 2]);
+  await act(db, host.code, host.pid, host.token, { type: "start" });
+  for (const [i, p] of all.entries()) await act(db, host.code, p.pid, p.token, { type: "words", words: [{ word: `Wort${i}`, hint: "" }] });
+  const teamsSeen: number[] = [];
+  let clock = Date.now();
+  for (let turn = 0; turn < 3; turn++) {
+    const s = await view(db, host.code, host.pid, host.token, clock);
+    teamsSeen.push(s.team);
+    const d = all[s.players.findIndex((_, i) => i === s.active)];
+    await act(db, host.code, d.pid, d.token, { type: "go" }, clock);
+    clock += 31_000 + 2_000; // time runs out: next team
+  }
+  assert.equal(new Set(teamsSeen).size, 3); // every team had a turn
+  assert.equal((await view(db, host.code, host.pid, host.token, clock)).scores[0].length, 3);
+  // back to two teams: the third team's players move over
+  await act(db, host.code, host.pid, host.token, { type: "cancel" }, clock);
+  await act(db, host.code, host.pid, host.token, { type: "settings", settings: { teams: 2 } }, clock);
+  const two = await view(db, host.code, host.pid, host.token, clock);
+  assert.equal(two.teamNames.length, 2);
+  assert.ok(two.players.every((p) => p.team < 2));
+});

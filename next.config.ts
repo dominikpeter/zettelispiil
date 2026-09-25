@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import { readFileSync } from "node:fs";
+
+const version = JSON.parse(readFileSync("package.json", "utf8")).version as string; // shown in the settings sheet
 
 // Only our own origin may run code, load data or frame the app. Inline scripts stay allowed for Next's bootstrap and the
 // theme script in layout.tsx (ponytail: switch to per-request nonces in proxy.ts to drop 'unsafe-inline').
@@ -19,6 +22,7 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  env: { NEXT_PUBLIC_VERSION: version },
   async headers() {
     return [
       {

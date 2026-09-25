@@ -22,8 +22,9 @@ export const norm = (w: string) =>
   w.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/ß/g, "ss").replace(/[^\p{L}\p{N}]/gu, "");
 /** a drawn line: [color index, x0, y0, x1, y1, …] on a 0…1000 grid */
 export type Stroke = number[];
-export type Team = 0 | 1;
-export type Settings = { perPlayer: number; seconds: number; rounds: RoundType[]; skips: number; lang: Lang }; // skips: per turn, -1 = unlimited; lang: of the Zetteli (AI check, hints, ideas), each phone keeps its own UI language
+export type Team = number; // 0 … settings.teams - 1
+export const MAX_TEAMS = 4; // the app is built for any number; colours exist for four
+export type Settings = { perPlayer: number; seconds: number; rounds: RoundType[]; skips: number; lang: Lang; teams: number }; // skips: per turn, -1 = unlimited; lang: of the Zetteli (AI check, hints, ideas), each phone keeps its own UI language
 export type Phase = "lobby" | "write" | "ready" | "turn" | "roundEnd" | "end";
 /** one moment a Zetteli was in someone's hand: guessed, skipped, or still there when time ran out */
 export type Ev = { w: number; r: number; p: number; ms: number; res: "got" | "skip" | "time" };
@@ -34,7 +35,7 @@ type Room = {
   code: string;
   hostId: string;
   settings: Settings;
-  teamNames: [string, string];
+  teamNames: string[];
   phase: Phase;
   ids: string[]; // player order, frozen when writing starts; indices below refer to it
   teams: Team[];
@@ -47,7 +48,7 @@ type Room = {
   shownAt: number;
   round: number;
   team: Team; // whose turn it is
-  next: [number, number]; // per team: how many turns it had, picks its next describer
+  next: number[]; // per team: how many turns it had, picks its next describer
   turnStart: number;
   endsAt: number;
   pausedAt: number; // 0 = running; a paused turn neither ticks nor times out
@@ -55,7 +56,7 @@ type Room = {
   carryMs: number;
   turnGot: number;
   lastGot: { n: number; text: string; by: number } | null; // flashed on every phone; n changes with each guess
-  scores: [number, number][]; // per round
+  scores: number[][]; // per round, per team
   log: Ev[];
   turns: TurnLog[];
   writeNo: number;
@@ -88,6 +89,7 @@ export function cleanSettings(s: Partial<Settings>): Settings {
     rounds: rounds.length ? rounds : [...DEFAULT_ROUNDS],
     skips: s.skips === -1 ? -1 : clamp(s.skips ?? 1, 0, 5, 0),
     lang: s.lang === "en" || s.lang === "fr" ? s.lang : "de",
+    teams: clamp(s.teams, 2, MAX_TEAMS, 2),
   };
 }
 
@@ -100,9 +102,14 @@ async function load(db: Store, code: string) {
 
 const save = (db: Store, room: Room) => db.set(k(room.code).room, room, { ex: TTL });
 
-async function addMember(db: Store, code: string, name: string, members: Member[]) {
-  const inA = members.filter((m) => m.team === 0).length;
-  const team: Team = inA <= members.length - inA ? 0 : 1; // fill the smaller team
+/** the team with the fewest players (the first of them on a tie) */
+const smallest = (members: Member[], teams: number) => {
+  const sizes = Array.from({ length: teams }, (_, t) => members.filter((m) => m.team === t).length);
+  return sizes.indexOf(Math.min(...sizes));
+};
+
+async function addMember(db: Store, code: string, name: string, members: Member[], teamCount: number) {
+  const team = smallest(members, teamCount);
   const m: Member = { id: uid(), name, token: uid(), at: Date.now(), team };
   await db.hset(k(code).members, m.id, m, TTL);
   return m;
@@ -114,12 +121,12 @@ export async function createRoom(db: Store, hostName: unknown, lang: unknown = "
   for (let attempt = 0; attempt < 10; attempt++) {
     const code = Array.from({ length: CODE_LEN }, () => CODE_CHARS[pick(CODE_CHARS.length)]).join("");
     const room: Room = {
-      code, hostId: "", settings: cleanSettings({ lang: lang as Lang }), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de"), phase: "lobby", ids: [], teams: [], words: [], hints: [], authors: [],
+      code, hostId: "", settings: cleanSettings({ lang: lang as Lang }), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de", 2), phase: "lobby", ids: [], teams: [], words: [], hints: [], authors: [],
       bowl: [], current: null, held: [], shownAt: 0, round: 0, team: 0, next: [0, 0], turnStart: 0, endsAt: 0, pausedAt: 0, drawNo: 0, carryMs: 0,
       turnGot: 0, lastGot: null, scores: [], log: [], turns: [], writeNo: 0, turnNo: 0, aiBy,
     };
     if (!(await db.set(k(code).room, room, { ex: TTL, nx: true }))) continue; // code taken, roll again
-    const host = await addMember(db, code, name, []);
+    const host = await addMember(db, code, name, [], room.teamNames.length);
     room.hostId = host.id;
     await save(db, room);
     return { code, pid: host.id, token: host.token };
@@ -133,7 +140,7 @@ export async function joinRoom(db: Store, code: string, name: unknown) {
   const { room, members } = await load(db, code);
   if (room.phase !== "lobby") throw new RoomError("started");
   if (members.length >= MAX_PLAYERS) throw new RoomError("full");
-  const m = await addMember(db, code, n, members);
+  const m = await addMember(db, code, n, members, room.teamNames.length);
   return { code, pid: m.id, token: m.token };
 }
 
@@ -217,7 +224,7 @@ function closeTurn(room: Room, at: number, keepDescriber: boolean) {
   room.held = [];
   if (keepDescriber) return;
   room.next[room.team]++;
-  room.team = room.team === 0 ? 1 : 0;
+  room.team = (room.team + 1) % room.teamNames.length;
 }
 
 /** time ran out: the Zetteli in hand goes back into the bowl, the other team is up */
@@ -273,12 +280,24 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
   const wasTurn = room.phase === "turn";
 
   switch (a.type) {
-    case "settings":
+    case "settings": {
       need(host && room.phase === "lobby");
       room.settings = cleanSettings({ ...room.settings, ...a.settings });
+      const n = room.settings.teams;
+      if (n !== room.teamNames.length) {
+        // more teams: new funny names; fewer: players of a dropped team go to the smallest remaining one
+        room.teamNames = n > room.teamNames.length ? [...room.teamNames, ...funnyTeams(room.settings.lang, n - room.teamNames.length, room.teamNames)] : room.teamNames.slice(0, n);
+        const kept = members.filter((m) => m.team < n);
+        for (const m of members.filter((m) => m.team >= n)) {
+          const moved = { ...m, team: smallest(kept, n) };
+          kept.push(moved);
+          await db.hset(k(code).members, m.id, moved, TTL);
+        }
+      }
       break;
+    }
     case "team":
-      need(room.phase === "lobby" && (a.team === 0 || a.team === 1));
+      need(room.phase === "lobby" && Number.isInteger(a.team) && a.team >= 0 && a.team < room.teamNames.length);
       await db.hset(k(code).members, me.id, { ...me, team: a.team }, TTL);
       return;
     case "rename": {
@@ -295,23 +314,25 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
     }
     case "teamName": {
       const name = cleanName(a.name);
-      need(room.phase === "lobby" && (a.team === 0 || a.team === 1) && !!name && (host || me.team === a.team));
+      need(room.phase === "lobby" && Number.isInteger(a.team) && a.team >= 0 && a.team < room.teamNames.length && !!name && (host || me.team === a.team));
       room.teamNames[a.team] = name;
       break;
     }
     case "shuffle": {
       need(host && room.phase === "lobby");
       const order = members.map((m) => [Math.random(), m] as const).sort((x, y) => x[0] - y[0]);
-      const half = Math.floor(order.length / 2) + pick(2) * (order.length % 2); // odd count: either team may get the extra
-      await Promise.all(order.map(([, m], i) => db.hset(k(code).members, m.id, { ...m, team: i < half ? 0 : 1 }, TTL)));
+      const n = room.teamNames.length;
+      const shift = pick(n); // uneven count: any team may get the extra players
+      await Promise.all(order.map(([, m], i) => db.hset(k(code).members, m.id, { ...m, team: (i + shift) % n }, TTL)));
       return;
     }
     case "start": {
       need(host && room.phase === "lobby");
-      if ([0, 1].some((t) => members.filter((m) => m.team === t).length < 2)) throw new RoomError("teams");
+      const n = room.teamNames.length;
+      if (room.teamNames.some((_, t) => members.filter((m) => m.team === t).length < 2)) throw new RoomError("teams");
       Object.assign(room, {
         ids: members.map((m) => m.id), teams: members.map((m) => m.team), words: [], authors: [], bowl: [],
-        current: null, held: [], pausedAt: 0, round: 0, team: pick(2) as Team, next: [0, 0], carryMs: 0, scores: [], log: [], turns: [],
+        current: null, held: [], pausedAt: 0, round: 0, team: pick(n), next: Array(n).fill(0), carryMs: 0, scores: [], log: [], turns: [],
         phase: "write", writeNo: room.writeNo + 1,
       } satisfies Partial<Room>);
       break;
@@ -346,7 +367,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       room.hints = entries.flatMap((ws) => ws.map((x) => x.hint));
       room.authors = entries.flatMap((ws, i) => ws.map(() => i));
       room.bowl = room.words.map((_, i) => i);
-      room.scores = room.settings.rounds.map(() => [0, 0]);
+      room.scores = room.settings.rounds.map(() => room.teamNames.map(() => 0));
       room.phase = "ready";
       break;
     }
@@ -424,7 +445,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       need(host && room.phase === "ready");
       room.carryMs = 0;
       room.next[room.team]++;
-      room.team = room.team === 0 ? 1 : 0;
+      room.team = (room.team + 1) % room.teamNames.length;
       break;
     case "lobby":
       need(host && room.phase === "end");
@@ -443,7 +464,7 @@ export type View = {
   ai: boolean; // a signed-in host opened this room: everyone in it may use AI
   phase: Phase;
   settings: Settings;
-  teamNames: [string, string];
+  teamNames: string[];
   players: { name: string; team: Team }[];
   me: number; // index in players, -1 when not joined
   isHost: boolean;
@@ -464,7 +485,7 @@ export type View = {
   total: number;
   turnGot: number; // guessed so far in the running turn
   lastGot: { n: number; text: string; by: number } | null; // the latest guessed Zetteli, flashed on the other phones
-  scores: [number, number][];
+  scores: number[][];
   lastTurn: TurnLog | null;
   done: number; // players who wrote their words
   iDone: boolean;

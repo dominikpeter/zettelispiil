@@ -149,6 +149,7 @@ export function SettingsPanel() {
         <a href="https://github.com/dominikpeter/zettelispiil" target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline-offset-4 hover:underline">
           GitHub
         </a>
+        <span className="tabular-nums">· v{process.env.NEXT_PUBLIC_VERSION}</span>
       </footer>
     </>
   );

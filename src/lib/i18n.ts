@@ -654,8 +654,12 @@ export const DICT: Record<Lang, Dict> = { de, en, fr };
 
 export const pickOne = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
 /** two different funny team names in one language */
-export function funnyTeams(lang: Lang): [string, string] {
-  const a = pickOne(DICT[lang].funnyTeams);
-  const b = pickOne(DICT[lang].funnyTeams.filter((x) => x !== a));
-  return [a, b];
+/** `n` different funny team names, none of `taken` */
+export function funnyTeams(lang: Lang, n = 2, taken: string[] = []): string[] {
+  const out: string[] = [];
+  while (out.length < n) {
+    const pool = DICT[lang].funnyTeams.filter((x) => !out.includes(x) && !taken.includes(x));
+    out.push(pool.length ? pickOne(pool) : `Team ${taken.length + out.length + 1}`);
+  }
+  return out;
 }

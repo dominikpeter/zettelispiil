@@ -39,7 +39,7 @@ function Section({ title, note, children }: { title: string; note?: string; chil
   );
 }
 
-function Legend({ names }: { names: [string, string] }) {
+function Legend({ names }: { names: string[] }) {
   return (
     <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
       {names.map((n, i) => (
@@ -53,7 +53,7 @@ function Legend({ names }: { names: [string, string] }) {
 }
 
 /** cumulative score after each turn; tap or drag to read any turn */
-function Race({ race, turns, players, names, teams, t }: { race: [number, number][]; turns: NonNullable<View["stats"]>["turns"]; players: View["players"]; names: string[]; teams: [string, string]; t: Dict }) {
+function Race({ race, turns, players, names, teams, t }: { race: number[][]; turns: NonNullable<View["stats"]>["turns"]; players: View["players"]; names: string[]; teams: string[]; t: Dict }) {
   const H = 170;
   const pad = { l: 8, r: 64, t: 10, b: 22 };
   const max = Math.max(1, ...race.flat());
@@ -145,7 +145,7 @@ function Race({ race, turns, players, names, teams, t }: { race: [number, number
   );
 }
 
-function RoundBars({ scores, names, teams, t }: { scores: [number, number][]; names: string[]; teams: [string, string]; t: Dict }) {
+function RoundBars({ scores, names, teams, t }: { scores: number[][]; names: string[]; teams: string[]; t: Dict }) {
   const H = 150;
   const max = Math.max(1, ...scores.flat());
   const gw = W / scores.length;
