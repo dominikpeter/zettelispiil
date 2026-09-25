@@ -29,6 +29,9 @@ export type Phase = "lobby" | "write" | "ready" | "turn" | "roundEnd" | "end";
 /** one moment a Zetteli was in someone's hand: guessed, skipped, or still there when time ran out */
 export type Ev = { w: number; r: number; p: number; ms: number; res: "got" | "skip" | "time" };
 export type TurnLog = { r: number; p: number; got: number; ms: number };
+/** a Zetteli drawn in a drawing round, kept for the replay at the end: its last sheet (after wipes), how long it was in hand */
+export type Drawing = { w: number; r: number; p: number; sheet: number; ms: number; got: boolean };
+const MAX_DRAWINGS = 300; // empty sheets aren't kept, so only a lot of real drawing gets near this
 
 type Member = { id: string; name: string; token: string; at: number; team: Team };
 type Room = {
@@ -59,6 +62,7 @@ type Room = {
   scores: number[][]; // per round, per team
   log: Ev[];
   turns: TurnLog[];
+  drawings?: Drawing[]; // missing in rooms from before the replay
   writeNo: number;
   turnNo: number;
   aiBy?: string; // user id of a host who was signed in when creating the room: AI is on for everyone in it, on that host's budget
@@ -123,7 +127,7 @@ export async function createRoom(db: Store, hostName: unknown, lang: unknown = "
     const room: Room = {
       code, hostId: "", settings: cleanSettings({ lang: lang as Lang }), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de", 2), phase: "lobby", ids: [], teams: [], words: [], hints: [], authors: [],
       bowl: [], current: null, held: [], shownAt: 0, round: 0, team: 0, next: [0, 0], turnStart: 0, endsAt: 0, pausedAt: 0, drawNo: 0, carryMs: 0,
-      turnGot: 0, lastGot: null, scores: [], log: [], turns: [], writeNo: 0, turnNo: 0, aiBy,
+      turnGot: 0, lastGot: null, scores: [], log: [], turns: [], drawings: [], writeNo: 0, turnNo: 0, aiBy,
     };
     if (!(await db.set(k(code).room, room, { ex: TTL, nx: true }))) continue; // code taken, roll again
     const host = await addMember(db, code, name, [], room.teamNames.length);
@@ -167,6 +171,23 @@ export async function pushStrokes(db: Store, code: string, pid: unknown, token: 
   const d = await db.get<Drawer>(drawerKey(code));
   if (!d || !d.pid || d.pid !== pid || d.token !== token || d.sheet !== sheet || now > d.until) throw new RoomError("forbidden");
   if ((await db.rpush(sheetKey(code, d.sheet), strokes, 60 * 60, MAX_SHEET)) > MAX_SHEET) throw new RoomError("bad_request");
+}
+
+/** a finished drawing for the replay: exactly this sheet, all of it */
+export async function sheetStrokes(db: Store, code: string, sheet: number) {
+  const r = await db.lrangeWith<Stroke, Drawer>(sheetKey(code, sheet), 0, drawerKey(code));
+  return { sheet, from: 0, strokes: r.items };
+}
+
+/**
+ * drawings recorded since `from`: their sheets now live as long as the room (sheets expire after an hour otherwise).
+ * A sheet that doesn't exist was never drawn on (skipped at once, wiped and left blank): nothing to replay, so it's dropped.
+ */
+async function keepDrawings(db: Store, room: Room, from: number) {
+  const ds = room.drawings ?? [];
+  if (ds.length <= from) return;
+  const kept = await Promise.all(ds.slice(from).map((d) => db.expire(sheetKey(room.code, d.sheet), TTL)));
+  room.drawings = [...ds.slice(0, from), ...ds.slice(from).filter((_, i) => kept[i])];
 }
 
 /** every other phone: the lines of the current sheet from `from` on; a new sheet (wipe, next Zetteli) starts over at 0 */
@@ -214,8 +235,11 @@ function guessed(room: Room, now: number, by: number) {
 }
 
 function logHand(room: Room, at: number, res: Ev["res"]) {
-  if (room.current === null || (res !== "got" && room.log.length >= MAX_LOG)) return; // guesses always count; they're bounded by the words
-  room.log.push({ w: room.current, r: room.round, p: describer(room), ms: Math.max(0, at - room.shownAt), res });
+  if (room.current === null) return;
+  const e = { w: room.current, r: room.round, p: describer(room), ms: Math.max(0, at - room.shownAt) };
+  if (drawing(room) && (room.drawings ??= []).length < MAX_DRAWINGS) room.drawings.push({ ...e, sheet: room.drawNo, got: res === "got" });
+  if (res !== "got" && room.log.length >= MAX_LOG) return; // guesses always count; they're bounded by the words
+  room.log.push({ ...e, res });
 }
 
 function closeTurn(room: Room, at: number, keepDescriber: boolean) {
@@ -276,6 +300,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
   const need = (ok: boolean) => {
     if (!ok) throw new RoomError("forbidden");
   };
+  const drawn = room.drawings?.length ?? 0;
   settle(room, now);
   const wasTurn = room.phase === "turn";
 
@@ -332,7 +357,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       if (room.teamNames.some((_, t) => members.filter((m) => m.team === t).length < 2)) throw new RoomError("teams");
       Object.assign(room, {
         ids: members.map((m) => m.id), teams: members.map((m) => m.team), words: [], authors: [], bowl: [],
-        current: null, held: [], pausedAt: 0, round: 0, team: pick(n), next: Array(n).fill(0), carryMs: 0, scores: [], log: [], turns: [],
+        current: null, held: [], pausedAt: 0, round: 0, team: pick(n), next: Array(n).fill(0), carryMs: 0, scores: [], log: [], turns: [], drawings: [],
         phase: "write", writeNo: room.writeNo + 1,
       } satisfies Partial<Room>);
       break;
@@ -454,6 +479,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
     default:
       throw new RoomError("bad_request");
   }
+  await keepDrawings(db, room, drawn);
   await save(db, room);
   // the drawer record only matters around drawing turns
   if (room.settings.rounds.includes("draw") && (wasTurn || room.phase === "turn")) await syncDrawer(db, room, members);
@@ -490,13 +516,17 @@ export type View = {
   done: number; // players who wrote their words
   iDone: boolean;
   turnNo: number;
-  stats: null | { words: string[]; authors: number[]; log: Ev[]; turns: TurnLog[] };
+  stats: null | { words: string[]; authors: number[]; log: Ev[]; turns: TurnLog[]; drawings: Drawing[] };
 };
 
 /** What one player may see: Zetteli only while describing them, everything at the end. */
 export async function view(db: Store, code: string, pid: unknown, token: unknown, now = Date.now()): Promise<View> {
   const { room, members } = await load(db, code);
-  if (settle(room, now)) await save(db, room);
+  const drawn = room.drawings?.length ?? 0;
+  if (settle(room, now)) {
+    await keepDrawings(db, room, drawn);
+    await save(db, room);
+  }
   const me = members.find((m) => m.id === pid && m.token === token);
   const lobby = room.phase === "lobby";
   const players = lobby
@@ -548,6 +578,6 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
     iDone,
     myWrite,
     turnNo: room.turnNo,
-    stats: room.phase === "end" ? { words: room.words, authors: room.authors, log: room.log, turns: room.turns } : null,
+    stats: room.phase === "end" ? { words: room.words, authors: room.authors, log: room.log, turns: room.turns, drawings: room.drawings ?? [] } : null,
   };
 }

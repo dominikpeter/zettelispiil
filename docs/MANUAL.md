@@ -147,6 +147,7 @@ Das Spiel zeigt, wer gewonnen hat (oder «Unentschieden»), dazu eine Übersicht
 - **Tempo**: durchschnittliche Sekunden, bis ein Zetteli erraten war, pro Runde.
 - **Spieler**: erratene Zetteli beim Erklären und Sekunden pro Zetteli.
 - **Die Zetteli**: am schnellsten erraten, am längsten gedauert, am meisten übersprungen und die schwierigsten Begriffe über alle Runden.
+- **Zeichnungen** (nur mit mehreren Handys und der Runde Zeichnen): alle Zeichnungen des Spiels als kleine Bilder, mit Begriff, wer gezeichnet hat und wie schnell es erraten wurde (oder «nicht erraten»). Tippe auf eine Zeichnung, und sie entsteht nochmal Strich für Strich; **Nochmal abspielen** zeigt es erneut. Hast du mit **Alles löschen** neu angefangen, zeigt die Zeichnung den letzten Versuch. Leere Blätter erscheinen nicht.
 - Tippe auf ein Zetteli oder einen Spieler für Details: beim Zetteli pro Runde, wer es erraten hat, wie lange es gedauert hat und wie oft es übersprungen wurde; beim Spieler die erratenen Zetteli pro Runde, die Zeit pro Zetteli, das Überspringen und das schnellste und langsamste Zetteli.
 
 Mit **Nochmal spielen** startet die Spielleitung eine neue Partie.

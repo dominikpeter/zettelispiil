@@ -178,6 +178,42 @@ export function DrawPad({ ink, onFlush, label, code, sheet, wipeNo }: { ink: num
   );
 }
 
+const REPLAY_MS = 2500;
+
+/**
+ * a finished drawing (end stats). `play` 0 shows it at once; each new `play` traces it in again, stroke by stroke,
+ * over about REPLAY_MS, at an even pace per point so long lines take longer than dots.
+ */
+export function Replay({ strokes, label, play = 0 }: { strokes: Stroke[]; label: string; play?: number }) {
+  const shown = useRef(play ? 0 : Infinity);
+  const { canvas, redraw } = useFit((c) => {
+    const ctx = c.getContext("2d")!;
+    ctx.clearRect(0, 0, c.width, c.width);
+    ink(ctx, strokes, c.width, shown.current);
+  });
+  const repaint = useEffectEvent(() => redraw());
+  useEffect(() => {
+    const total = points(strokes);
+    if (!play || !total || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      shown.current = Infinity;
+      repaint();
+      return;
+    }
+    shown.current = 0;
+    const start = performance.now();
+    let frame = 0;
+    const tick = () => {
+      shown.current = Math.floor((total * (performance.now() - start)) / REPLAY_MS);
+      repaint();
+      if (shown.current < total) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [play, strokes]);
+  // not touch-none like the others: a grid of these must still scroll under a finger
+  return <canvas ref={canvas} role="img" aria-label={label} className="slip block aspect-square h-auto w-full rounded-md" style={{ clipPath: "none", paddingBottom: 0 }} />;
+}
+
 /** watchers: pull only new lines, fast while the drawer draws, and trace them in smoothly */
 export function DrawView({ code, sheet, label }: { code: string; sheet: number; label: string }) {
   const strokes = useRef<Stroke[]>([]);

@@ -7,6 +7,7 @@ import { useT } from "@/lib/prefs";
 import { ChevronDown } from "lucide-react";
 import { computeStats, playerDetail, wordDetail } from "@/lib/stats";
 import { Confetti, RoundIcon, Slip, TEAM, press } from "@/lib/ui";
+import { Drawings } from "./Drawings";
 
 const fmt = (ms: number) => (ms / 1000).toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: ms < 10_000 ? 1 : 0 });
 const CHART = ["var(--color-chart-a)", "var(--color-chart-b)"];
@@ -335,6 +336,9 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
           </ul>
         </details>
       </Section>
+
+      {/* several phones only: one phone draws on paper, nothing to replay */}
+      {showMe && <Drawings code={v.code} drawings={st.drawings ?? []} words={st.words} players={v.players} t={t} />}
     </div>
   );
 }

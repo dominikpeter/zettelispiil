@@ -11,6 +11,8 @@ export interface Store {
   rpush(key: string, values: unknown[], ex: number, max: number): Promise<number>;
   /** a list from `start` to the end, plus a companion key read in the same round trip */
   lrangeWith<T, U>(key: string, start: number, other: string): Promise<{ items: T[]; other: U | null }>;
+  /** keep a key for `ex` seconds from now; false when it doesn't exist */
+  expire(key: string, ex: number): Promise<boolean>;
 }
 
 export function memoryStore(): Store {
@@ -50,6 +52,11 @@ export function memoryStore(): Store {
     async lrangeWith<T, U>(k: string, start: number, other: string) {
       return { items: clone<T[]>(((live(k)?.v as unknown[]) ?? []).slice(start)), other: live(other) ? clone<U>(live(other)!.v) : null };
     },
+    async expire(k, ex) {
+      const e = live(k);
+      if (e) e.until = Date.now() + ex * 1000;
+      return !!e;
+    },
   };
 }
 
@@ -75,6 +82,9 @@ function redisStore(redis: Redis): Store {
     async lrangeWith<T, U>(k: string, start: number, other: string) {
       const [items, o] = await redis.pipeline().lrange<T>(k, start, -1).get<U>(other).exec<[T[], U | null]>();
       return { items: items ?? [], other: o };
+    },
+    async expire(k, ex) {
+      return (await redis.expire(k, ex)) === 1;
     },
   };
 }

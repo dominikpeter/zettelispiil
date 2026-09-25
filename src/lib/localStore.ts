@@ -45,6 +45,11 @@ export const localStore: Store = {
   async lrangeWith<T, U>(k: string, start: number, other: string) {
     return { items: ((read(k)?.v as T[]) ?? []).slice(start), other: (read(other)?.v as U) ?? null };
   },
+  async expire(k, ex) {
+    const e = read(k);
+    if (e) write(k, e.v, ex);
+    return !!e;
+  },
   async hdel(k, f) {
     const e = read(k);
     if (!e) return;

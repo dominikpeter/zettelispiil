@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { act, claimAi, cleanSettings, createRoom, joinRoom, pullStrokes, roomAi, pushStrokes, RoomError, view, type View } from "./room.ts";
+import { act, claimAi, cleanSettings, createRoom, joinRoom, pullStrokes, roomAi, pushStrokes, RoomError, sheetStrokes, view, type View } from "./room.ts";
 import { computeStats } from "./stats.ts";
 import { db as envStore, memoryStore, persistent } from "./store.ts";
 
@@ -382,4 +382,72 @@ test("three teams: players fill the smallest team, turns rotate through all thre
   const two = await view(db, host.code, host.pid, host.token, clock);
   assert.equal(two.teamNames.length, 2);
   assert.ok(two.players.every((p) => p.team < 2));
+});
+
+test("drawings are kept for the replay: guessed, skipped, time up; a wipe keeps the last sheet; blank ones are dropped", async () => {
+  const { as, see, db, host, all, tick, now } = await setup();
+  await as(0, { type: "settings", settings: { rounds: ["draw"], skips: 1 } });
+  await writeAll(as);
+  const { i } = await describerView(see);
+  const push = async (st: number[][]) => pushStrokes(db, host.code, all[i].pid, all[i].token, (await see(i)).sheet, st, now());
+  const word = async () => (await see(i)).word!.id;
+  await as(i, { type: "go" });
+
+  const skipped = await word();
+  await push([[0, 1, 1, 9, 9]]);
+  tick(3000);
+  await as(i, { type: "skip", w: skipped });
+
+  const got = await word();
+  await push([[1, 5, 5, 6, 6]]);
+  await as(i, { type: "wipe" });
+  const last = (await see(i)).sheet!;
+  await push([[2, 7, 7, 8, 8]]);
+  tick(5000);
+  await as(i, { type: "got", w: got });
+
+  const blank = await word();
+  tick(1000);
+  await as(i, { type: "got", w: blank }); // nothing drawn: nothing to replay
+
+  const late = await word();
+  await push([[0, 3, 3]]);
+  tick(40_000); // time's up
+
+  // later turns draw nothing, so they leave nothing to replay
+  for (let guard = 0; guard < 50 && (await see(0)).phase !== "end"; guard++) {
+    const v = await see(0);
+    if (v.phase === "ready") await as(v.active!, { type: "go" });
+    else {
+      tick(1000);
+      const d = await see(v.active!);
+      if (d.word) await as(v.active!, { type: "got", w: d.word.id });
+    }
+  }
+  const end = await see(1);
+  assert.equal(end.phase, "end");
+  const ds = end.stats!.drawings;
+  assert.deepEqual(ds.map(({ w, p, ms, got, r }) => ({ w, p, ms, got, r })), [
+    { w: skipped, p: i, ms: 3000, got: false, r: 0 },
+    { w: got, p: i, ms: 5000, got: true, r: 0 },
+    { w: late, p: i, ms: 30_000 - 9000, got: false, r: 0 },
+  ]);
+  assert.equal(ds[1].sheet, last); // wiped: only the final sheet counts
+  assert.deepEqual((await sheetStrokes(db, host.code, ds[1].sheet)).strokes, [[2, 7, 7, 8, 8]]);
+  assert.deepEqual((await sheetStrokes(db, host.code, ds[0].sheet)).strokes, [[0, 1, 1, 9, 9]]); // an old sheet, exactly, not the drawer's latest
+});
+
+test("drawings: only in drawing rounds", async () => {
+  const { as, see, tick } = await setup();
+  await as(0, { type: "settings", settings: { rounds: ["describe"] } });
+  await writeAll(as);
+  for (let guard = 0; guard < 50 && (await see(0)).phase !== "end"; guard++) {
+    const v = await see(0);
+    if (v.phase === "ready") await as(v.active!, { type: "go" });
+    else {
+      tick(1000);
+      await as(v.active!, { type: "got", w: (await see(v.active!)).word!.id });
+    }
+  }
+  assert.deepEqual((await see(0)).stats!.drawings, []);
 });
