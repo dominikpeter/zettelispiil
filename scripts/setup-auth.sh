@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sets up sign-in (needed for the AI features). Asks for each provider's client ID and secret,
 # writes them to .env.local and to Vercel production. Secrets are read silently and never printed.
-# Skip a provider by leaving its ID empty. Callback URLs to register with each provider:
+# Skip a provider by leaving its ID empty. For Google you can give the path to the downloaded client JSON instead. Callback URLs to register with each provider:
 #   https://zettelispiil.ch/api/auth/callback/<google|github|microsoft>
 #   http://localhost:3000/api/auth/callback/<google|github|microsoft>   (for local dev)
 set -euo pipefail
@@ -17,9 +17,15 @@ put() { # put NAME VALUE: replace in .env.local, and set in Vercel production
 }
 
 for p in GOOGLE GITHUB MICROSOFT; do
-  read -rp "$p client ID (empty to skip): " id
+  read -rp "$p client ID, or the path to Google's downloaded client JSON (empty to skip): " id
   [ -z "$id" ] && continue
-  read -rsp "$p client secret: " secret; echo
+  id="${id/#\~/$HOME}"; id="${id%\"}"; id="${id#\"}"; id="${id%\'}"; id="${id#\'}" # ~ and quotes from drag-and-drop
+  if [ -f "$id" ]; then # Google's JSON: take both values from the file, never shown
+    secret=$(jq -r '.web.client_secret' "$id")
+    id=$(jq -r '.web.client_id' "$id")
+  else
+    read -rsp "$p client secret: " secret; echo
+  fi
   put "${p}_CLIENT_ID" "$id"
   put "${p}_CLIENT_SECRET" "$secret"
 done
