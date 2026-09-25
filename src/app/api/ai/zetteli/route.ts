@@ -9,9 +9,9 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   if (!(await aiLive())) return Response.json({ ai: false });
   const body = await req.json().catch(() => ({}));
-  const no = await refused(req, body?.room);
-  if (no) return refusal(no);
   const { count, topics, lang } = zetteliRequest(body ?? {});
+  const no = await refused(req, body?.room, Math.ceil(count / 10)); // a whole game's Zetteli: 1 unit per 10 words, not 1 for all
+  if (no) return refusal(no);
   try {
     return Response.json({ ai: true, words: await aiZetteli(count, topics, lang) });
   } catch (e) {
