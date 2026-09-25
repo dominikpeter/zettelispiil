@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { act, claimAi, cleanSettings, createRoom, heckleBonus, heckleMs, joinRoom, pullStrokes, roomAi, pushStrokes, RoomError, sheetStrokes, view, type View } from "./room.ts";
+import { act, claimAi, cleanSettings, createRoom, joinRoom, pullStrokes, roomAi, pushStrokes, RoomError, sheetStrokes, view, type View } from "./room.ts";
 import { computeStats } from "./stats.ts";
 import { db as envStore, memoryStore, persistent } from "./store.ts";
 
@@ -475,10 +475,6 @@ test("heckle: off by default and in the lobby settings, 1–5 presses", async ()
   assert.equal((await see((i + 1) % 4)).heckles, 0);
 });
 
-test("heckle: a tenth of the turn, 2–5 s", () => {
-  assert.deepEqual([heckleMs(30_000), heckleMs(10_000), heckleMs(120_000), heckleMs(45_000)], [3000, 2000, 5000, 4500]);
-});
-
 test("heckle: only the other team, a few presses each, one at a time, fresh every turn", async () => {
   const { as, see, tick, now, d, o } = await heckleTurn();
   assert.equal((await see(o)).heckles, 2);
@@ -563,20 +559,6 @@ test("changing the team count evens the teams out with as few moves as possible"
   assert.deepEqual((await sizes()).sort(), [1, 1, 2, 2]);
   await act(db, host.code, host.pid, host.token, { type: "settings", settings: { teams: 2 } });
   assert.deepEqual(await sizes(), [3, 3]);
-});
-
-test("auto heckling: only teams behind the leader may get a bonus, more likely and bigger the further behind", () => {
-  const always = () => 0; // the dice always allow it
-  const never = () => 0.99;
-  assert.deepEqual(heckleBonus([3, 3], 0, always), [0, 0]); // level: nobody
-  assert.deepEqual(heckleBonus([5, 3], 0, always), [0, 1]); // team 2 is 2 behind
-  assert.deepEqual(heckleBonus([5, 3], 1, always), [0, 0]); // …but it's describing now
-  assert.deepEqual(heckleBonus([9, 3, 8, 9], 0, always), [0, 2, 1, 0]); // 6 behind: 2 presses; the co-leader: none
-  assert.deepEqual(heckleBonus([9, 3], 0, never), [0, 0]); // the dice can say no
-  assert.deepEqual(heckleBonus([4, 3], 0, () => 0.39), [0, 1]); // 1 behind: 40 % chance
-  assert.deepEqual(heckleBonus([4, 3], 0, () => 0.41), [0, 0]);
-  assert.deepEqual(heckleBonus([20, 0], 0, () => 0.79), [0, 2]); // capped at 80 %
-  assert.deepEqual(heckleBonus([20, 0], 0, () => 0.81), [0, 0]);
 });
 
 test("auto heckling in a room: with nobody behind there is no bonus, so nobody can heckle", async () => {

@@ -1,5 +1,9 @@
 import { funnyTeams, type Lang } from "./i18n.ts";
 import type { Store } from "./store.ts";
+import { cleanSettings, type Settings } from "./settings.ts";
+import { heckle, heckleView, startHeckles, type Heckles } from "./heckle.ts";
+
+export { cleanSettings, DEFAULT_ROUNDS, MAX_TEAMS, ROUND_TYPES, type RoundType, type Settings } from "./settings.ts";
 
 const TTL = 60 * 60 * 24; // rooms vanish a day after the last write
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I lookalikes
@@ -9,27 +13,7 @@ const MAX_SHEET = 3000; // strokes per drawing sheet; a wipe or the next Zetteli
 const MAX_LOG = 5000; // events kept for the stats; a real game has a few hundred, so only skip-spamming hits this
 const MIN_CARRY = 5000; // less time left than this when the bowl empties → next player starts the new round
 export const MAX_PLAYERS = 20;
-/** one heckle disturbs the describer for a tenth of the turn, 2–5 s */
-export const heckleMs = (turnMs: number) => Math.min(5000, Math.max(2000, Math.round(turnMs / 10)));
-/** at most a third of a turn may be disturbed */
-const heckleBudget = (turnMs: number) => Math.round(turnMs / 3);
-/**
- * auto heckling: when a turn starts, each team that is behind the leader (and isn't describing) may get a bonus to
- * disturb: 30 % chance plus 10 % per point behind, at most 80 %; 1 press for the team, 2 when 5 or more behind.
- * The leader and teams level with it get nothing. Returns presses per team.
- */
-export function heckleBonus(totals: number[], active: number, rand: () => number = Math.random) {
-  const best = Math.max(...totals);
-  return totals.map((score, t) => {
-    const behind = best - score;
-    if (t === active || behind <= 0) return 0;
-    return rand() < Math.min(0.8, 0.3 + 0.1 * behind) ? (behind >= 5 ? 2 : 1) : 0;
-  });
-}
 
-export const ROUND_TYPES = ["describe", "pantomime", "oneword", "sound", "draw"] as const;
-export type RoundType = (typeof ROUND_TYPES)[number];
-export const DEFAULT_ROUNDS: RoundType[] = ["describe", "pantomime", "oneword", "sound"]; // drawing is opt-in, and needs every phone
 /** one written Zetteli; the hint is shown small to the describer (AI-suggested, the writer may change it) */
 export type Slip = { word: string; hint: string };
 /** a player's writing so far; words someone else also wrote are cancelled on both sides */
@@ -40,8 +24,6 @@ export const norm = (w: string) =>
 /** a drawn line: [color index, x0, y0, x1, y1, …] on a 0…1000 grid */
 export type Stroke = number[];
 export type Team = number; // 0 … settings.teams - 1
-export const MAX_TEAMS = 4; // the app is built for any number; colours exist for four
-export type Settings = { perPlayer: number; seconds: number; rounds: RoundType[]; skips: number; lang: Lang; teams: number; heckle: boolean; heckleMode: "auto" | "fixed"; heckles: number }; // skips: per turn, -1 = unlimited; lang: of the Zetteli (AI check, hints, ideas), each phone keeps its own UI language; heckle: the other teams may disturb the describer, `heckles` times each per turn
 export type Phase = "lobby" | "write" | "ready" | "turn" | "roundEnd" | "end";
 /** one moment a Zetteli was in someone's hand: guessed, skipped, or still there when time ran out */
 export type Ev = { w: number; r: number; p: number; ms: number; res: "got" | "skip" | "time" };
@@ -51,7 +33,7 @@ export type Drawing = { w: number; r: number; p: number; sheet: number; ms: numb
 const MAX_DRAWINGS = 300; // empty sheets aren't kept, so only a lot of real drawing gets near this
 
 type Member = { id: string; name: string; token: string; at: number; team: Team };
-type Room = {
+type Room = Heckles & {
   code: string;
   hostId: string;
   settings: Settings;
@@ -76,13 +58,6 @@ type Room = {
   carryMs: number;
   turnGot: number;
   lastGot: { n: number; text: string; by: number } | null; // flashed on every phone; n changes with each guess
-  heckled?: Record<number, number>; // presses per player index in the running turn, cleared when a turn starts (fixed mode)
-  heckleBonus?: number[]; // presses left per team in the running turn (auto mode), drawn when the turn starts
-  heckleGranted?: number[]; // what each team was granted at the start of the running turn (auto mode)
-  heckleLog?: { by: number; bonus: boolean }[]; // every press this game, for the end stats
-  bonusGot?: number[]; // per team: bonus presses granted this game (auto mode)
-  heckledMs?: number; // disturbed time in the running turn
-  lastHeckle?: { n: number; by: number; until: number } | null; // disturbs the describer's Zetteli until `until`; n changes with each press
   scores: number[][]; // per round, per team
   log: Ev[];
   turns: TurnLog[];
@@ -103,26 +78,10 @@ export class RoomError extends Error {
 
 const k = (code: string) => ({ room: `room:${code}`, members: `room:${code}:members` });
 const cleanName = (n: unknown) => (typeof n === "string" ? n.trim().slice(0, 24) : "");
-const clamp = (n: unknown, lo: number, hi: number, def: number) => Math.max(lo, Math.min(hi, Math.round(Number(n)) || def));
 const pick = (n: number) => Math.floor(Math.random() * n);
 // randomUUID only exists on https/localhost; one-phone games also run over plain http on the LAN
 const uid = () =>
   crypto.randomUUID?.() ?? Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
-
-export function cleanSettings(s: Partial<Settings>): Settings {
-  const rounds = Array.isArray(s.rounds) ? [...new Set(s.rounds.filter((r) => ROUND_TYPES.includes(r)))] : [];
-  return {
-    perPlayer: clamp(s.perPlayer, 1, 10, 4),
-    seconds: Math.round(clamp(s.seconds, 10, 120, 30) / 5) * 5,
-    rounds: rounds.length ? rounds : [...DEFAULT_ROUNDS],
-    skips: s.skips === -1 ? -1 : clamp(s.skips ?? 1, 0, 5, 0),
-    lang: s.lang === "en" || s.lang === "fr" ? s.lang : "de",
-    teams: clamp(s.teams, 2, MAX_TEAMS, 2),
-    heckle: s.heckle === true,
-    heckleMode: s.heckleMode === "fixed" ? "fixed" : "auto", // auto: teams that are behind get a random bonus
-    heckles: clamp(s.heckles, 1, 5, 2),
-  };
-}
 
 async function load(db: Store, code: string) {
   const room = await db.get<Room>(k(code).room);
@@ -432,10 +391,8 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
     case "go": {
       need(room.phase === "ready" && idx === describer(room));
       const ms = room.carryMs || room.settings.seconds * 1000;
-      const totals = room.teamNames.map((_, t) => room.scores.reduce((sum, r) => sum + (r[t] ?? 0), 0));
-      const bonus = room.settings.heckle && cleanSettings(room.settings).heckleMode === "auto" ? heckleBonus(totals, room.team, process.env.E2E_HECKLE_DICE === "always" ? () => 0 : Math.random) : []; // e2e server only: loaded dice
-      Object.assign(room, { carryMs: 0, turnStart: now, endsAt: now + ms, turnGot: 0, phase: "turn", turnNo: room.turnNo + 1, heckled: {}, heckledMs: 0, heckleBonus: bonus, heckleGranted: bonus });
-      if (bonus.some(Boolean)) room.bonusGot = room.teamNames.map((_, t) => (room.bonusGot?.[t] ?? 0) + (bonus[t] ?? 0));
+      Object.assign(room, { carryMs: 0, turnStart: now, endsAt: now + ms, turnGot: 0, phase: "turn", turnNo: room.turnNo + 1 } satisfies Partial<Room>);
+      startHeckles(room, process.env.E2E_HECKLE_DICE === "always" ? () => 0 : Math.random); // e2e server only: loaded dice
       draw(room, now);
       break;
     }
@@ -471,22 +428,11 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       guessed(room, now, idx);
       break;
     case "heckle": {
-      // someone from another team disturbs the describer: one at a time, a few presses each, at most a third of the turn
-      if (room.phase !== "turn" || room.pausedAt || now > room.endsAt) return;
-      need(room.settings.heckle && idx >= 0 && room.teams[idx] !== room.team);
-      const auto = cleanSettings(room.settings).heckleMode === "auto";
-      const used = room.heckled?.[idx] ?? 0;
-      const mine = room.teams[idx];
-      if (auto ? !(room.heckleBonus?.[mine] ?? 0) : used >= cleanSettings(room.settings).heckles) throw new RoomError("bad_request");
-      const turnMs = room.endsAt - room.turnStart;
-      const budget = heckleBudget(turnMs) - (room.heckledMs ?? 0);
-      if (now < (room.lastHeckle?.until ?? 0) || budget <= 0) return; // one is running, or enough for this turn: someone was faster
-      const ms = Math.min(heckleMs(turnMs), budget);
-      if (auto) room.heckleBonus = room.heckleBonus!.map((x, t) => (t === mine ? x - 1 : x)); // the team's bonus, whoever presses
-      else room.heckled = { ...room.heckled, [idx]: used + 1 };
-      room.heckledMs = (room.heckledMs ?? 0) + ms;
-      room.lastHeckle = { n: (room.lastHeckle?.n ?? 0) + 1, by: idx, until: now + ms };
-      if ((room.heckleLog ??= []).length < 500) room.heckleLog.push({ by: idx, bonus: auto });
+      // someone from another team disturbs the describer
+      const r = heckle(room, idx, now);
+      if (r === "ignored") return; // no running turn, one is still running, or enough for this turn: someone was faster
+      need(r !== "forbidden");
+      if (r === "used") throw new RoomError("bad_request");
       break;
     }
     case "got": {
@@ -632,15 +578,7 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
     total: room.words.length,
     turnGot: room.turnGot,
     lastGot: room.lastGot ?? null,
-    lastHeckle: room.lastHeckle ?? null,
-    heckles:
-      room.phase === "turn" && room.settings.heckle && idx >= 0 && room.teams[idx] !== room.team
-        ? cleanSettings(room.settings).heckleMode === "auto"
-          ? (room.heckleBonus?.[room.teams[idx]] ?? 0)
-          : Math.max(0, cleanSettings(room.settings).heckles - (room.heckled?.[idx] ?? 0))
-        : 0,
-    heckleDone: room.phase === "turn" && (room.heckledMs ?? 0) >= heckleBudget(room.endsAt - room.turnStart),
-    heckleGranted: room.phase === "turn" && idx >= 0 ? (room.heckleGranted?.[room.teams[idx]] ?? 0) : 0,
+    ...heckleView(room, idx),
     scores: room.scores,
     lastTurn: room.turns.at(-1) ?? null,
     done,
