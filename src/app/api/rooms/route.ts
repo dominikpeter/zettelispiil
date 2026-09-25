@@ -6,5 +6,5 @@ export async function POST(req: Request) {
   return handle(async (db) => {
     const body = await req.json();
     return createRoom(db, body?.name, body?.lang);
-  });
+  }, { req, kind: "create" });
 }

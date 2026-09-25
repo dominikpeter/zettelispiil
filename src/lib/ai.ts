@@ -34,7 +34,14 @@ export async function checkWords(words: string[], lang: Lang): Promise<WordCheck
       `Write reasons and hints in ${LANG_NAME[lang]}.`,
     prompt: `Check these words, one result per word, same order:\n${words.map((w, i) => `${i + 1}. ${w}`).join("\n")}`,
   });
-  return output.results;
+  // the model's answer is untrusted too: one result per word at most, every text bounded
+  return output.results.slice(0, words.length).map((r) => ({
+    word: r.word.slice(0, 40),
+    corrected: r.corrected.trim().slice(0, 40),
+    tooHard: r.tooHard,
+    reason: r.reason.slice(0, 160),
+    hint: r.hint.slice(0, 80),
+  }));
 }
 
 const Ideas = z.object({ words: z.array(z.string()) });

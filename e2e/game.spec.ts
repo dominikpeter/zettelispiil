@@ -21,7 +21,7 @@ const word = (page: Page) => page.getByTestId("word").innerText();
 
 test("one phone: default players, write, swipe through every round, stats at the end", async ({ page }) => {
   await page.goto("/");
-  for (const n of ["Lisa", "Nora", "Beni", "Tim"]) await expect(page.getByLabel(/Spieler \d/).and(page.locator(`[value="${n}"]`))).toBeVisible();
+  for (const n of ["Lisa", "Nora", "Tim", "Beni"]) await expect(page.getByLabel(/Spieler \d/).and(page.locator(`[value="${n}"]`))).toBeVisible();
   await page.getByRole("button", { name: "Neues Spiel" }).click();
   await page.waitForURL(/\/local$/);
 
@@ -60,6 +60,13 @@ test("one phone: default players, write, swipe through every round, stats at the
   await expect(end).toBeVisible();
   for (const h of ["Spielverlauf", "Punkte pro Runde", "Tempo", "Spieler", "Die Zetteli"]) await expect(page.getByRole("heading", { name: h, exact: true })).toBeVisible();
   for (const w of words) await expect(page.getByText(w, { exact: true }).first()).toBeAttached();
+
+  // details on tap: a Zetteli round by round, a player's rounds and tempo
+  await page.getByText("Alle 4 Zetteli").click();
+  await page.locator("summary").filter({ hasText: "Schoggi" }).last().click();
+  await expect(page.locator("details[open]").filter({ hasText: "Schoggi" }).last().getByText(/erklärt von/)).toHaveCount(2); // guessed in both rounds
+  await page.getByLabel(/^Lisa: \d+ Zetteli$/).click();
+  await expect(page.locator("details[open]").filter({ has: page.getByLabel(/^Lisa: /) }).getByText(/× übersprungen/)).toBeVisible();
 });
 
 test("every phone: only the describer sees the Zetteli, one skip with swap back, time up hands over", async ({ browser }) => {
@@ -394,4 +401,60 @@ test("AI needs sign-in: the write screen offers Google, GitHub and Microsoft and
   await page.getByRole("button", { name: "Pause" }).click();
   await page.getByText("Einstellungen", { exact: true }).click();
   await expect(page.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/dominikpeter/zettelispiil");
+});
+
+test("rounds can be dragged into a new order", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Neues Spiel" }).click();
+  await page.waitForURL(/\/local$/);
+  const rows = page.locator("[data-round]");
+  await rows.last().scrollIntoViewIfNeeded();
+  const from = (await page.getByRole("button", { name: "Geräusch verschieben" }).boundingBox())!;
+  const to = (await rows.first().boundingBox())!;
+  await page.mouse.move(from.x + 10, from.y + from.height / 2);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++) await page.mouse.move(from.x + 10, from.y + from.height / 2 + ((to.y + 4 - from.y - from.height / 2) * i) / 10);
+  await page.mouse.up();
+  await expect(rows).toHaveText([/Geräusch/, /Umschreiben/, /Pantomime/, /Ein Wort/]);
+  await page.reload(); // the new order is saved
+  await expect(rows).toHaveText([/Geräusch/, /Umschreiben/, /Pantomime/, /Ein Wort/]);
+
+  // a finger: long-press the handle, then move (real touch events through Chrome DevTools)
+  await rows.last().scrollIntoViewIfNeeded();
+  const cdp = await page.context().newCDPSession(page);
+  const a = (await rows.last().getByRole("button", { name: /verschieben$/ }).boundingBox())!;
+  const b = (await rows.first().boundingBox())!;
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", y?: number) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: y === undefined ? [] : [{ x: a.x + 10, y }] });
+  const y0 = a.y + a.height / 2;
+  await touch("touchStart", y0);
+  await page.waitForTimeout(400);
+  for (let i = 1; i <= 10; i++) await touch("touchMove", y0 + ((b.y + 4 - y0) * i) / 10);
+  await touch("touchEnd");
+  await expect(rows).toHaveText([/Ein Wort/, /Geräusch/, /Umschreiben/, /Pantomime/]);
+
+  // a keyboard: focus the handle, Space picks it up, arrows move it, Space drops it
+  await page.getByRole("button", { name: "Pantomime verschieben" }).focus();
+  await page.keyboard.press("Space");
+  for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Space");
+  await expect(rows).toHaveText([/Pantomime/, /Ein Wort/, /Geräusch/, /Umschreiben/]);
+});
+
+test("game language: the host picks English for the Zetteli while the app stays German", async ({ page }) => {
+  await noSignIn(page);
+  const langs: string[] = [];
+  await page.route("**/api/ai/check", async (route) => {
+    const { words, lang } = route.request().postDataJSON() as { words: string[]; lang: string };
+    langs.push(lang);
+    await route.fulfill({ json: { ai: true, results: words.map((w) => ({ word: w, corrected: w, tooHard: false, reason: "", hint: "" })) } });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Neues Spiel" }).click();
+  await page.waitForURL(/\/local$/);
+  await page.getByRole("button", { name: "English" }).click();
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  await page.getByRole("button", { name: /^Ich bin / }).click();
+  await page.getByLabel("Zetteli 1", { exact: true }).fill("Cheese");
+  await expect.poll(() => langs.at(-1)).toBe("en");
+  await expect(page.getByRole("button", { name: "In die Schüssel" })).toBeVisible(); // UI still German
 });

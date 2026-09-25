@@ -1,11 +1,16 @@
 "use client";
 
-import { AlertTriangle, ArrowLeft, ArrowLeftRight, Check, Eraser, Loader2, Sparkles, Home, Pause, Play, ChevronDown, ChevronUp, Crown, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowLeftRight, Check, Eraser, Loader2, Sparkles, Home, Pause, Play, ChevronDown, Crown, GripVertical, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
+import { DragDropProvider } from "@dnd-kit/react";
+import { useSortable } from "@dnd-kit/react/sortable";
+import { move as moved } from "@dnd-kit/helpers";
 import { aiAllowed, useAiStatus } from "@/lib/aiAccess";
 import { aiPref, langPref, useHints, useT } from "@/lib/prefs";
+import { LANGS } from "@/lib/i18n";
 import { Account } from "./Account";
+import { Segmented } from "./TopControls";
 import { funnyName } from "@/lib/roomClient";
 import { norm, ROUND_TYPES, type Action, type RoundType, type Stroke, type Settings, type Slip as SlipT, type Team, type View } from "@/lib/room";
 import { Bowl, btn, btn2, buzz, field, fitLine, ghost, panel, pill, pillBtn, press, round_btn, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
@@ -239,6 +244,23 @@ function Stepper({ label, value, display, set, min, max }: { label: string; valu
 
 // ---------- lobby ----------
 
+// a round in the host's list: drag it by the handle (long-press on touch; keyboard: focus the handle, Space, arrow keys, Space)
+function RoundRow({ r, i, children }: { r: RoundType; i: number; children: ReactNode }) {
+  const t = useT();
+  const { ref, handleRef, isDragging } = useSortable({ id: r, index: i });
+  return (
+    <li ref={ref} data-round={r} className={`enter flex items-center gap-2 rounded-2xl bg-raised py-1.5 pr-1 ${isDragging ? "relative z-10 shadow-lg ring-2 ring-accent" : ""}`}>
+      <button ref={handleRef} type="button" aria-label={t.moveRound(t.round[r].name)} className="flex min-w-0 flex-1 cursor-grab items-center gap-2 self-stretch rounded-xl pl-1.5 text-left select-none active:cursor-grabbing">
+        <GripVertical className="size-4 shrink-0 text-muted" aria-hidden />
+        <span className="w-3 shrink-0 text-sm font-bold text-muted tabular-nums">{i + 1}</span>
+        <RoundIcon type={r} className="size-5 shrink-0 text-accent" />
+        <span className="min-w-0 flex-1 truncate font-semibold">{t.round[r].name}</span>
+      </button>
+      {children}
+    </li>
+  );
+}
+
 export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr: string; copied: boolean; onShare: () => void }; onAdd?: (name: string) => Promise<void> }) {
   const t = useT();
   // only the host edits settings: show their taps at once, and send them one after another so quick taps never race
@@ -255,11 +277,6 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
   const mine = v.players[v.me]?.team ?? 0;
   const skipStep = s.skips === -1 ? 6 : s.skips; // stepper runs 0…5, then ∞
   const off = ROUND_TYPES.filter((r) => !s.rounds.includes(r));
-  const move = (i: number, d: number) => {
-    const r = [...s.rounds];
-    [r[i], r[i + d]] = [r[i + d], r[i]];
-    set({ rounds: r });
-  };
   const [adding, setAdding] = useState("");
   const addPlayer = async () => {
     if (!adding.trim() || !onAdd) return;
@@ -293,7 +310,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
               {local || v.isHost || mine === ti ? (
                 <span className="flex min-w-0 items-center gap-1">
                   <EditableName value={v.teamNames[ti]} label={t.teamName} onSave={(name) => send({ type: "teamName", team: ti, name })} />
-                  <AiNameButton label={`${t.teamName}: ${t.aiName}`} disabled={busy} make={() => funnyName("team", langPref.get(), v.teamNames, t.funnyTeams)} onName={(name) => send({ type: "teamName", team: ti, name })} />
+                  <AiNameButton label={`${t.teamName}: ${t.aiName}`} disabled={busy} make={() => funnyName("team", s.lang, v.teamNames, t.funnyTeams)} onName={(name) => send({ type: "teamName", team: ti, name })} />
                 </span>
               ) : (
                 <span className="truncate">{v.teamNames[ti]}</span>
@@ -342,7 +359,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
           <input value={adding} onChange={(e) => setAdding(e.target.value)} maxLength={24} placeholder={t.addPlayer} aria-label={t.addPlayer} className={`${field} min-w-0 flex-1 py-2.5 font-semibold`} />
           <AiNameButton
             label={t.aiName}
-            make={() => funnyName("player", langPref.get(), v.players.map((p) => p.name), t.funnyPlayers)}
+            make={() => funnyName("player", s.lang, v.players.map((p) => p.name), t.funnyPlayers)}
             onName={setAdding}
             className={`grid size-[3.2rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent ${press}`}
           />
@@ -374,24 +391,21 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
               <Stepper label={t.seconds} value={s.seconds} set={(n) => set({ seconds: s.seconds + (n - s.seconds) * 5 })} min={10} max={120} />
               <Stepper label={t.skips} value={skipStep} display={s.skips === -1 ? <Inf className="size-6" aria-label="∞" /> : undefined} set={(n) => set({ skips: n >= 6 ? -1 : n })} min={0} max={6} />
             </div>
+            <h3 className="mt-4 font-semibold">{t.wordLang}</h3>
+            <p className="text-sm text-muted">{t.wordLangHelp}</p>
+            <div className="mt-2">
+              <Segmented options={LANGS.map((l) => ({ id: l.id, label: l.label }))} value={s.lang} onChange={(lang) => set({ lang })} />
+            </div>
             <h3 className="mt-4 font-semibold">{t.rounds}</h3>
             <p className="text-sm text-muted">{t.roundsHelp}</p>
+            <DragDropProvider onDragEnd={(e) => { if (!e.canceled) set({ rounds: moved(s.rounds, e) }); }}>
             <ol className="mt-3 flex flex-col gap-2">
               {s.rounds.map((r, i) => (
-                <li key={r} className="enter flex items-center gap-2 rounded-2xl bg-raised py-1.5 pr-1 pl-3">
-                  <span className="w-3 shrink-0 text-sm font-bold text-muted tabular-nums">{i + 1}</span>
-                  <RoundIcon type={r} className="size-5 shrink-0 text-accent" />
-                  <span className="min-w-0 flex-1 truncate font-semibold">{t.round[r].name}</span>
-                  <button onClick={() => move(i, -1)} disabled={i === 0} aria-label={t.earlier(t.round[r].name)} className={mini}>
-                    <ChevronUp className="size-5" aria-hidden />
-                  </button>
-                  <button onClick={() => move(i, 1)} disabled={i === s.rounds.length - 1} aria-label={t.later(t.round[r].name)} className={mini}>
-                    <ChevronDown className="size-5" aria-hidden />
-                  </button>
+                <RoundRow key={r} r={r} i={i}>
                   <button onClick={() => set({ rounds: s.rounds.filter((x) => x !== r) })} disabled={s.rounds.length === 1} aria-label={t.drop(t.round[r].name)} className={mini}>
                     <X className="size-4" aria-hidden />
                   </button>
-                </li>
+                </RoundRow>
               ))}
               {off.map((r) => (
                 <li key={r}>
@@ -403,12 +417,14 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
                 </li>
               ))}
             </ol>
+            </DragDropProvider>
           </>
         ) : (
           <ul className="mt-2 flex flex-col gap-1 text-muted">
             <li>{t.sumPerPlayer(s.perPlayer)}</li>
             <li>{t.sumSeconds(s.seconds)}</li>
             <li>{t.sumSkips(s.skips)}</li>
+            <li>{t.sumLang(LANGS.find((l) => l.id === s.lang)!.label)}</li>
             <li className="mt-2 flex flex-wrap gap-2">
               {s.rounds.map((r, i) => (
                 <span key={r} className="flex items-center gap-1.5 rounded-full bg-raised px-3 py-1 text-sm text-ink">
@@ -441,7 +457,7 @@ const CHECK_DELAY = 700; // ms of calm typing before a word is checked
 
 export function Write({ v, send, busy }: P) {
   const t = useT();
-  const lang = langPref.use();
+  const lang = v.settings.lang; // the Zetteli's language, set by the host; the UI stays in this phone's language
   const aiStatus = useAiStatus();
   const aiWanted = aiPref.use() === "on";
   const aiOn = aiWanted && aiAllowed(aiStatus); // switched on here, and signed in where that's required

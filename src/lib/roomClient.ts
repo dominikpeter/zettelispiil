@@ -47,7 +47,7 @@ export async function api<T>(path: string, body?: unknown, id?: Identity | null)
 }
 
 // API error code → dictionary key for the message shown to the player
-const KNOWN = ["not_found", "started", "full", "no_storage"] as const;
+const KNOWN = ["not_found", "started", "full", "no_storage", "rate_limited"] as const;
 export const errKey = (e: string): (typeof KNOWN)[number] | "offline" => (KNOWN as readonly string[]).includes(e) ? (e as (typeof KNOWN)[number]) : "offline";
 
 /** one funny name from the AI when it's available, otherwise from our own list */

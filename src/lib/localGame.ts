@@ -22,7 +22,7 @@ export function saveLocalGame(g: LocalGame) {
 }
 
 const PLAYERS_KEY = "zettelispiil:players";
-export const DEFAULT_PLAYERS = ["Lisa", "Nora", "Beni", "Tim"];
+export const DEFAULT_PLAYERS = ["Lisa", "Nora", "Tim", "Beni"];
 
 export function loadPlayers(): string[] {
   try {

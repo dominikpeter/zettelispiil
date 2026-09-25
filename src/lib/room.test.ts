@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { act, createRoom, joinRoom, pullStrokes, pushStrokes, RoomError, view, type View } from "./room.ts";
+import { act, cleanSettings, createRoom, joinRoom, pullStrokes, pushStrokes, RoomError, view, type View } from "./room.ts";
 import { computeStats } from "./stats.ts";
 import { db as envStore, memoryStore, persistent } from "./store.ts";
 
@@ -298,4 +298,30 @@ test("same word twice: both copies cancelled, both writers write a new one; hint
   b = await see(a.active!);
   assert.ok(b.word);
   if (b.word!.text === "Aare") assert.equal(b.word!.hint, "Fluss in Bern");
+});
+
+test("game language: starts as the host's language, only de/en/fr, old rooms default to de", async () => {
+  const db = store();
+  const { code, pid, token } = await createRoom(db, "Lisa", "fr");
+  assert.equal((await view(db, code, pid, token)).settings.lang, "fr");
+  await act(db, code, pid, token, { type: "settings", settings: { lang: "en" } });
+  assert.equal((await view(db, code, pid, token)).settings.lang, "en");
+  await act(db, code, pid, token, { type: "settings", settings: { lang: "xx" as never } });
+  assert.equal((await view(db, code, pid, token)).settings.lang, "de");
+  assert.equal(cleanSettings({}).lang, "de");
+});
+
+test("lists never grow past their cap, even when a push is refused", async () => {
+  const db = memoryStore();
+  assert.equal(await db.rpush("l", [1, 2, 3], 60, 4), 3);
+  assert.equal(await db.rpush("l", [4, 5, 6], 60, 4), 6); // reports the overflow…
+  assert.deepEqual((await db.lrangeWith("l", 0, "x")).items, [1, 2, 3, 4]); // …but keeps only 4
+});
+
+test("kick ignores a player that isn't an index", async () => {
+  const db = store();
+  const host = await createRoom(db, "Lisa");
+  await joinRoom(db, host.code, "Nora");
+  await assert.rejects(act(db, host.code, host.pid, host.token, { type: "kick", player: "length" as never }), RoomError);
+  assert.equal((await view(db, host.code, host.pid, host.token)).players.length, 2);
 });

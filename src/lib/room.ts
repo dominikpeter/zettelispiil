@@ -6,6 +6,7 @@ const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I lookalikes
 export const CODE_LEN = 5; // 32^5 ≈ 33 million codes: hard to guess a live room; older 4-letter rooms keep working
 const GRACE = 1500; // a "got" tapped at 0:00 still counts while it travels to the server
 const MAX_SHEET = 3000; // strokes per drawing sheet; a wipe or the next Zetteli starts a new one
+const MAX_LOG = 5000; // events kept for the stats; a real game has a few hundred, so only skip-spamming hits this
 const MIN_CARRY = 5000; // less time left than this when the bowl empties → next player starts the new round
 export const MAX_PLAYERS = 20;
 
@@ -22,7 +23,7 @@ export const norm = (w: string) =>
 /** a drawn line: [color index, x0, y0, x1, y1, …] on a 0…1000 grid */
 export type Stroke = number[];
 export type Team = 0 | 1;
-export type Settings = { perPlayer: number; seconds: number; rounds: RoundType[]; skips: number }; // skips: per turn, -1 = unlimited
+export type Settings = { perPlayer: number; seconds: number; rounds: RoundType[]; skips: number; lang: Lang }; // skips: per turn, -1 = unlimited; lang: of the Zetteli (AI check, hints, ideas), each phone keeps its own UI language
 export type Phase = "lobby" | "write" | "ready" | "turn" | "roundEnd" | "end";
 /** one moment a Zetteli was in someone's hand: guessed, skipped, or still there when time ran out */
 export type Ev = { w: number; r: number; p: number; ms: number; res: "got" | "skip" | "time" };
@@ -85,6 +86,7 @@ export function cleanSettings(s: Partial<Settings>): Settings {
     seconds: Math.round(clamp(s.seconds, 10, 120, 30) / 5) * 5,
     rounds: rounds.length ? rounds : [...DEFAULT_ROUNDS],
     skips: s.skips === -1 ? -1 : clamp(s.skips ?? 1, 0, 5, 0),
+    lang: s.lang === "en" || s.lang === "fr" ? s.lang : "de",
   };
 }
 
@@ -111,7 +113,7 @@ export async function createRoom(db: Store, hostName: unknown, lang: unknown = "
   for (let attempt = 0; attempt < 10; attempt++) {
     const code = Array.from({ length: CODE_LEN }, () => CODE_CHARS[pick(CODE_CHARS.length)]).join("");
     const room: Room = {
-      code, hostId: "", settings: cleanSettings({}), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de"), phase: "lobby", ids: [], teams: [], words: [], hints: [], authors: [],
+      code, hostId: "", settings: cleanSettings({ lang: lang as Lang }), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de"), phase: "lobby", ids: [], teams: [], words: [], hints: [], authors: [],
       bowl: [], current: null, held: [], shownAt: 0, round: 0, team: 0, next: [0, 0], turnStart: 0, endsAt: 0, pausedAt: 0, drawNo: 0, carryMs: 0,
       turnGot: 0, lastGot: null, scores: [], log: [], turns: [], writeNo: 0, turnNo: 0,
     };
@@ -156,7 +158,7 @@ export async function pushStrokes(db: Store, code: string, pid: unknown, token: 
   if (!validStrokes(strokes)) throw new RoomError("bad_request");
   const d = await db.get<Drawer>(drawerKey(code));
   if (!d || !d.pid || d.pid !== pid || d.token !== token || d.sheet !== sheet || now > d.until) throw new RoomError("forbidden");
-  if ((await db.rpush(sheetKey(code, d.sheet), strokes, 60 * 60)) > MAX_SHEET) throw new RoomError("bad_request");
+  if ((await db.rpush(sheetKey(code, d.sheet), strokes, 60 * 60, MAX_SHEET)) > MAX_SHEET) throw new RoomError("bad_request");
 }
 
 /** every other phone: the lines of the current sheet from `from` on; a new sheet (wipe, next Zetteli) starts over at 0 */
@@ -204,7 +206,7 @@ function guessed(room: Room, now: number, by: number) {
 }
 
 function logHand(room: Room, at: number, res: Ev["res"]) {
-  if (room.current === null) return;
+  if (room.current === null || (res !== "got" && room.log.length >= MAX_LOG)) return; // guesses always count; they're bounded by the words
   room.log.push({ w: room.current, r: room.round, p: describer(room), ms: Math.max(0, at - room.shownAt), res });
 }
 
@@ -267,9 +269,9 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       return;
     }
     case "kick": {
-      const m = members[a.player];
+      const m = Number.isInteger(a.player) ? members[a.player] : undefined;
       need(host && room.phase === "lobby" && !!m && m.id !== room.hostId);
-      await db.hdel(k(code).members, m.id);
+      await db.hdel(k(code).members, m!.id);
       return;
     }
     case "teamName": {
@@ -477,7 +479,7 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
   return {
     code,
     phase: room.phase,
-    settings: room.settings,
+    settings: cleanSettings(room.settings), // rooms from before a setting existed get its default
     teamNames: room.teamNames,
     players,
     me: idx,

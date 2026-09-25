@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import { useState } from "react";
 import { useT } from "@/lib/prefs";
 import { signIn, signOut, useAiStatus, type Provider } from "@/lib/aiAccess";
 import { press } from "@/lib/ui";
@@ -39,6 +40,13 @@ const NAME: Record<Provider, string> = { google: "Google", github: "GitHub", mic
 export function Account({ compact = false }: { compact?: boolean }) {
   const t = useT();
   const s = useAiStatus();
+  const [err, setErr] = useState("");
+  const go = async (p: Provider) => {
+    setErr("");
+    // on success the page navigates to the provider; an answer here means it didn't
+    const r = await signIn(p).catch(() => ({ error: { status: 0 } }));
+    if (r?.error) setErr(r.error.status === 429 ? t.rate_limited : t.offline);
+  };
   if (!s?.login) return null;
   if (s.user)
     return (
@@ -59,7 +67,7 @@ export function Account({ compact = false }: { compact?: boolean }) {
           <button
             key={p}
             type="button"
-            onClick={() => signIn(p)}
+            onClick={() => go(p)}
             aria-label={t.signInWith(NAME[p])}
             className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 font-semibold text-ink hover:bg-raised ${press}`}
           >
@@ -68,6 +76,7 @@ export function Account({ compact = false }: { compact?: boolean }) {
           </button>
         ))}
       </div>
+      {err && <p role="alert" className="enter text-sm font-medium text-hi">{err}</p>}
     </div>
   );
 }

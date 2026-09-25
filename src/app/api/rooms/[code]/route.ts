@@ -15,5 +15,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ code: s
   return handle(async (db) => {
     const { pid, token, ...a } = await req.json();
     return a.type === "join" ? joinRoom(db, code, a.name) : act(db, code, pid, token, a);
-  });
+  }, { req, kind: "act" });
 }

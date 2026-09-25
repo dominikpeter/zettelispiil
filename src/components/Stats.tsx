@@ -4,12 +4,30 @@ import { useState } from "react";
 import type { RoundType, View } from "@/lib/room";
 import type { Dict } from "@/lib/i18n";
 import { useT } from "@/lib/prefs";
-import { computeStats } from "@/lib/stats";
-import { Confetti, RoundIcon, Slip, TEAM } from "@/lib/ui";
+import { ChevronDown } from "lucide-react";
+import { computeStats, playerDetail, wordDetail } from "@/lib/stats";
+import { Confetti, RoundIcon, Slip, TEAM, press } from "@/lib/ui";
 
 const fmt = (ms: number) => (ms / 1000).toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: ms < 10_000 ? 1 : 0 });
 const CHART = ["var(--color-chart-a)", "var(--color-chart-b)"];
 const W = 340;
+// tappable row that expands in place; the chevron flips when open
+const expand = "group [&[open]>summary>svg]:rotate-180";
+const summary = `cursor-pointer list-none items-center gap-2 rounded-xl [&::-webkit-details-marker]:hidden ${press}`;
+const chevron = <ChevronDown className="size-4 shrink-0 text-muted transition-transform" aria-hidden />;
+
+/** a row that expands in place; its details are only worked out once someone opens it */
+function More({ className = "", head, headClass, label, body }: { className?: string; head: React.ReactNode; headClass: string; label?: string; body: () => React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <details className={`${expand} ${className}`} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary className={`${summary} ${headClass}`} aria-label={label}>
+        {head}
+      </summary>
+      {open && body()}
+    </details>
+  );
+}
 
 function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (
@@ -229,23 +247,31 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
       <Section title={t.players} note={t.playersNote}>
         <ol className="flex flex-col gap-3">
           {s.players.map((p, i) => (
-            <li key={p.p} className="grid grid-cols-[1.5rem_1fr] items-center gap-x-2">
-              <span className="text-sm font-bold text-muted tabular-nums">{i + 1}</span>
-              <div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="truncate font-semibold">
-                    {v.players[p.p].name}
-                    {showMe && p.p === v.me && <span className="text-muted"> ({t.you})</span>}
-                  </span>
-                  <span className="shrink-0 text-sm text-muted tabular-nums">{p.perZetteli ? t.perSlip(fmt(p.perZetteli)) : "–"}</span>
-                </div>
-                <div className="mt-1 flex items-center gap-2">
-                  <div className="h-2.5 flex-1 rounded-full bg-raised">
-                    <div className="growx h-full rounded-full" style={{ width: `${(p.got / maxGot) * 100}%`, background: CHART[p.team], animationDelay: `${i * 0.05}s` }} />
+            <li key={p.p}>
+              <More
+                headClass="flex py-0.5"
+                label={`${v.players[p.p].name}: ${t.slipsN(p.got)}`}
+                body={() => <PlayerDetail d={playerDetail(st.log, st.turns, p.p, names.length)} names={names} types={v.settings.rounds} words={st.words} t={t} />}
+                head={<>
+                  <span className="w-5 shrink-0 text-sm font-bold text-muted tabular-nums">{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="truncate font-semibold">
+                        {v.players[p.p].name}
+                        {showMe && p.p === v.me && <span className="text-muted"> ({t.you})</span>}
+                      </span>
+                      <span className="shrink-0 text-sm text-muted tabular-nums">{p.perZetteli ? t.perSlip(fmt(p.perZetteli)) : "–"}</span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <div className="h-2.5 flex-1 rounded-full bg-raised">
+                        <div className="growx h-full rounded-full" style={{ width: `${(p.got / maxGot) * 100}%`, background: CHART[p.team], animationDelay: `${i * 0.05}s` }} />
+                      </div>
+                      <span className="w-6 text-right font-bold tabular-nums">{p.got}</span>
+                    </div>
                   </div>
-                  <span className="w-6 text-right font-bold tabular-nums">{p.got}</span>
-                </div>
-              </div>
+                  {chevron}
+                </>}
+              />
             </li>
           ))}
         </ol>
@@ -260,22 +286,54 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
           {s.mostSkipped && <Highlight label={t.mostSkipped} word={st.words[s.mostSkipped.w]} detail={t.backInBowl(s.mostSkipped.count)} tilt={-1} />}
         </div>
         <h3 className="mt-6 font-semibold">{t.hardest}</h3>
-        <p className="text-sm text-muted">{t.hardestNote}</p>
+        <p className="text-sm text-muted">
+          {t.hardestNote} {t.tapForDetails}
+        </p>
         <ul className="mt-3 flex flex-col gap-2.5">
           {s.hardest.map((h, i) => (
             <li key={h.w}>
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="font-hand min-w-0 truncate pr-1.5 text-2xl leading-tight font-bold">{h.text}</span>
-                <span className="shrink-0 text-sm text-muted tabular-nums">
-                  {fmt(h.ms)} s, {t.by(v.players[st.authors[h.w]]?.name ?? "?")}
-                </span>
-              </div>
-              <div className="mt-1 h-1.5 rounded-full bg-raised">
-                <div className="growx h-full rounded-full bg-chart-b" style={{ width: `${(h.ms / maxHard) * 100}%`, animationDelay: `${i * 0.05}s` }} />
-              </div>
+              <More
+                headClass="flex flex-col items-stretch"
+                body={() => <WordDetail d={wordDetail(st.log, h.w, names.length)} names={names} types={v.settings.rounds} players={v.players} t={t} />}
+                head={<>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-hand min-w-0 truncate pr-1.5 text-2xl leading-tight font-bold">{h.text}</span>
+                    <span className="flex shrink-0 items-center gap-1 text-sm text-muted tabular-nums">
+                      {fmt(h.ms)} s, {t.by(v.players[st.authors[h.w]]?.name ?? "?")}
+                      {chevron}
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-raised">
+                    <div className="growx h-full rounded-full bg-chart-b" style={{ width: `${(h.ms / maxHard) * 100}%`, animationDelay: `${i * 0.05}s` }} />
+                  </div>
+                </>}
+              />
             </li>
           ))}
         </ul>
+        <details className={`${expand} mt-5`}>
+          <summary className={`${summary} flex justify-between py-2 font-semibold`}>
+            {t.allSlips(st.words.length)}
+            {chevron}
+          </summary>
+          <ul className="mt-2 flex flex-col divide-y divide-line">
+            {st.words.map((text, w) => (
+              <li key={w} className="py-1.5">
+                <More
+                  headClass="flex justify-between"
+                  body={() => <WordDetail d={wordDetail(st.log, w, names.length)} names={names} types={v.settings.rounds} players={v.players} t={t} />}
+                  head={<>
+                    <span className="font-hand min-w-0 truncate text-xl font-bold">{text}</span>
+                    <span className="flex shrink-0 items-center gap-1 text-sm text-muted">
+                      {t.by(v.players[st.authors[w]]?.name ?? "?")}
+                      {chevron}
+                    </span>
+                  </>}
+                />
+              </li>
+            ))}
+          </ul>
+        </details>
       </Section>
     </div>
   );
@@ -294,6 +352,57 @@ function Highlight({ label, word, detail, tilt, type }: { label: string; word: s
           {detail}
         </span>
       </div>
+    </div>
+  );
+}
+
+/** a Zetteli round by round: who got it guessed, how long it took, how often it went back into the bowl */
+function WordDetail({ d, names, types, players, t }: { d: ReturnType<typeof wordDetail>; names: string[]; types: RoundType[]; players: View["players"]; t: Dict }) {
+  return (
+    <ul className="mt-2 flex flex-col gap-1.5 rounded-2xl bg-raised p-3 text-sm">
+      {d.map((r) => (
+        <li key={r.r} className="flex items-start gap-2">
+          <RoundIcon type={types[r.r]} className="mt-0.5 size-4 shrink-0 text-accent" />
+          <div className="min-w-0">
+            <span className="font-semibold">{names[r.r]}</span>
+            <span className="text-muted tabular-nums">
+              {": "}
+              {[r.by === null ? t.notGuessed : t.describedBy(players[r.by]?.name ?? "?"), r.ms ? `${fmt(r.ms)} s` : null, r.skips ? t.skippedN(r.skips) : null].filter(Boolean).join(", ")}
+            </span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** a player: guessed Zetteli per round, tempo, skips, quickest and slowest word */
+function PlayerDetail({ d, names, types, words, t }: { d: ReturnType<typeof playerDetail>; names: string[]; types: RoundType[]; words: string[]; t: Dict }) {
+  const word = (e: NonNullable<typeof d.fastest>) => `${words[e.w]}, ${fmt(e.ms)} s, ${names[e.r]}`;
+  return (
+    <div className="mt-2 ml-7 flex flex-col gap-1.5 rounded-2xl bg-raised p-3 text-sm">
+      <ul className="flex flex-wrap gap-x-4 gap-y-1">
+        {d.perRound.map((n, r) => (
+          <li key={r} className="flex items-center gap-1.5 tabular-nums">
+            <RoundIcon type={types[r]} className="size-4 shrink-0 text-accent" />
+            <span className="sr-only">{names[r]}:</span>
+            {t.slipsN(n)}
+          </li>
+        ))}
+      </ul>
+      <p className="text-muted tabular-nums">{[d.avgMs ? t.perSlip(fmt(d.avgMs)) : null, t.skippedN(d.skips)].filter(Boolean).join(", ")}</p>
+      {d.fastest && (
+        <p>
+          <span className="text-muted">{t.fastest}: </span>
+          {word(d.fastest)}
+        </p>
+      )}
+      {d.slowest && (
+        <p>
+          <span className="text-muted">{t.slowest}: </span>
+          {word(d.slowest)}
+        </p>
+      )}
     </div>
   );
 }

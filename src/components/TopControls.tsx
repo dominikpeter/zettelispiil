@@ -17,7 +17,7 @@ const onSystemChange = (cb: () => void) => {
 const round = `grid size-11 place-items-center rounded-full border border-line bg-surface text-ink ${press}`;
 
 /** segmented control with a sliding indicator (transform only) */
-function Segmented<T extends string>({ options, value, onChange }: { options: { id: T; label: ReactNode }[]; value: T; onChange: (v: T) => void }) {
+export function Segmented<T extends string>({ options, value, onChange }: { options: { id: T; label: ReactNode }[]; value: T; onChange: (v: T) => void }) {
   const i = Math.max(0, options.findIndex((o) => o.id === value));
   return (
     <div className="relative grid rounded-2xl border border-line bg-canvas p-1 text-sm font-semibold" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>

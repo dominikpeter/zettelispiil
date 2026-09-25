@@ -16,5 +16,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ code: s
   return handle(async (db) => {
     const b = await req.json();
     await pushStrokes(db, code, b?.pid, b?.token, b?.sheet, b?.strokes);
-  });
+  }, { req, kind: "draw", scope: code });
 }

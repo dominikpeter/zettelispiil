@@ -66,3 +66,30 @@ export function computeStats(
     turnsTotal: turns.length,
   };
 }
+
+/** one Zetteli, round by round: who got it guessed, how long it was in hands, how often it was skipped */
+export function wordDetail(log: Ev[], w: number, rounds: number) {
+  return Array.from({ length: rounds }, (_, r) => {
+    const es = log.filter((e) => e.w === w && e.r === r);
+    return {
+      r,
+      by: es.find((e) => e.res === "got")?.p ?? null,
+      ms: es.reduce((s, e) => s + e.ms, 0),
+      skips: es.filter((e) => e.res === "skip").length,
+    };
+  });
+}
+
+/** one player: Zetteli guessed per round, time per Zetteli, skips, fastest and slowest guessed word */
+export function playerDetail(log: Ev[], turns: TurnLog[], p: number, rounds: number) {
+  const mine = log.filter((e) => e.p === p);
+  const got = mine.filter((e) => e.res === "got").sort((x, y) => x.ms - y.ms);
+  const ms = turns.filter((t) => t.p === p).reduce((s, t) => s + t.ms, 0);
+  return {
+    perRound: Array.from({ length: rounds }, (_, r) => got.filter((e) => e.r === r).length),
+    avgMs: got.length ? ms / got.length : null,
+    skips: mine.filter((e) => e.res === "skip").length,
+    fastest: got[0] ?? null,
+    slowest: got.length > 1 ? got.at(-1)! : null,
+  };
+}

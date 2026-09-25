@@ -1,6 +1,6 @@
 # Zettelispiil
 
-The Swiss party game with paper slips, as a mobile web app. Everyone writes words on *Zetteli*, they go into a bowl, and two teams race to guess them over four rounds that keep getting harder.
+The Swiss party game with paper slips, as a mobile web app. Everyone writes words on *Zetteli*, they go into a bowl, and two teams race to guess them over up to five rounds that keep getting harder.
 
 **Play:** [zettelispiil.ch](https://zettelispiil.ch) (also [zettelispiil.vercel.app](https://zettelispiil.vercel.app))
 
@@ -19,17 +19,17 @@ The Swiss party game with paper slips, as a mobile web app. Everyone writes word
 | Geräusch | Only noises |
 | Zeichnen | Draw it: on your phone with everyone watching live (several phones), or on a flip chart or paper (one phone). Opt-in |
 
-The host can reorder or drop rounds and set Zetteli per person, seconds per turn and how many Zetteli may be skipped per turn. With a limit of 1 you can set one aside and swap back and forth, but not skip a second.
+The host can reorder rounds by dragging (long-press on touch), drop or add rounds, and set Zetteli per person, seconds per turn and how many Zetteli may be skipped per turn. With a limit of 1 you can set one aside and swap back and forth, but not skip a second.
 
 In games on several phones, teammates can tap "Erraten" on their own phones too (a word only ever counts once), and each guessed word flashes briefly on every other phone. Long words shrink to stay on one line.
 
 The host can pause a turn (the clock stops on every phone and the Zetteli is hidden) and cancel the game back to the lobby.
 
-At the end: the winner, a score race over every turn, points per round, speed per round, a player ranking, and the fastest, slowest and most-skipped Zetteli.
+At the end: the winner, a score race over every turn, points per round, speed per round, a player ranking, and the fastest, slowest and most-skipped Zetteli. Tap a player or a Zetteli for details round by round.
 
 ## Two ways to play
 
-- **Ein Handy:** one phone goes round. Players are listed on the start screen (Lisa, Nora, Beni, Tim by default), the phone asks to be handed to each writer and describer. Runs entirely in the browser, and survives a reload.
+- **Ein Handy:** one phone goes round. Players are listed on the start screen (Lisa, Nora, Tim, Beni by default), the phone asks to be handed to each writer and describer. Runs entirely in the browser, and survives a reload.
 - **Mehrere Handys:** the host opens a room, everyone joins with the 5-letter code, the QR code or the link. The Zetteli only ever show on the describer's phone. Rooms live in Redis for a day.
 
 ## AI help
@@ -38,9 +38,19 @@ With `OPENAI_API_KEY` set (Vercel AI SDK, model `OPENAI_MODEL`, default `gpt-6-l
 
 Stuck for words? Type a topic and the AI suggests three to pick from.
 
+The host sets the language of the Zetteli (German, English or French) in the lobby; the AI checks, hints and suggests in that language while every phone keeps its own app language.
+
 Writing the same word as someone else cancels both copies, with or without AI; both writers write a new one.
 
 German by default, plus English and French. Light and dark mode and five color themes (Nacht, Tinte, Gold, Abendrot, Ozean) in the settings sheet. Player and team names are editable; teams start with a funny random name.
+
+## Security
+
+- Rooms: every action needs the player's random token; host-only and describer-only actions are checked on the server.
+- Writes are rate limited per network (Upstash, keyed by Vercel's own client IP header), bodies are capped, drawing sheets and turn logs have hard limits.
+- AI needs sign-in (Google, GitHub, Microsoft via Better Auth, encrypted cookie sessions, 7 days), is rate limited per account and overall, and its answers are length-bounded.
+- Headers: Content-Security-Policy (same origin only), `X-Frame-Options: DENY`, `nosniff`, strict referrer, camera only for the QR scanner.
+- Commits run a secret scan, lint, type check and unit tests (prek).
 
 ## Stack
 
@@ -66,12 +76,13 @@ The server keeps the clock: a turn ends at `endsAt`, and a guess tapped at 0:00 
 ## Develop
 
 ```bash
-npm install
-npm run dev          # in-memory rooms, no Redis needed
-npm test             # game logic and stats (node:test)
-npm run e2e          # Playwright: Pixel 7 plus WebKit iPhone SE / 15 / 15 Pro Max layouts, against a production build
-npm run lint
+just setup           # npm install + git hooks (prek: secret scan, lint, types, unit tests)
+just dev             # in-memory rooms, no Redis needed
+just check           # lint, typecheck, unit tests
+just e2e             # Playwright: Pixel 7 plus WebKit iPhone SE / 15 / 15 Pro Max layouts, against a production build
 ```
+
+`just` lists every recipe. The player manual is in [docs/MANUAL.md](docs/MANUAL.md).
 
 To run rooms against a real Redis locally:
 
@@ -85,6 +96,8 @@ UPSTASH_REDIS_REST_URL=http://localhost:8079 UPSTASH_REDIS_REST_TOKEN=local npm 
 
 Deployed on Vercel. AI help needs `OPENAI_API_KEY`. Rooms need `KV_REST_API_URL` and `KV_REST_API_TOKEN` (set by the Upstash for Redis integration) or `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`. Without them the API answers `503 no_storage` on Vercel, and one-phone games still work.
 
+Sign-in (needed for AI help) uses Google, GitHub or Microsoft: `just auth-setup` asks for the OAuth keys and stores them locally and in Vercel.
+
 ```bash
-vercel deploy --prod
+just release 1.3.0 "notes"   # checks, e2e, tag, GitHub release, deploy
 ```

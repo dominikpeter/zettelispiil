@@ -1,0 +1,26 @@
+# prek (https://github.com/j178/prek) runs these on every commit. Install once: `just setup`.
+repos:
+  - repo: local
+    hooks:
+      - id: no-secrets
+        name: no API keys
+        entry: bash -c '! git diff --cached -U0 | grep -E "^\+.*sk-(proj-)?[A-Za-z0-9_-]{20,}"'
+        language: system
+        pass_filenames: false
+      - id: lint
+        name: eslint
+        entry: npx eslint
+        language: system
+        files: \.(ts|tsx|mjs)$
+      - id: typecheck
+        name: tsc
+        entry: npx tsc --noEmit
+        language: system
+        pass_filenames: false
+        files: \.(ts|tsx)$
+      - id: unit
+        name: unit tests
+        entry: npm test
+        language: system
+        pass_filenames: false
+        files: ^src/

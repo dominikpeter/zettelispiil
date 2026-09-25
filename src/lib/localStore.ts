@@ -37,9 +37,9 @@ export const localStore: Store = {
   async hgetall<T>(k: string) {
     return ((read(k)?.v as Record<string, T>) ?? {}) as Record<string, T>;
   },
-  async rpush(k, vs, ex) {
+  async rpush(k, vs, ex, max) {
     const list = [...((read(k)?.v as unknown[]) ?? []), ...vs];
-    write(k, list, ex);
+    write(k, list.slice(0, max), ex);
     return list.length;
   },
   async lrangeWith<T, U>(k: string, start: number, other: string) {
