@@ -8,7 +8,7 @@ import { TopControls } from "@/components/TopControls";
 import { AiRoomContext, useAiStatus } from "@/lib/aiAccess";
 import { langPref, useT } from "@/lib/prefs";
 import type { Action, Stroke, View } from "@/lib/room";
-import { api, errKey, funnyName, loadIdentity, loadName, saveIdentity, saveName, type Identity } from "@/lib/roomClient";
+import { api, errKey, funnyName, loadIdentity, saveIdentity, type Identity } from "@/lib/roomClient";
 import { Bowl, btn, btn2, field } from "@/lib/ui";
 import { useCountdown } from "@/lib/useCountdown";
 
@@ -25,8 +25,8 @@ export default function Room() {
   const [id, setId] = useState<Identity | null>(() => (typeof window === "undefined" ? null : loadIdentity(code)));
   const [v, setV] = useState<View | null>(null);
   const [err, setErr] = useState("");
-  // the name you used last time; the sparkle suggests a funny one
-  const [name, setName] = useState(() => (typeof window === "undefined" ? "" : loadName()));
+  // your name, typed fresh (or made up with the sparkle)
+  const [name, setName] = useState(""); // you type your name, or tap the sparkle
   const [busy, setBusy] = useState(false);
   const [qr, setQr] = useState("");
   const [copied, setCopied] = useState(false);
@@ -99,7 +99,6 @@ export default function Room() {
     try {
       const r = await api<Identity>(`/${code}`, { type: "join", name });
       saveIdentity(code, r);
-      saveName(name.trim());
       setId({ pid: r.pid, token: r.token });
     } catch (e) {
       setErr((e as Error).message);

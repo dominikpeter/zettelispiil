@@ -20,18 +20,10 @@ export function saveIdentity(code: string, id: Identity) {
   } catch {}
 }
 
-export const loadName = () => {
-  try {
-    return localStorage.getItem(NAME_KEY) ?? "";
-  } catch {
-    return "";
-  }
-};
-export const saveName = (n: string) => {
-  try {
-    localStorage.setItem(NAME_KEY, n);
-  } catch {}
-};
+// names are typed fresh each time (or made up with the sparkle); a name saved by older versions is dropped once
+try {
+  localStorage.removeItem(NAME_KEY);
+} catch {}
 
 export class ApiError extends Error {}
 

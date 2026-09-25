@@ -8,13 +8,10 @@ import { AiNameButton } from "@/components/Game";
 import { TopControls } from "@/components/TopControls";
 import { loadLocalGame, loadPlayers, newLocalGame } from "@/lib/localGame";
 import { langPref, useT } from "@/lib/prefs";
-import { api, errKey, funnyName, loadName, saveIdentity, saveName, type Identity } from "@/lib/roomClient";
+import { api, errKey, funnyName, saveIdentity, type Identity } from "@/lib/roomClient";
 import { Bowl, btn, btn2, field, ghost, panel, press, Slip } from "@/lib/ui";
 
 const noop = () => () => {};
-// the name you used last time; read once so the snapshot stays stable
-let suggestion: string | undefined;
-const suggestedName = () => (suggestion ??= loadName()); // empty until you type one or tap the sparkle
 const hasLocalGame = () => !!loadLocalGame();
 let savedPlayers: string[] | undefined;
 const playersSnapshot = () => (savedPlayers ??= loadPlayers());
@@ -48,15 +45,13 @@ export default function Home() {
   const t = useT();
   const lang = langPref.use();
   const router = useRouter();
-  const saved = useSyncExternalStore(noop, suggestedName, () => "");
   const hero = useSyncExternalStore(noop, randomHero, () => CLASSIC);
   const resumable = useSyncExternalStore(noop, hasLocalGame, () => false);
-  const [typed, setName] = useState<string | null>(null);
+  const [name, setName] = useState(""); // empty: you type your name, or tap the sparkle for a funny one
   const savedList = useSyncExternalStore(noop, playersSnapshot, () => NO_PLAYERS);
   const [edited, setPlayers] = useState<string[] | null>(null);
   const players = edited ?? savedList;
   const named = players.map((p, i) => p.trim() || t.playerN(i + 1));
-  const name = typed ?? saved;
   const [play, setPlay] = useState<"local" | "online">("local");
   const [mode, setMode] = useState<"create" | "join">("create");
   const [code, setCode] = useState("");
@@ -68,7 +63,6 @@ export default function Home() {
     setErr("");
     try {
       const r = await api<Identity & { code: string }>(path, body);
-      saveName(name.trim());
       saveIdentity(r.code, { pid: r.pid, token: r.token });
       router.push(`/r/${r.code}`);
     } catch (e) {

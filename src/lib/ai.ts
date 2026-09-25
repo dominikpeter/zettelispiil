@@ -12,6 +12,8 @@ export const aiLive = async () => aiEnabled() && !(await aiSwitchedOff());
 // always the real API: a shell-wide OPENAI_BASE_URL (e.g. a local proxy) must not leak into the game
 const openai = createOpenAI({ baseURL: "https://api.openai.com/v1" });
 const model = () => openai(process.env.OPENAI_MODEL ?? "gpt-6-luna");
+// spelling, hints and names need no thinking: no reasoning and short answers halve the wait (measured ~4.3 s → ~2.2 s)
+const fast = { openai: { reasoningEffort: "none", textVerbosity: "low" } } as const;
 const LANG_NAME: Record<Lang, string> = { de: "Swiss Standard German (always \"ss\", never \"ß\"; Swiss German words are fine)", en: "English", fr: "French" };
 
 const Check = z.object({
@@ -35,6 +37,7 @@ const meter = (kind: "check" | "names" | "ideas", u: { inputTokens?: number; out
 export async function checkWords(words: string[], lang: Lang): Promise<WordCheck[]> {
   const { output, usage } = await generateText({
     model: model(),
+    providerOptions: fast,
     output: Output.object({ schema: Check }),
     system:
       "You help players of Zettelispiil (a salad-bowl party game: guess words from descriptions, charades, one word, sounds, drawing). " +
@@ -59,6 +62,7 @@ const Ideas = z.object({ words: z.array(z.string()) });
 export async function suggestWords(topic: string, lang: Lang, avoid: string[]): Promise<string[]> {
   const { output, usage } = await generateText({
     model: model(),
+    providerOptions: fast,
     output: Output.object({ schema: Ideas }),
     system:
       `You suggest words for Zettelispiil, a party guessing game (describe, charades, one word, sounds, drawing), in ${LANG_NAME[lang]}. ` +
@@ -85,9 +89,10 @@ export async function funnyNames(kind: "player" | "team", lang: Lang, n: number,
     : "";
   const { output, usage } = await generateText({
     model: model(),
+    providerOptions: fast,
     output: Output.object({ schema: Names }),
     system: `You invent short, funny, friendly ${kind === "team" ? "team names (1-3 words)" : "player nicknames (1-2 words)"} for a Swiss party game, in ${LANG_NAME[lang]}. No offensive words. Be surprising: vary the style, never reuse a word stem twice.`,
-    prompt: `Give 8 different names, loosely inspired by ${pick(THEMES)}.${around} Do not use or resemble any of these: ${others.join(", ") || "none"}.`,
+    prompt: `Give 6 different names, loosely inspired by ${pick(THEMES)}.${around} Do not use or resemble any of these: ${others.join(", ") || "none"}.`,
   });
   await meter("names", usage);
   const taken = new Set(avoid.map((a) => a.toLowerCase()));

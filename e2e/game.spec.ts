@@ -71,6 +71,7 @@ test("every phone: only the describer sees the Zetteli, one skip with swap back,
   const host = await phone(browser);
   await host.goto("/");
   await host.getByRole("button", { name: /Mehrere Handys/ }).click();
+  await expect(host.getByLabel("Dein Name")).toHaveValue(""); // no name pre-filled: you type yours (or tap the sparkle)
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
   await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
@@ -83,6 +84,10 @@ test("every phone: only the describer sees the Zetteli, one skip with swap back,
   expect(wa.searchParams.get("text")).toContain(`/r/${code}`);
 
   const others = await Promise.all(["Nora", "Tim", "Beni"].map(() => phone(browser)));
+  await host.goto("/"); // next time: still empty, nothing remembered from before
+  await host.getByRole("button", { name: /Mehrere Handys/ }).click();
+  await expect(host.getByLabel("Dein Name")).toHaveValue("");
+  await host.goto(`/r/${code}`);
   for (const [i, n] of ["Nora", "Tim", "Beni"].entries()) {
     await others[i].goto(`/r/${code.toLowerCase()}`); // lowercase link still works
     await others[i].getByLabel("Dein Name").fill(n);

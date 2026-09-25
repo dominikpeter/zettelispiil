@@ -465,7 +465,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
 // ---------- write ----------
 
 type Check = { corrected: string; tooHard: boolean; reason: string; hint: string };
-const CHECK_DELAY = 700; // ms of calm typing before a word is checked
+const CHECK_DELAY = 450; // ms of calm typing before a word is checked (short: the answer itself takes ~2 s)
 
 export function Write({ v, send, busy }: P) {
   const t = useT();
