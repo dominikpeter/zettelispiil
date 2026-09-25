@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { act, cleanSettings, createRoom, joinRoom, pullStrokes, pushStrokes, RoomError, view, type View } from "./room.ts";
+import { act, claimAi, cleanSettings, createRoom, joinRoom, pullStrokes, roomAi, pushStrokes, RoomError, view, type View } from "./room.ts";
 import { computeStats } from "./stats.ts";
 import { db as envStore, memoryStore, persistent } from "./store.ts";
 
@@ -324,4 +324,31 @@ test("kick ignores a player that isn't an index", async () => {
   await joinRoom(db, host.code, "Nora");
   await assert.rejects(act(db, host.code, host.pid, host.token, { type: "kick", player: "length" as never }), RoomError);
   assert.equal((await view(db, host.code, host.pid, host.token)).players.length, 2);
+});
+
+test("a room opened by a signed-in host lends AI to its members, and only to them", async () => {
+  const db = store();
+  const ai = await createRoom(db, "Lisa", "de", "user-lisa");
+  const guest = await joinRoom(db, ai.code, "Nora");
+  assert.equal((await view(db, ai.code, guest.pid, guest.token)).ai, true);
+  assert.equal(await roomAi(db, ai.code, guest.pid, guest.token), "user-lisa"); // members use the host's budget
+  assert.equal(await roomAi(db, ai.code, guest.pid, "wrong"), ""); // a wrong token gets nothing
+  assert.equal(await roomAi(db, ai.code, "nobody", guest.token), "");
+  assert.equal(await roomAi(db, "../x", guest.pid, guest.token), ""); // junk codes never reach the store
+
+  const plain = await createRoom(db, "Tim"); // host not signed in: no AI for the room
+  assert.equal((await view(db, plain.code, plain.pid, plain.token)).ai, false);
+  assert.equal(await roomAi(db, plain.code, plain.pid, plain.token), "");
+});
+
+test("a host who signs in after opening the room can turn AI on for it; nobody else can", async () => {
+  const db = store();
+  const host = await createRoom(db, "Lisa");
+  const guest = await joinRoom(db, host.code, "Nora");
+  await assert.rejects(claimAi(db, host.code, guest.pid, guest.token, "user-nora"), RoomError); // only the host
+  await assert.rejects(claimAi(db, host.code, host.pid, host.token, ""), RoomError); // only when actually signed in
+  await claimAi(db, host.code, host.pid, host.token, "user-lisa");
+  assert.equal(await roomAi(db, host.code, guest.pid, guest.token), "user-lisa");
+  await claimAi(db, host.code, host.pid, host.token, "user-other"); // the first account stays
+  assert.equal(await roomAi(db, host.code, guest.pid, guest.token), "user-lisa");
 });

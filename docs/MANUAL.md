@@ -94,7 +94,11 @@ Schreibt jemand anderes denselben Begriff wie du, sind beide Zetteli raus. Ihr b
 
 ### KI-Hilfe beim Schreiben
 
-Ist die KI-Hilfe an und du bist angemeldet, prüft sie jedes Zetteli im Hintergrund:
+Die KI-Hilfe braucht ein Konto (Google oder GitHub, in den Einstellungen unter **KI-Hilfe**). Ohne Anmeldung siehst du keine KI-Funktionen, spielen geht trotzdem.
+
+Erstellt eine angemeldete Person einen Raum (oder meldet sich die Spielleitung im Raum an), gilt die KI-Hilfe für alle darin, auch ohne eigenes Konto. In der Lobby steht dann «KI-Hilfe für alle».
+
+Ist die KI-Hilfe an, prüft sie jedes Zetteli im Hintergrund:
 
 - **Rechtschreibung**: «Meintest du …?» Mit **Übernehmen** nimmst du den Vorschlag.
 - **Schwierigkeit**: Die Warnung «Eher schwierig zu erraten» zeigt Begriffe, die kaum jemand errät. Mit **So in die Schüssel** behältst du ihn trotzdem.

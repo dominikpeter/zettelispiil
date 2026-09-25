@@ -38,6 +38,8 @@ With `OPENAI_API_KEY` set (Vercel AI SDK, model `OPENAI_MODEL`, default `gpt-6-l
 
 Stuck for words? Type a topic and the AI suggests three to pick from.
 
+AI help needs an account (Google or GitHub). Signed out, no AI features show at all. A room opened by a signed-in host (or whose host signs in later) has AI for everyone in it, on the host's budget: 120 calls per minute and 300 per day per room, 1000 per day per host.
+
 The host sets the language of the Zetteli (German, English or French) in the lobby; the AI checks, hints and suggests in that language while every phone keeps its own app language.
 
 Writing the same word as someone else cancels both copies, with or without AI; both writers write a new one.

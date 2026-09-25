@@ -26,13 +26,17 @@ typecheck:
 test:
     npm test
 
-# e2e against a local production build (port 3217); extra args go to playwright, e.g. `just e2e -g drag`
+# e2e against a local production build (port 3217); layout tests run alone, one at a time. Args go to playwright: `just e2e -g drag`
 e2e *args:
-    npx playwright test --workers=3 {{args}}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -n "{{args}}" ]; then npx playwright test --workers=2 {{args}}; exit; fi
+    npx playwright test --workers=2 e2e/game.spec.ts e2e/auth.spec.ts
+    npx playwright test --workers=1 e2e/layout.spec.ts
 
 # e2e against the live site
 e2e-prod *args:
-    BASE_URL=https://zettelispiil.ch npx playwright test --workers=3 {{args}}
+    BASE_URL=https://zettelispiil.ch just e2e {{args}}
 
 # everything a commit and a release must pass
 check: lint typecheck test

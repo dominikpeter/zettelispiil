@@ -37,7 +37,7 @@ function Mark({ p }: { p: Provider }) {
 const NAME: Record<Provider, string> = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
 
 /** sign-in buttons, or who is signed in; renders nothing when sign-in isn't set up */
-export function Account({ compact = false }: { compact?: boolean }) {
+export function Account() {
   const t = useT();
   const s = useAiStatus();
   const [err, setErr] = useState("");
@@ -50,8 +50,8 @@ export function Account({ compact = false }: { compact?: boolean }) {
   if (!s?.login) return null;
   if (s.user)
     return (
-      <div className="flex items-center justify-between gap-3">
-        <p className="min-w-0 text-sm text-muted">
+      <div className="flex items-center justify-between gap-3 rounded-2xl bg-raised py-1 pr-1 pl-4">
+        <p className="min-w-0 truncate text-sm text-muted">
           {t.signedInAs} <b className="truncate text-ink">{s.user.name || s.user.email}</b>
         </p>
         <button type="button" onClick={signOut} className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-raised hover:text-ink ${press}`}>
@@ -61,8 +61,8 @@ export function Account({ compact = false }: { compact?: boolean }) {
     );
   return (
     <div className="flex flex-col gap-2">
-      {!compact && <p className="text-sm text-muted">{t.signInNote}</p>}
-      <div className={`grid gap-2 ${compact ? "grid-cols-3" : ""}`}>
+      <p className="text-sm text-muted">{t.signInNote}</p>
+      <div className="grid gap-2">
         {s.providers.map((p) => (
           <button
             key={p}
@@ -72,7 +72,7 @@ export function Account({ compact = false }: { compact?: boolean }) {
             className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 font-semibold text-ink hover:bg-raised ${press}`}
           >
             <Mark p={p} />
-            {compact ? NAME[p] : t.signInWith(NAME[p])}
+            {t.signInWith(NAME[p])}
           </button>
         ))}
       </div>

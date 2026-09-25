@@ -1,9 +1,17 @@
-import { devices, expect, test, type Browser, type Page } from "@playwright/test";
+import { devices, expect, test, type Page } from "@playwright/test";
+import { closePhonesAfterEach, phone as openPhone } from "./phones";
 
 // iPhone sizes in Safari's engine: the play screens must fit without scrolling, buttons fully visible, words on one line
 test.use({ browserName: "webkit" });
-const PHONES = ["iPhone SE", "iPhone SE (3rd gen)", "iPhone 15", "iPhone 15 Pro Max"] as const;
+// one of these at a time: each opens up to four WebKit phones, and several in parallel run a laptop out of memory
+test.describe.configure({ mode: "default" });
+closePhonesAfterEach();
+// from the smallest (320 × 568) to the biggest, iPhones and small Androids
+const PHONES = ["iPhone SE", "Galaxy S9+", "Galaxy S5", "iPhone SE (3rd gen)", "iPhone 12 Mini", "iPhone 15", "Pixel 5", "iPhone 15 Pro Max"] as const;
 const LONG = ["Donaudampfschifffahrt", "Quantenchromodynamik", "Rindfleischetikettierung", "Kaffeemaschinenentkalker"];
+
+/** can the page be scrolled sideways? (tries it, then scrolls back) */
+const sideways = (page: Page) => page.evaluate("(() => { const y = scrollY; scrollTo(80, y); const x = scrollX; scrollTo(0, y); return x; })()");
 
 async function fits(page: Page) {
   return page.evaluate(() => {
@@ -20,7 +28,8 @@ async function fits(page: Page) {
 
 for (const name of PHONES) {
   test(`${name}: drawing round fits the screen for drawer and watcher; teammate guess flashes`, async ({ browser }) => {
-    const phone = async (b: Browser) => (await b.newContext({ ...devices[name] })).newPage();
+    test.setTimeout(180_000); // four WebKit phones in one test: slow when the machine is busy
+    const phone = (b: typeof browser) => openPhone(b, { ...devices[name] });
     const host = await phone(browser);
     await host.goto("/");
     await host.getByRole("button", { name: /Mehrere Handys/ }).click();
@@ -53,6 +62,7 @@ for (const name of PHONES) {
     await go(d).click();
     await expect(d.getByRole("img", { name: "Hier zeichnen" })).toBeVisible();
     expect(await fits(d)).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });
+    expect(await sideways(d)).toBe(0); // drawing strokes must never drag the page along
 
     // draw a line; every watcher gets it, and no watcher screen scrolls either
     const box = (await d.getByRole("img", { name: "Hier zeichnen" }).boundingBox())!;
@@ -73,14 +83,18 @@ for (const name of PHONES) {
     // a teammate calls it: the word counts once and flashes on the other phones
     const mate = phones.find((p, i) => i !== di && i % 2 === di % 2)!; // teams alternate on join
     const word = await d.getByTestId("word").innerText();
+    // the flash lasts 1.8 s: the drawer's phone records what it flashed, so a busy test machine can't miss it.
+    // (Only the drawer's: a phone only polls while visible, and headless WebKit may count a background test phone as hidden.)
+    const watchers = [d];
+    await Promise.all(watchers.map((p) => p.evaluate(`(() => { window.__flashes = []; new MutationObserver(() => document.querySelectorAll('[role=status]').forEach((e) => window.__flashes.push(e.textContent))).observe(document.body, { childList: true, subtree: true, characterData: true }); })()`)));
     await mate.getByRole("button", { name: "Erraten" }).click();
-    for (const p of phones.filter((x) => x !== mate)) await expect(p.getByRole("status").filter({ hasText: word })).toBeVisible();
+    for (const p of watchers) await expect.poll(() => p.evaluate("window.__flashes.join(' ')"), { timeout: 10_000 }).toContain(word);
     await expect(d.getByTestId("word")).not.toHaveText(word);
   });
 }
 
 test("iPhone SE: long words stay on one line and the swipe screen fits (one phone)", async ({ browser }) => {
-  const page = await (await browser.newContext({ ...devices["iPhone SE"] })).newPage();
+  const page = await openPhone(browser, { ...devices["iPhone SE"] });
   await page.goto("/");
   await page.getByRole("button", { name: "Neues Spiel" }).click();
   await page.waitForURL(/\/local$/);
@@ -95,4 +109,46 @@ test("iPhone SE: long words stay on one line and the swipe screen fits (one phon
   await page.getByRole("button", { name: "Los, Zetteli ziehen" }).click();
   await expect(page.getByTestId("word")).toBeVisible();
   expect(await fits(page)).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });
+});
+
+test("iPhone SE: no screen ever scrolls sideways, through a whole one-phone game with drawing on paper", async ({ browser }) => {
+  test.setTimeout(180_000); // a whole game
+  const page = await openPhone(browser, { ...devices["iPhone SE"] });
+  const check = async (where: string) => expect(await sideways(page), `${where} scrolls sideways`).toBe(0);
+  await page.goto("/");
+  await check("home");
+  await page.getByRole("button", { name: "Einstellungen", exact: true }).first().click();
+  await check("settings sheet");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Neues Spiel" }).click();
+  await page.waitForURL(/\/local$/);
+  await check("lobby");
+  for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
+  for (const r of ["Pantomime", "Ein Wort", "Geräusch"]) await page.getByRole("button", { name: `${r} weglassen` }).click();
+  await page.getByRole("button", { name: "Zeichnen hinzufügen" }).click();
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  for (const [i, w] of LONG.entries()) {
+    await page.getByRole("button", { name: /^Ich bin / }).click();
+    await page.getByLabel("Zetteli 1", { exact: true }).fill(w);
+    if (!i) await check("write");
+    await page.getByRole("button", { name: "In die Schüssel" }).click();
+  }
+  const end = page.getByText("Gewonnen hat").or(page.getByText("Unentschieden"));
+  for (let g = 0; g < 40 && !(await end.isVisible()); g++) {
+    const go = page.getByRole("button", { name: "Los, Zetteli ziehen" });
+    const next = page.getByRole("button", { name: /^Runde \d starten/ });
+    await expect(go.or(next).or(page.getByTestId("word")).or(end).first()).toBeVisible();
+    if (await go.isVisible()) (await check("ready"), await go.click());
+    else if (await next.isVisible()) (await check("round end"), await next.click());
+    else if (await page.getByTestId("word").isVisible()) {
+      // settled, the turn screen fits (drawing on paper too); a moment between two screens may briefly be taller
+      await expect.poll(() => fits(page), { message: "turn screen", timeout: 3000 }).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });
+      await page.getByRole("button", { name: "Erraten" }).click();
+      await check("right after a guess");
+    }
+  }
+  await expect(end).toBeVisible();
+  await page.getByText(/Alle \d+ Zetteli/).click();
+  await page.locator("summary").filter({ hasText: LONG[0] }).last().click();
+  await check("end stats with details open");
 });

@@ -60,6 +60,7 @@ type Room = {
   turns: TurnLog[];
   writeNo: number;
   turnNo: number;
+  aiBy?: string; // user id of a host who was signed in when creating the room: AI is on for everyone in it, on that host's budget
 };
 
 export class RoomError extends Error {
@@ -107,7 +108,7 @@ async function addMember(db: Store, code: string, name: string, members: Member[
   return m;
 }
 
-export async function createRoom(db: Store, hostName: unknown, lang: unknown = "de") {
+export async function createRoom(db: Store, hostName: unknown, lang: unknown = "de", aiBy = "") {
   const name = cleanName(hostName);
   if (!name) throw new RoomError("bad_request");
   for (let attempt = 0; attempt < 10; attempt++) {
@@ -115,7 +116,7 @@ export async function createRoom(db: Store, hostName: unknown, lang: unknown = "
     const room: Room = {
       code, hostId: "", settings: cleanSettings({ lang: lang as Lang }), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de"), phase: "lobby", ids: [], teams: [], words: [], hints: [], authors: [],
       bowl: [], current: null, held: [], shownAt: 0, round: 0, team: 0, next: [0, 0], turnStart: 0, endsAt: 0, pausedAt: 0, drawNo: 0, carryMs: 0,
-      turnGot: 0, lastGot: null, scores: [], log: [], turns: [], writeNo: 0, turnNo: 0,
+      turnGot: 0, lastGot: null, scores: [], log: [], turns: [], writeNo: 0, turnNo: 0, aiBy,
     };
     if (!(await db.set(k(code).room, room, { ex: TTL, nx: true }))) continue; // code taken, roll again
     const host = await addMember(db, code, name, []);
@@ -240,6 +241,24 @@ export type Action =
   | { type: "teamGot"; seen: number } // a teammate taps "Erraten"; `seen` = turnGot on their screen, so a word counts once
   | { type: "back"; w: number; to: number }
   | { type: "wipe" };
+
+/** the user id whose AI budget a room member may use, or "" when the room has no AI or this isn't a member */
+export async function roomAi(db: Store, code: unknown, pid: unknown, token: unknown) {
+  if (typeof code !== "string" || !/^[A-Z0-9]{4,6}$/.test(code)) return "";
+  const [room, members] = await Promise.all([db.get<Room>(k(code).room), db.hgetall<Member>(k(code).members)]);
+  const me = members[String(pid)];
+  return room?.aiBy && me && me.token === token ? room.aiBy : "";
+}
+
+/** the host signed in after opening the room: from now on AI is on for everyone in it, on their budget */
+export async function claimAi(db: Store, code: string, pid: unknown, token: unknown, userId: string) {
+  const { room, members } = await load(db, code);
+  const me = members.find((m) => m.id === pid);
+  if (!me || me.token !== token || me.id !== room.hostId || !userId) throw new RoomError("forbidden");
+  if (room.aiBy) return;
+  room.aiBy = userId;
+  await save(db, room);
+}
 
 export async function act(db: Store, code: string, pid: unknown, token: unknown, a: Action, now = Date.now()) {
   const { room, members } = await load(db, code);
@@ -421,6 +440,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
 
 export type View = {
   code: string;
+  ai: boolean; // a signed-in host opened this room: everyone in it may use AI
   phase: Phase;
   settings: Settings;
   teamNames: [string, string];
@@ -478,6 +498,7 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
 
   return {
     code,
+    ai: !!room.aiBy,
     phase: room.phase,
     settings: cleanSettings(room.settings), // rooms from before a setting existed get its default
     teamNames: room.teamNames,

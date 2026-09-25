@@ -2,6 +2,7 @@
 
 import { Heart, Moon, Settings, Sparkles, Sun, SunMoon, X } from "lucide-react";
 import { Account } from "./Account";
+import { aiAllowed, useAiRoom, useAiStatus } from "@/lib/aiAccess";
 import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { LANGS } from "@/lib/i18n";
 import { aiPref, hintPref, langPref, palettePref, PALETTES, themePref, THEMES, useT } from "@/lib/prefs";
@@ -48,32 +49,47 @@ export function SettingsPanel() {
   const lang = langPref.use();
   const ai = aiPref.use();
   const hints = hintPref.use();
+  const status = useAiStatus();
+  const aiRoom = useAiRoom();
+  const canAi = aiAllowed(status) || (!!aiRoom && !!status?.ai); // the AI switches only once AI can be used: signed in, or in a signed-in host's room
   const icon = { auto: SunMoon, light: Sun, dark: Moon };
   return (
     <>
-      <section className="flex flex-col gap-3 empty:hidden">
-        <Account />
-      </section>
-      <section className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
+      {/* AI and the account belong together: signed out, the AI section is just the way in (hidden when no sign-in is set up) */}
+      {!canAi && status?.login && (
+        <section className="flex flex-col gap-2">
           <h3 className="flex items-center gap-2 font-semibold">
             <Sparkles className="size-4 shrink-0 text-accent" aria-hidden /> {t.aiHelp}
           </h3>
-          <p className="text-sm leading-snug text-muted">{t.aiHelpNote}</p>
+          <Account />
+        </section>
+      )}
+      {canAi && (<>
+      {/* title and switch on one line, the explanation below at full width: stays readable on the smallest phones */}
+      <section className="flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="flex min-w-0 items-center gap-2 font-semibold">
+            <Sparkles className="size-4 shrink-0 text-accent" aria-hidden /> {t.aiHelp}
+          </h3>
+          <div className="w-32 shrink-0">
+            <Segmented options={[{ id: "on" as const, label: t.on }, { id: "off" as const, label: t.off }]} value={ai} onChange={aiPref.set} />
+          </div>
         </div>
-        <div className="w-36 shrink-0">
-          <Segmented options={[{ id: "on" as const, label: t.on }, { id: "off" as const, label: t.off }]} value={ai} onChange={aiPref.set} />
+        <p className="text-sm leading-snug text-muted">{t.aiHelpNote}</p>
+        <div className="mt-2 empty:hidden">
+          <Account />
         </div>
       </section>
-      <fieldset disabled={ai !== "on"} className={`flex items-center justify-between gap-4 transition-opacity ${ai === "on" ? "" : "opacity-40"}`}>
-        <div className="min-w-0">
-          <h3 className="font-semibold">{t.showHints}</h3>
-          <p className="text-sm leading-snug text-muted">{t.showHintsNote}</p>
+      <fieldset disabled={ai !== "on"} className={`flex flex-col gap-1 transition-opacity ${ai === "on" ? "" : "opacity-40"}`}>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="min-w-0 font-semibold">{t.showHints}</h3>
+          <div className="w-32 shrink-0">
+            <Segmented options={[{ id: "on" as const, label: t.on }, { id: "off" as const, label: t.off }]} value={ai === "on" ? hints : "off"} onChange={hintPref.set} />
+          </div>
         </div>
-        <div className="w-36 shrink-0">
-          <Segmented options={[{ id: "on" as const, label: t.on }, { id: "off" as const, label: t.off }]} value={ai === "on" ? hints : "off"} onChange={hintPref.set} />
-        </div>
+        <p className="text-sm leading-snug text-muted">{t.showHintsNote}</p>
       </fieldset>
+      </>)}
 
           <section className="flex flex-col gap-2">
         <h3 className="font-semibold">{t.language}</h3>

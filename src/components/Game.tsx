@@ -6,10 +6,9 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { move as moved } from "@dnd-kit/helpers";
-import { aiAllowed, useAiStatus } from "@/lib/aiAccess";
-import { aiPref, langPref, useHints, useT } from "@/lib/prefs";
+import { useAiOn, useAiRoom } from "@/lib/aiAccess";
+import { useHints, useT } from "@/lib/prefs";
 import { LANGS } from "@/lib/i18n";
-import { Account } from "./Account";
 import { Segmented } from "./TopControls";
 import { funnyName } from "@/lib/roomClient";
 import { norm, ROUND_TYPES, type Action, type RoundType, type Stroke, type Settings, type Slip as SlipT, type Team, type View } from "@/lib/room";
@@ -201,6 +200,7 @@ function EditableName({ value, label, onSave, className = "" }: { value: string;
 /** sparkle button that fetches a funny name without blocking anything; spins while it waits */
 export function AiNameButton({ label, make, onName, disabled, className = mini }: { label: string; make: () => Promise<string>; onName: (n: string) => void; disabled?: boolean; className?: string }) {
   const [loading, setLoading] = useState(false);
+  if (!useAiOn()) return null; // AI off or not signed in: no AI features anywhere
   return (
     <button
       type="button"
@@ -225,9 +225,9 @@ export function AiNameButton({ label, make, onName, disabled, className = mini }
 function Stepper({ label, value, display, set, min, max }: { label: string; value: number; display?: ReactNode; set: (n: number) => void; min: number; max: number }) {
   const t = useT();
   return (
-    <div className="flex items-center justify-between gap-3 py-2">
+    <div className="flex items-center justify-between gap-3 py-2 max-xs:flex-col max-xs:items-stretch max-xs:gap-1">
       <span className="font-medium">{label}</span>
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1 max-xs:self-end">
         <button onClick={() => set(value - 1)} disabled={value <= min} className={round_btn} aria-label={t.less(label)}>
           <Minus className="size-5" aria-hidden />
         </button>
@@ -251,7 +251,7 @@ function RoundRow({ r, i, children }: { r: RoundType; i: number; children: React
   return (
     <li ref={ref} data-round={r} className={`enter flex items-center gap-2 rounded-2xl bg-raised py-1.5 pr-1 ${isDragging ? "relative z-10 shadow-lg ring-2 ring-accent" : ""}`}>
       <button ref={handleRef} type="button" aria-label={t.moveRound(t.round[r].name)} className="flex min-w-0 flex-1 cursor-grab items-center gap-2 self-stretch rounded-xl pl-1.5 text-left select-none active:cursor-grabbing">
-        <GripVertical className="size-4 shrink-0 text-muted" aria-hidden />
+        <GripVertical className="size-4 shrink-0 text-muted max-xs:hidden" aria-hidden />
         <span className="w-3 shrink-0 text-sm font-bold text-muted tabular-nums">{i + 1}</span>
         <RoundIcon type={r} className="size-5 shrink-0 text-accent" />
         <span className="min-w-0 flex-1 truncate font-semibold">{t.round[r].name}</span>
@@ -266,6 +266,8 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
   // only the host edits settings: show their taps at once, and send them one after another so quick taps never race
   const [pending, setPending] = useState<Partial<Settings>>({});
   const s = { ...v.settings, ...pending };
+  const aiRoom = useAiRoom();
+  const aiOn = useAiOn();
   const queue = useRef(Promise.resolve());
   const local = mode === "local";
   const set = (patch: Partial<Settings>) => {
@@ -286,6 +288,11 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
 
   return (
     <div key="lobby" className="enter flex flex-1 flex-col gap-4">
+      {aiRoom && aiOn && (
+        <p className="flex items-center gap-2 rounded-2xl bg-raised px-4 py-2.5 text-sm font-medium">
+          <Sparkles className="size-4 shrink-0 text-accent" aria-hidden /> {t.roomAi}
+        </p>
+      )}
       {share && (
         <section className={`${panel} flex items-center gap-4`}>
           {share.qr && (
@@ -310,7 +317,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
               {local || v.isHost || mine === ti ? (
                 <span className="flex min-w-0 items-center gap-1">
                   <EditableName value={v.teamNames[ti]} label={t.teamName} onSave={(name) => send({ type: "teamName", team: ti, name })} />
-                  <AiNameButton label={`${t.teamName}: ${t.aiName}`} disabled={busy} make={() => funnyName("team", s.lang, v.teamNames, t.funnyTeams)} onName={(name) => send({ type: "teamName", team: ti, name })} />
+                  <AiNameButton label={`${t.teamName}: ${t.aiName}`} disabled={busy} make={() => funnyName("team", s.lang, v.teamNames, t.funnyTeams, aiRoom)} onName={(name) => send({ type: "teamName", team: ti, name })} />
                 </span>
               ) : (
                 <span className="truncate">{v.teamNames[ti]}</span>
@@ -359,7 +366,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
           <input value={adding} onChange={(e) => setAdding(e.target.value)} maxLength={24} placeholder={t.addPlayer} aria-label={t.addPlayer} className={`${field} min-w-0 flex-1 py-2.5 font-semibold`} />
           <AiNameButton
             label={t.aiName}
-            make={() => funnyName("player", s.lang, v.players.map((p) => p.name), t.funnyPlayers)}
+            make={() => funnyName("player", s.lang, v.players.map((p) => p.name), t.funnyPlayers, aiRoom)}
             onName={setAdding}
             className={`grid size-[3.2rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent ${press}`}
           />
@@ -458,9 +465,8 @@ const CHECK_DELAY = 700; // ms of calm typing before a word is checked
 export function Write({ v, send, busy }: P) {
   const t = useT();
   const lang = v.settings.lang; // the Zetteli's language, set by the host; the UI stays in this phone's language
-  const aiStatus = useAiStatus();
-  const aiWanted = aiPref.use() === "on";
-  const aiOn = aiWanted && aiAllowed(aiStatus); // switched on here, and signed in where that's required
+  const aiOn = useAiOn(); // switched on here, and signed in (or in a signed-in host's room) where that's required
+  const aiRoom = useAiRoom();
   const n = v.settings.perPlayer;
   // kept Zetteli stay filled; cancelled duplicates leave an empty slip to rewrite
   const [draft, setDraft] = useState<SlipT[]>(() => {
@@ -511,7 +517,7 @@ export function Write({ v, send, busy }: P) {
       setChecks((c) => ({ ...c, ...Object.fromEntries(todo.map((w) => [w, "loading" as const])) }));
       let results: Check[] | null = null;
       try {
-        const r = await fetch("/api/ai/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ words: todo, lang }) }).then((x) => x.json());
+        const r = await fetch("/api/ai/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ words: todo, lang, room: aiRoom }) }).then((x) => x.json());
         if (r?.ai && Array.isArray(r.results) && r.results.length === todo.length) results = r.results;
       } catch {}
       const none: Check = { corrected: "", tooHard: false, reason: "", hint: "" };
@@ -563,14 +569,6 @@ export function Write({ v, send, busy }: P) {
         <h2 className="text-3xl font-extrabold tracking-tight">{t.writeTitle(draft.length)}</h2>
         <p className="mt-1 text-muted">{t.writeHelp}</p>
       </div>
-      {aiWanted && aiStatus?.login && !aiStatus.user && (
-        <section className="rounded-3xl bg-surface p-3">
-          <p className="mb-2 flex items-center gap-2 px-1 text-sm text-muted">
-            <Sparkles className="size-4 shrink-0 text-accent" aria-hidden /> {t.loginForAi}
-          </p>
-          <Account compact />
-        </section>
-      )}
       {aiOn && (
         <Ideas
           lang={lang}
@@ -670,13 +668,14 @@ export function Write({ v, send, busy }: P) {
 /** topic in, three AI suggestions out; tapping one puts it on the next empty Zetteli */
 function Ideas({ lang, avoid, full, onPick }: { lang: string; avoid: string[]; full: boolean; onPick: (w: string) => void }) {
   const t = useT();
+  const aiRoom = useAiRoom();
   const [topic, setTopic] = useState("");
   const [ideas, setIdeas] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(false);
   const get = async () => {
     setLoading(true);
     try {
-      const r = await fetch("/api/ai/ideas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic, lang, avoid }) }).then((x) => x.json());
+      const r = await fetch("/api/ai/ideas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic, lang, avoid, room: aiRoom }) }).then((x) => x.json());
       setIdeas(r?.ai && Array.isArray(r.words) && r.words.length ? r.words : []);
     } catch {
       setIdeas([]);

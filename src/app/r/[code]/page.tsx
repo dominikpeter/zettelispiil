@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { AiNameButton, BackButton, GameMenu, Lobby, Phase, Score, Waiting } from "@/components/Game";
 import { TopControls } from "@/components/TopControls";
+import { AiRoomContext, useAiStatus } from "@/lib/aiAccess";
 import { langPref, useT } from "@/lib/prefs";
 import type { Action, Stroke, View } from "@/lib/room";
 import { api, errKey, funnyName, loadIdentity, loadName, saveIdentity, saveName, type Identity } from "@/lib/roomClient";
@@ -61,6 +62,13 @@ export default function Room() {
 
   const left = useCountdown(v, offset);
 
+  // the host is signed in (maybe only since opening the room): turn AI on for everyone here, once
+  const signedIn = !!useAiStatus()?.user;
+  const claim = !!v?.isHost && !v.ai && signedIn && !!id;
+  useEffect(() => {
+    if (claim) api(`/${code}`, { ...id, type: "claimAi" }).then(refresh, () => {});
+  }, [claim, code, id, refresh]);
+
   useEffect(() => {
     if (!url) return;
     QRCode.toDataURL(url, { margin: 1, width: 480, color: { dark: "#0c0014", light: "#fffcd6" } }).then(setQr, () => {});
@@ -115,8 +123,11 @@ export default function Room() {
   const players = v?.players ?? [];
   const errMsg = err && err !== "forbidden" ? t[errKey(err)] : "";
   const playing = v && v.phase !== "lobby" && v.phase !== "write" && v.phase !== "end";
+  // a signed-in host opened this room: AI is on for everyone who joined
+  const aiRoom = joined && v.ai && id ? { code, pid: id.pid, token: id.token } : null;
 
   return (
+    <AiRoomContext value={aiRoom}>
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <header className="mb-4 flex min-h-11 items-center justify-between gap-2">
         <BackButton v={v} onLeave={() => router.push("/")} label={code} />
@@ -186,5 +197,6 @@ export default function Room() {
 
       {!v && !errMsg && <Waiting text={t.loading} />}
     </main>
+    </AiRoomContext>
   );
 }

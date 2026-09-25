@@ -1,3 +1,4 @@
+import type { AiRoom } from "./aiAccess";
 import { aiPref } from "./prefs";
 // browser side of rooms: who I am in each room, and calls to /api/rooms
 export type Identity = { pid: string; token: string };
@@ -51,11 +52,18 @@ const KNOWN = ["not_found", "started", "full", "no_storage", "rate_limited"] as 
 export const errKey = (e: string): (typeof KNOWN)[number] | "offline" => (KNOWN as readonly string[]).includes(e) ? (e as (typeof KNOWN)[number]) : "offline";
 
 /** one funny name from the AI when it's available, otherwise from our own list */
-export async function funnyName(kind: "player" | "team", lang: string, avoid: string[], fallback: string[]) {
+const recent: string[] = []; // names this phone was already offered: asked again, the AI must come up with something new
+
+export async function funnyName(kind: "player" | "team", lang: string, avoid: string[], fallback: string[], room?: AiRoom | null) {
   try {
     if (aiPref.get() === "off") throw 0; // AI help switched off on this phone
-    const r = await fetch("/api/ai/names", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, lang, n: 1, avoid }) }).then((x) => x.json());
-    if (r?.ai && r.names?.[0]) return String(r.names[0]);
+    const r = await fetch("/api/ai/names", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, lang, n: 1, avoid: [...avoid, ...recent].slice(-40), room }) }).then((x) => x.json());
+    if (r?.ai && r.names?.[0]) {
+      const name = String(r.names[0]);
+      recent.push(name);
+      if (recent.length > 20) recent.shift();
+      return name;
+    }
   } catch {}
   const pool = fallback.filter((n) => !avoid.includes(n));
   return (pool.length ? pool : fallback)[Math.floor(Math.random() * (pool.length || fallback.length))];

@@ -19,7 +19,7 @@ Run `just` to list recipes. Prefer them over raw commands so everyone runs the s
 | `just setup` | `npm install` + `prek install` (git hooks) |
 | `just dev` | dev server, in-memory rooms |
 | `just check` | lint + typecheck + unit tests (what the pre-commit hook runs) |
-| `just e2e [args]` | Playwright against a local production build on :3217, `--workers=3` (more runs out of memory) |
+| `just e2e [args]` | Playwright against a local production build on :3217: game and auth tests two at a time, then the multi-phone layout tests one at a time (in parallel they overload a laptop) |
 | `just e2e-prod [args]` | Playwright against https://zettelispiil.ch |
 | `just deploy` | `vercel deploy --prod` |
 | `just release X.Y.Z "notes"` | check, e2e, secret scan, bump, tag, push, GitHub release, deploy |

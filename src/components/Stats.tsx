@@ -196,7 +196,7 @@ function Tempo({ rounds, names, label }: { rounds: { avgMs: number }[]; names: s
           <g key={i}>
             <rect x={bx} y={H - 26 - h} width={bw} height={h} rx="4" fill="var(--color-accent)" className="grow" style={{ animationDelay: `${i * 0.08}s` }} />
             <text x={bx + bw / 2} y={H - 32 - h} textAnchor="middle" className="fill-ink text-xs font-bold tabular-nums">
-              {r.avgMs ? `${fmt(r.avgMs)} s` : "–"}
+              {r.avgMs ? `${fmt(r.avgMs)} s` : "–"}
             </text>
             <text x={gw * i + gw / 2} y={H - 8} textAnchor="middle" className="fill-muted text-[11px]">
               {names[i]}
@@ -279,9 +279,9 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
 
       <Section title={t.theSlips}>
         <div className="grid gap-4">
-          {s.fastest && <Highlight label={t.fastest} word={st.words[s.fastest.w]} detail={`${fmt(s.fastest.ms)} s, ${names[s.fastest.r]}`} tilt={-2} type={v.settings.rounds[s.fastest.r]} />}
+          {s.fastest && <Highlight label={t.fastest} word={st.words[s.fastest.w]} detail={`${fmt(s.fastest.ms)} s, ${names[s.fastest.r]}`} tilt={-2} type={v.settings.rounds[s.fastest.r]} />}
           {s.slowest && s.slowest !== s.fastest && (
-            <Highlight label={t.slowest} word={st.words[s.slowest.w]} detail={`${fmt(s.slowest.ms)} s, ${names[s.slowest.r]}`} tilt={1.5} type={v.settings.rounds[s.slowest.r]} />
+            <Highlight label={t.slowest} word={st.words[s.slowest.w]} detail={`${fmt(s.slowest.ms)} s, ${names[s.slowest.r]}`} tilt={1.5} type={v.settings.rounds[s.slowest.r]} />
           )}
           {s.mostSkipped && <Highlight label={t.mostSkipped} word={st.words[s.mostSkipped.w]} detail={t.backInBowl(s.mostSkipped.count)} tilt={-1} />}
         </div>
@@ -299,7 +299,7 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-hand min-w-0 truncate pr-1.5 text-2xl leading-tight font-bold">{h.text}</span>
                     <span className="flex shrink-0 items-center gap-1 text-sm text-muted tabular-nums">
-                      {fmt(h.ms)} s, {t.by(v.players[st.authors[h.w]]?.name ?? "?")}
+                      {fmt(h.ms)} s, {t.by(v.players[st.authors[h.w]]?.name ?? "?")}
                       {chevron}
                     </span>
                   </div>
@@ -367,7 +367,7 @@ function WordDetail({ d, names, types, players, t }: { d: ReturnType<typeof word
             <span className="font-semibold">{names[r.r]}</span>
             <span className="text-muted tabular-nums">
               {": "}
-              {[r.by === null ? t.notGuessed : t.describedBy(players[r.by]?.name ?? "?"), r.ms ? `${fmt(r.ms)} s` : null, r.skips ? t.skippedN(r.skips) : null].filter(Boolean).join(", ")}
+              {[r.by === null ? t.notGuessed : t.describedBy(players[r.by]?.name ?? "?"), r.ms ? `${fmt(r.ms)} s` : null, r.skips ? t.skippedN(r.skips) : null].filter(Boolean).join(", ")}
             </span>
           </div>
         </li>
@@ -378,7 +378,7 @@ function WordDetail({ d, names, types, players, t }: { d: ReturnType<typeof word
 
 /** a player: guessed Zetteli per round, tempo, skips, quickest and slowest word */
 function PlayerDetail({ d, names, types, words, t }: { d: ReturnType<typeof playerDetail>; names: string[]; types: RoundType[]; words: string[]; t: Dict }) {
-  const word = (e: NonNullable<typeof d.fastest>) => `${words[e.w]}, ${fmt(e.ms)} s, ${names[e.r]}`;
+  const word = (e: NonNullable<typeof d.fastest>) => `${words[e.w]}, ${fmt(e.ms)} s, ${names[e.r]}`;
   return (
     <div className="mt-2 ml-7 flex flex-col gap-1.5 rounded-2xl bg-raised p-3 text-sm">
       <ul className="flex flex-wrap gap-x-4 gap-y-1">

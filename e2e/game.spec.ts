@@ -1,10 +1,8 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { closePhonesAfterEach, phone } from "./phones";
 
 // each player is a separate browser context = a separate phone with its own localStorage
-async function phone(browser: Browser) {
-  const ctx = await browser.newContext({ ...test.info().project.use });
-  return ctx.newPage();
-}
+closePhonesAfterEach();
 
 /** drag the Zetteli sideways like a thumb would */
 async function swipe(page: Page, dir: "right" | "left") {
@@ -378,29 +376,6 @@ test("one phone can play the drawing round on a flip chart", async ({ page }) =>
   await expect(page.getByRole("img", { name: "Hier zeichnen" })).toHaveCount(0);
   await page.getByRole("button", { name: "Erraten" }).click();
   await expect(page.getByTestId("word")).toBeVisible();
-});
-
-test("AI needs sign-in: the write screen offers Google, GitHub and Microsoft and makes no AI calls", async ({ page }) => {
-  await page.route("**/api/ai/status", (r) => r.fulfill({ json: { ai: true, login: true, providers: ["google", "github", "microsoft"], user: null } }));
-  let aiCalls = 0;
-  await page.route("**/api/ai/check", (r) => {
-    aiCalls++;
-    return r.fulfill({ json: { ai: false } });
-  });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Neues Spiel" }).click();
-  await page.waitForURL(/\/local$/);
-  await page.getByRole("button", { name: "Spiel starten" }).click();
-  await page.getByRole("button", { name: /^Ich bin / }).click();
-  for (const p of ["Google", "GitHub", "Microsoft"]) await expect(page.getByRole("button", { name: `Mit ${p} anmelden` })).toBeVisible();
-  await expect(page.getByLabel(/^Thema/)).toHaveCount(0); // no AI ideas without an account
-  await page.getByLabel("Zetteli 1", { exact: true }).fill("Matterhon");
-  await page.waitForTimeout(1500);
-  expect(aiCalls).toBe(0);
-  // the settings sheet has the same buttons, and the credit line
-  await page.getByRole("button", { name: "Pause" }).click();
-  await page.getByText("Einstellungen", { exact: true }).click();
-  await expect(page.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/dominikpeter/zettelispiil");
 });
 
 test("rounds can be dragged into a new order", async ({ page }) => {

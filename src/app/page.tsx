@@ -22,20 +22,33 @@ const NO_PLAYERS: string[] = [];
 
 // fanned out above the bowl so every word stays readable; back row first, smaller
 const HERO = [
-  { w: "Schoggi", tilt: -6, x: "left-[3%] top-0", size: "text-lg", d: "0s" },
+  { w: "Schoggi", tilt: -6, x: "left-[3%] top-0 max-xs:hidden", size: "text-lg", d: "0s" },
   { w: "Gipfeli", tilt: 6, x: "right-[3%] top-[1%]", size: "text-lg", d: "0.08s" },
-  { w: "Aare", tilt: -3, x: "left-[27%] top-[42%]", size: "text-lg", d: "0.16s" },
-  { w: "Rösti", tilt: 5, x: "right-[25%] top-[43%]", size: "text-lg", d: "0.22s" },
+  { w: "Aare", tilt: -3, x: "left-[27%] top-[42%] max-xs:hidden", size: "text-lg", d: "0.16s" },
+  { w: "Rösti", tilt: 5, x: "right-[25%] top-[43%] max-xs:hidden", size: "text-lg", d: "0.22s" },
   { w: "Fondue", tilt: -9, x: "left-0 top-[28%]", size: "text-2xl", d: "0.3s" },
   { w: "Velo", tilt: 9, x: "right-1 top-[27%]", size: "text-2xl", d: "0.38s" },
   { w: "Matterhorn", tilt: 2, x: "left-1/2 -translate-x-1/2 top-[6%]", size: "text-[1.55rem]", d: "0.46s" },
 ];
+
+// the words on the hero slips: a fresh Swiss mix on every visit (the server renders the classic set, then the phone shuffles).
+// Side slips take up to 7 letters, the big one in the middle up to 10, so every word fits its spot.
+const SHORT = ["Schoggi", "Gipfeli", "Aare", "Rösti", "Fondue", "Velo", "Brötli", "Hörnli", "Zopf", "Zmorge", "Znüni", "Alphorn", "Gondel", "Rivella", "Chuchi", "Müesli", "Lädeli", "Bärli", "Fähre", "Glocke", "Arosa", "Aarau", "Rüebli", "Chalet", "Grüezi", "Skilift", "Schnee"];
+const LONG = ["Matterhorn", "Jungfrau", "Pilatus", "Gotthard", "Säntis", "Zytglogge", "Raclette", "Bergbahn", "Eiger", "Rheinfall", "Weisshorn", "Bärenland", "Maienzug", "Schlitten", "Rüeblimärt", "Tschuggen"];
+const CLASSIC = HERO.map((h) => h.w);
+let heroWords: string[] | null = null;
+const randomHero = () =>
+  (heroWords ??= (() => {
+    const short = SHORT.map((w) => [Math.random(), w] as const).sort((x, y) => x[0] - y[0]).map(([, w]) => w);
+    return HERO.map((_, i) => (i === HERO.length - 1 ? LONG[Math.floor(Math.random() * LONG.length)] : short[i]));
+  })());
 
 export default function Home() {
   const t = useT();
   const lang = langPref.use();
   const router = useRouter();
   const saved = useSyncExternalStore(noop, suggestedName, () => "");
+  const hero = useSyncExternalStore(noop, randomHero, () => CLASSIC);
   const resumable = useSyncExternalStore(noop, hasLocalGame, () => false);
   const [typed, setName] = useState<string | null>(null);
   const savedList = useSyncExternalStore(noop, playersSnapshot, () => NO_PLAYERS);
@@ -77,10 +90,10 @@ export default function Home() {
       <header className="flex justify-end">
         <TopControls />
       </header>
-      <div className="relative mt-1 h-44" aria-hidden>
-        {HERO.map((h) => (
-          <Slip key={h.w} tilt={h.tilt} className={`unfold absolute px-3.5 pt-1.5 ${h.x}`} style={{ animationDelay: h.d }}>
-            <span className={`font-hand font-bold whitespace-nowrap ${h.size}`}>{h.w}</span>
+      <div className="relative mt-4 h-44" aria-hidden>
+        {HERO.map((h, i) => (
+          <Slip key={i} tilt={h.tilt} className={`unfold absolute px-3.5 pt-1.5 ${h.x}`} style={{ animationDelay: h.d }}>
+            <span className={`font-hand font-bold whitespace-nowrap ${h.size}`}>{hero[i]}</span>
           </Slip>
         ))}
         <Bowl className="absolute bottom-0 left-1/2 w-36 -translate-x-1/2" />
