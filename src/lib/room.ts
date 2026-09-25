@@ -98,6 +98,24 @@ const smallest = (members: Member[], teams: number) => {
   return sizes.indexOf(Math.min(...sizes));
 };
 
+/**
+ * each member's team once there are `n` teams: a dropped team's players start in team 1, then players move from the
+ * biggest team to the smallest until sizes differ by at most one (as few moves as possible, the latest joiner first,
+ * the host last; the rest stay where they chose)
+ */
+function evenTeams(members: Member[], n: number, hostId: string) {
+  const team = new Map(members.map((m) => [m.id, m.team < n ? m.team : 0]));
+  const size = (t: number) => [...team.values()].filter((x) => x === t).length;
+  for (;;) {
+    const sizes = Array.from({ length: n }, (_, t) => size(t));
+    const big = sizes.indexOf(Math.max(...sizes));
+    const low = sizes.indexOf(Math.min(...sizes));
+    if (sizes[big] - sizes[low] <= 1) return team;
+    const mover = [...members].reverse().find((m) => team.get(m.id) === big && m.id !== hostId) ?? members.find((m) => team.get(m.id) === big)!;
+    team.set(mover.id, low);
+  }
+}
+
 async function addMember(db: Store, code: string, name: string, members: Member[], teamCount: number) {
   const team = smallest(members, teamCount);
   const m: Member = { id: uid(), name, token: uid(), at: Date.now(), team };
@@ -299,19 +317,9 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       room.settings = cleanSettings({ ...room.settings, ...a.settings });
       const n = room.settings.teams;
       if (n !== room.teamNames.length) {
-        // more teams: new funny names; fewer: dropped names. Then even out: players move from the biggest team to the
-        // smallest until sizes differ by at most one (as few moves as possible, the rest stay where they chose)
+        // more teams: new funny names; fewer: dropped names. Then the teams are evened out
         room.teamNames = n > room.teamNames.length ? [...room.teamNames, ...funnyTeams(room.settings.lang, n - room.teamNames.length, room.teamNames)] : room.teamNames.slice(0, n);
-        const team = new Map(members.map((m) => [m.id, m.team < n ? m.team : 0])); // a dropped team's players start in team 1, then spread out
-        const size = (t: number) => [...team.values()].filter((x) => x === t).length;
-        for (;;) {
-          const sizes = Array.from({ length: n }, (_, t) => size(t));
-          const big = sizes.indexOf(Math.max(...sizes));
-          const low = sizes.indexOf(Math.min(...sizes));
-          if (sizes[big] - sizes[low] <= 1) break;
-          const mover = [...members].reverse().find((m) => team.get(m.id) === big && m.id !== room.hostId) ?? members.find((m) => team.get(m.id) === big)!;
-          team.set(mover.id, low); // the latest joiner moves first
-        }
+        const team = evenTeams(members, n, room.hostId);
         await Promise.all(members.filter((m) => team.get(m.id) !== m.team).map((m) => db.hset(k(code).members, m.id, { ...m, team: team.get(m.id)! }, TTL)));
       }
       break;
