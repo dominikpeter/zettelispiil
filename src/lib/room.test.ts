@@ -590,3 +590,53 @@ test("auto heckling in a room: with nobody behind there is no bonus, so nobody c
   assert.equal((await see(foe)).heckles, 0);
   await assert.rejects(as(foe, { type: "heckle" }), RoomError);
 });
+
+test("auto heckling in a room: a team behind shares its bonus, and it shows in the end stats", async () => {
+  const dice = process.env.E2E_HECKLE_DICE;
+  process.env.E2E_HECKLE_DICE = "always"; // the dice always grant a bonus to a team that is behind
+  try {
+    const { as, see, tick } = await setup();
+    await as(0, { type: "settings", settings: { heckle: true } });
+    await writeAll(as);
+    const first = await describerView(see);
+    const lead = first.v.players[first.i].team;
+    await as(first.i, { type: "go" });
+    await as(first.i, { type: "got", w: (await see(first.i)).word!.id }); // 1 : 0
+    tick(33_000);
+
+    const second = await describerView(see); // the team behind describes: the leader gets no bonus
+    await as(second.i, { type: "go" });
+    assert.deepEqual([(await see(first.i)).heckles, (await see(first.i)).heckleGranted], [0, 0]);
+    tick(33_000);
+
+    const third = await describerView(see); // the leader describes: the team behind (1 point) gets 1 press
+    assert.equal(third.v.players[third.i].team, lead);
+    await as(third.i, { type: "go" });
+    const [a, b] = [0, 1, 2, 3].filter((p) => third.v.players[p].team !== lead);
+    assert.deepEqual([(await see(a)).heckles, (await see(a)).heckleGranted, (await see(b)).heckles], [1, 1, 1]);
+    assert.equal((await see(third.i)).heckles, 0);
+    await as(b, { type: "heckle" });
+    assert.deepEqual({ ...(await see(third.i)).lastHeckle, until: 0 }, { n: 1, by: b, until: 0 });
+    tick(4000);
+    assert.deepEqual([(await see(a)).heckles, (await see(a)).heckleGranted], [0, 1]); // the team's bonus is used up, for both
+    await assert.rejects(as(a, { type: "heckle" }), RoomError);
+
+    for (let guard = 0; guard < 50 && (await see(0)).phase !== "end"; guard++) {
+      const v = await see(0);
+      if (v.phase === "roundEnd") await as(0, { type: "nextRound" });
+      else if (v.phase === "ready") await as(v.active!, { type: "go" });
+      else {
+        tick(1000);
+        const d = await see(v.active!);
+        if (d.word) await as(v.active!, { type: "got", w: d.word.id });
+      }
+    }
+    const end = (await see(0)).stats!;
+    assert.deepEqual(end.heckles, [{ by: b, bonus: true }]);
+    assert.ok(end.bonusGot[1 - lead] >= 1); // this turn's bonus, and any later turn the leader described
+    assert.equal(end.bonusGot[lead] ?? 0, 0); // the leader never gets one
+  } finally {
+    if (dice === undefined) delete process.env.E2E_HECKLE_DICE;
+    else process.env.E2E_HECKLE_DICE = dice;
+  }
+});
