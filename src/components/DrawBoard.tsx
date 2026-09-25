@@ -2,14 +2,13 @@
 
 import { useEffect, useEffectEvent, useRef } from "react";
 import type { Stroke } from "@/lib/room";
+import { advance, PACE_MS } from "@/lib/pace";
 
 export const INKS = ["#03071e", "#d62828", "#00679f", "#0a8a3a"];
 const FLUSH_MS = 120; // drawer: how often new line pieces go out
 const FAST_MS = 250; // watcher: poll interval while lines are coming in (tracing hides the gaps)
 const IDLE_MS = 700; // watcher: poll interval once the drawer pauses
 const IDLE_AFTER = 8; // empty polls before slowing down
-const PACE_MS = FAST_MS + 80; // watcher: a batch is traced evenly over about the time until the next one lands, so the pen never stops
-const CATCH_UP_MS = 400; // …but a big backlog (joined late, back from a pause) is drawn in quickly
 
 /**
  * draw strokes (up to `limit` points in all) as soft curves through the midpoints of their samples, so a few points
@@ -254,16 +253,13 @@ export function DrawView({ code, sheet, label }: { code: string; sheet: number; 
     let frame = 0;
     let painted = -1;
     let last = performance.now();
-    const tick = (now: number) => {
+    const tick = () => {
+      const now = performance.now(); // the same clock as `deadline` (a frame's own timestamp can run on another one, e.g. in WebKit)
       const dt = Math.max(0, now - last);
       last = now;
       const all = total.current;
       if (shown.current > all) shown.current = all;
-      const left = all - shown.current;
-      if (left > 0) {
-        const time = Math.min(Math.max(16, deadline.current - now), left > 300 ? CATCH_UP_MS : Infinity);
-        shown.current = Math.min(all, shown.current + Math.max(left * (dt / time), 0.25));
-      }
+      shown.current = advance(shown.current, all, dt, deadline.current - now);
       const key = Math.floor(shown.current) * 2 + (shown.current < all ? 1 : 0); // repaint when a point or the pen dot changes
       if (key !== painted) {
         painted = key;

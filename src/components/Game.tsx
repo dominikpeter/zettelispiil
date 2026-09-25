@@ -760,7 +760,7 @@ export function Ready({ v, send, busy, mode }: P) {
   const last = v.lastTurn && v.lastTurn.r === v.round ? v.lastTurn : null;
   const carry = Math.round(v.carryMs / 1000);
   return (
-    <div className="flex flex-1 flex-col gap-4 short:gap-2">
+    <div className="flex flex-1 flex-col gap-4 short:gap-2 tiny:gap-1">
       <RoundCard v={v} n={v.round} mode={mode} className="enter" />
       {last && (
         <p aria-live="polite" className="pop self-center rounded-full bg-surface px-4 py-2 text-center tiny:py-1 tiny:text-sm">
@@ -768,7 +768,7 @@ export function Ready({ v, send, busy, mode }: P) {
         </p>
       )}
       <div className="enter flex flex-1 flex-col items-center justify-center gap-2 text-center [animation-delay:120ms]">
-        <Bowl count={v.bowlLeft} className="w-28 short:w-20 tiny:w-16" />
+        <Bowl count={v.bowlLeft} className="w-28 short:w-20 tiny:w-14" />
         <p className="mt-3 text-muted short:mt-1">{local ? t.passTo : me ? t.yourTurn : t.upNext}</p>
         <h1 className={`text-5xl font-extrabold tracking-tight break-words short:text-4xl tiny:text-3xl ${TEAM[p.team].text}`}>{me && !local ? t.youBang : p.name}</h1>
         <p className="text-muted">
