@@ -101,6 +101,26 @@ test("time up puts the Zetteli back and hands over to the other team", async () 
   assert.deepEqual(after.lastTurn && { p: after.lastTurn.p, got: after.lastTurn.got }, { p: i, got: 2 });
 });
 
+test("describers take turns within their team; the host can pass on one who isn't there", async () => {
+  const { as, see, tick } = await setup();
+  await writeAll(as);
+  const first = await describerView(see);
+  const team = first.v.players[first.i].team;
+  await assert.rejects(as((first.i + 1) % 4, { type: "pass" }), RoomError); // only the host passes
+  await as(0, { type: "pass" });
+  const second = await see(0);
+  assert.equal(second.phase, "ready");
+  assert.notEqual(second.players[second.active!].team, team); // the other team is up
+  await as(second.active!, { type: "go" });
+  tick(33_000); // time runs out
+  const third = await see(0);
+  assert.equal(third.players[third.active!].team, team); // back to the first team…
+  assert.notEqual(third.active, first.i); // …with the passed describer's teammate
+  await as(0, { type: "pass" });
+  await as(0, { type: "pass" });
+  assert.equal((await see(0)).active, first.i); // the team's turn order goes round
+});
+
 test("full game ends with stats for everyone", async () => {
   const { as, see, tick } = await setup();
   await writeAll(as);

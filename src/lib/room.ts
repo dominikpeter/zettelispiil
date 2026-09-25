@@ -191,6 +191,11 @@ export const describer = (room: Room) => {
   const ps = teamPlayers(room, room.team);
   return ps[room.next[room.team] % ps.length];
 };
+/** the describer is done (or not there): their team's next player describes next time, and the next team is up */
+function handOver(room: Room) {
+  room.next[room.team]++;
+  room.team = (room.team + 1) % room.teamNames.length;
+}
 
 // bowl minus what's in hand or set aside
 const fresh = (room: Room) => room.bowl.filter((w) => w !== room.current && !room.held.includes(w));
@@ -232,9 +237,7 @@ function closeTurn(room: Room, at: number, keepDescriber: boolean) {
   room.turns.push({ r: room.round, p: describer(room), got: room.turnGot, ms: Math.max(0, at - room.turnStart) });
   room.current = null;
   room.held = [];
-  if (keepDescriber) return;
-  room.next[room.team]++;
-  room.team = (room.team + 1) % room.teamNames.length;
+  if (!keepDescriber) handOver(room);
 }
 
 /** time ran out: the Zetteli in hand goes back into the bowl, the other team is up */
@@ -471,8 +474,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
     case "pass": // the describer isn't there: skip them
       need(host && room.phase === "ready");
       room.carryMs = 0;
-      room.next[room.team]++;
-      room.team = (room.team + 1) % room.teamNames.length;
+      handOver(room);
       break;
     case "lobby":
       need(host && room.phase === "end");
