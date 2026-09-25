@@ -133,7 +133,7 @@ Vor jedem Zug siehst du, wer dran ist und für welches Team. Wer erklärt, tippt
 
 Hat die Spielleitung **Stören erlaubt** eingeschaltet, dürfen die anderen Teams («Zuhören») die erklärende Person ablenken. Unter dem Knopf steht, wie oft ihr in diesem Zug noch stören dürft («noch 2×»).
 
-- **Auto** (Standard): Zu Beginn jedes Zugs kann ein Team, das hinten liegt, einen **Stör-Bonus** bekommen: 30 % Chance, pro Punkt Rückstand 10 % mehr, höchstens 80 %. Der Bonus gilt fürs ganze Team: 1× stören, bei 5 oder mehr Punkten Rückstand 2×. Wer vorne liegt oder gleichauf ist, bekommt nie einen. Der Knopf **Stör-Bonus!** erscheint nur, wenn euer Team einen hat.
+- **Auto** (Standard): Zu Beginn jedes Zugs kann ein Team, das hinten liegt, einen **Stör-Bonus** bekommen: 30 % Chance, pro Punkt Rückstand 10 % mehr, höchstens 80 %. Der Bonus gilt fürs ganze Team: 1× stören, bei 5 oder mehr Punkten Rückstand 2×. Wer vorne liegt oder gleichauf ist, bekommt nie einen. Der Knopf **Stör-Bonus!** erscheint nur, wenn euer Team einen hat. Drückt jemand aus deinem Team, siehst du «<Name> hat gestört».
 - **Fix**: Jede Person der anderen Teams darf pro Zug so oft stören, wie eingestellt. Im nächsten Zug geht es wieder von vorne los.
 
 - Tippst du darauf, blitzt, zittert und verschwimmt das Zetteli der erklärenden Person, erst stark, dann immer weniger. Ihr Handy vibriert und zeigt «<Name> stört!». Die Knöpfe **Erraten** und **Weiter** bleiben ruhig, Wischen und Tippen funktionieren weiter.
@@ -169,6 +169,8 @@ Das Spiel zeigt, wer gewonnen hat (oder «Unentschieden»), dazu eine Übersicht
 - Tippe auf ein Zetteli oder einen Spieler für Details: beim Zetteli pro Runde, wer es erraten hat, wie lange es gedauert hat und wie oft es übersprungen wurde; beim Spieler die erratenen Zetteli pro Runde, die Zeit pro Zetteli, das Überspringen und das schnellste und langsamste Zetteli.
 
 Mit **Nochmal spielen** startet die Spielleitung eine neue Partie.
+
+- **Stören**: Wurde gestört, zeigt ein eigener Abschnitt, welches Team wie oft einen Stör-Bonus bekam und wer wie oft gestört hat.
 
 ## Einstellungen
 
