@@ -144,6 +144,74 @@ test("every phone: only the describer sees the Zetteli, one skip with swap back,
   expect(await go(d).isVisible()).toBe(false);
 });
 
+test("heckle: the other team disturbs the describer twice, then the button is used up", async ({ browser }) => {
+  const host = await phone(browser);
+  await host.goto("/");
+  await host.getByRole("button", { name: /Mehrere Handys/ }).click();
+  await host.getByLabel("Dein Name").fill("Lisa");
+  await host.getByRole("button", { name: "Raum erstellen" }).click();
+  await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
+  const code = host.url().split("/").pop()!;
+  const names = ["Lisa", "Nora", "Tim", "Beni"]; // teams alternate on join: Lisa+Tim, Nora+Beni
+  const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
+  for (const [i, n] of names.slice(1).entries()) {
+    await others[i].goto(`/r/${code}`);
+    await others[i].getByLabel("Dein Name").fill(n);
+    await others[i].getByRole("button", { name: "Beitreten" }).click();
+    await expect(others[i].getByText(`(du)`)).toBeVisible();
+  }
+  const phones = [host, ...others];
+
+  // host turns heckling on (2 per player and turn is the default); the others see it in the summary
+  await expect(host.getByRole("button", { name: "Stören pro Person und Zug mehr" })).toHaveCount(0);
+  await host.getByRole("switch", { name: /Stören erlaubt/ }).check();
+  await expect(host.getByRole("button", { name: "Stören pro Person und Zug mehr" })).toBeVisible();
+  await expect(others[0].getByText("Stören erlaubt, 2× pro Person und Zug")).toBeVisible();
+  for (let i = 0; i < 3; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
+  await host.getByRole("button", { name: "Spiel starten" }).click();
+  for (const [i, p] of phones.entries()) {
+    await p.getByLabel("Zetteli 1", { exact: true }).fill(`Wort${i}`);
+    await p.getByRole("button", { name: "In die Schüssel" }).click();
+  }
+
+  const go = (p: Page) => p.getByRole("button", { name: "Los, Zetteli ziehen" });
+  await expect.poll(async () => (await Promise.all(phones.map((p) => go(p).isVisible()))).filter(Boolean).length, { timeout: 10_000 }).toBe(1);
+  const di = (await Promise.all(phones.map((p) => go(p).isVisible()))).indexOf(true);
+  const d = phones[di];
+  const foe = phones[(di + 1) % 4];
+  const mate = phones[(di + 2) % 4];
+  await go(d).click();
+  await expect(d.getByTestId("word")).toBeVisible();
+
+  const heckle = (p: Page) => p.getByRole("button", { name: /^Stören/ });
+  await expect(heckle(mate)).toHaveCount(0); // the describer's own team can't
+  await expect(heckle(d)).toHaveCount(0);
+  await expect(heckle(foe)).toContainText("noch 2×");
+  const foe2 = phones[(di + 3) % 4];
+  await heckle(foe).click();
+  await expect(d.getByTestId("heckled")).toHaveText(`${names[(di + 1) % 4]} stört!`);
+  // only the Zetteli is disturbed, the buttons stay put
+  await expect(d.locator("[data-heckled]")).toHaveCount(1);
+  await expect(d.locator("[data-heckled]").getByTestId("word")).toBeVisible();
+  await expect(d.locator("[data-heckled] button")).toHaveCount(0);
+  await expect(foe.getByTestId("heckled")).toHaveCount(0); // only the describer's phone
+  // one at a time: while it runs (3 s of a 30 s turn), nobody can heckle
+  await expect(heckle(foe)).toContainText("noch 1×");
+  await expect(heckle(foe)).toBeDisabled();
+  await expect(heckle(foe2)).toBeDisabled();
+  await expect(d.getByTestId("heckled")).toHaveCount(0, { timeout: 6_000 }); // over
+  await expect(heckle(foe)).toBeEnabled();
+  await heckle(foe).click();
+  await expect(d.locator("[data-heckled]")).toHaveCount(1);
+  // the Zetteli still works while disturbed
+  await swipe(d, "right");
+  for (const p of phones) await expect(p.getByLabel(/ 1, | 1$/)).toBeVisible();
+  await expect(d.getByTestId("heckled")).toHaveCount(0, { timeout: 6_000 });
+  await expect(heckle(foe)).toContainText("noch 0×");
+  await expect(heckle(foe)).toBeDisabled(); // no third time
+  await expect(heckle(foe2)).toBeEnabled(); // the teammate still has theirs
+});
+
 test("language and theme live in the settings sheet", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText(/Alle schreiben Begriffe/)).toBeVisible(); // German by default
