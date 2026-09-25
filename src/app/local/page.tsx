@@ -7,7 +7,6 @@ import { TopControls } from "@/components/TopControls";
 import { localStore } from "@/lib/localStore";
 import { useT } from "@/lib/prefs";
 import { act, joinRoom, view, type Action, type View } from "@/lib/room";
-import { useCountdown } from "@/lib/useCountdown";
 import { loadLocalGame, saveLocalGame, type LocalGame } from "@/lib/localGame";
 
 const noop = () => () => {};
@@ -59,8 +58,6 @@ export default function LocalGamePage() {
       clearInterval(timer);
     };
   }, [refresh, phase]);
-
-  const left = useCountdown(v, 0);
 
   useEffect(() => {
     if (hydrated && !game) router.replace("/");
@@ -118,7 +115,7 @@ export default function LocalGamePage() {
       {v && gateKey && confirmed !== gateKey && (
         <PassPhone key={gateKey} name={v.players[who].name} team={v.players[who].team} teamName={v.teamNames[v.players[who].team]} note={v.myWrite?.cancelled.length ? t.cancelled(v.myWrite.cancelled.at(-1)!) : t.writeSecret} onReady={() => setConfirmed(gateKey)} />
       )}
-      {v && v.phase !== "lobby" && (!gateKey || confirmed === gateKey) && <Phase key={`${v.phase}-${who}`} v={v} send={send} busy={busy} mode="local" left={left} />}
+      {v && v.phase !== "lobby" && (!gateKey || confirmed === gateKey) && <Phase key={`${v.phase}-${who}`} v={v} send={send} busy={busy} mode="local" offset={0} />}
     </main>
   );
 }

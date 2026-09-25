@@ -1,8 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import QRCode from "qrcode";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AiNameButton, BackButton, GameMenu, Lobby, Phase, Score, Waiting } from "@/components/Game";
 import { TopControls } from "@/components/TopControls";
 import { AiRoomContext, useAiStatus } from "@/lib/aiAccess";
@@ -11,11 +10,11 @@ import { langPref, useT } from "@/lib/prefs";
 import type { Action, Stroke, View } from "@/lib/room";
 import { api, errKey, funnyName, loadIdentity, saveIdentity, type Identity } from "@/lib/roomClient";
 import { Bowl, btn, btn2, field } from "@/lib/ui";
-import { useCountdown } from "@/lib/useCountdown";
 
 const noop = () => () => {};
 const POLL_MS = 1500;
 const POLL_TURN_MS = 800;
+const JITTER_MS = 250; // a new clock offset closer than this to the last one is network noise, not worth a re-render
 
 export default function Room() {
   const t = useT();
@@ -35,11 +34,19 @@ export default function Room() {
 
   const url = typeof window === "undefined" ? "" : `${location.origin}/r/${code}`;
 
+  // most polls bring back the same room: only a changed view (the server clock aside) renders the page again
+  const lastView = useRef("");
   const refresh = useCallback(async () => {
     try {
       const next = await api<View>(`/${code}`, undefined, id);
-      setOffset(next.now - Date.now());
-      setV(next);
+      const off = next.now - Date.now();
+      const key = JSON.stringify({ ...next, now: 0 });
+      const changed = key !== lastView.current;
+      setOffset((o) => (changed || Math.abs(off - o) > JITTER_MS ? off : o));
+      if (changed) {
+        lastView.current = key;
+        setV(next);
+      }
       setErr("");
     } catch (e) {
       setErr((e as Error).message);
@@ -61,8 +68,6 @@ export default function Room() {
     };
   }, [refresh, fast]);
 
-  const left = useCountdown(v, offset);
-
   // the host is signed in (maybe only since opening the room): turn AI on for everyone here, once
   const signedIn = !!useAiStatus()?.user;
   const claim = !!v?.isHost && !v.ai && signedIn && !!id;
@@ -70,10 +75,12 @@ export default function Room() {
     if (claim) api(`/${code}`, { ...id, type: "claimAi" }).then(refresh, () => {});
   }, [claim, code, id, refresh]);
 
+  // the invite QR only shows in the lobby: its encoder loads then, not with the page
+  const inLobby = !!v && v.me >= 0 && v.phase === "lobby";
   useEffect(() => {
-    if (!url) return;
-    QRCode.toDataURL(url, { margin: 1, width: 480, color: { dark: "#0c0014", light: "#fffcd6" } }).then(setQr, () => {});
-  }, [url]);
+    if (!url || !inLobby || qr) return;
+    import("qrcode").then((QRCode) => QRCode.toDataURL(url, { margin: 1, width: 480, color: { dark: "#0c0014", light: "#fffcd6" } })).then(setQr, () => {});
+  }, [url, inLobby, qr]);
 
   const send = async (body: Action) => {
     setBusy(true);
@@ -193,7 +200,7 @@ export default function Room() {
       )}
 
       {joined && v.phase === "lobby" && <Lobby v={v} send={send} busy={busy} mode="online" share={{ qr, copied, onShare: share, url }} />}
-      {joined && v.phase !== "lobby" && <Phase v={v} send={send} live={live} busy={busy} mode="online" left={left} />}
+      {joined && v.phase !== "lobby" && <Phase v={v} send={send} live={live} busy={busy} mode="online" offset={offset} />}
 
       {!v && !errMsg && <Waiting text={t.loading} />}
     </main>

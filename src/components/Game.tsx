@@ -48,8 +48,11 @@ function GotFlash({ v }: { v: View }) {
   );
 }
 
-/** every phase of a running game; lobby and joining are handled by the page */
-export function Phase(props: P & { left: number }) {
+/**
+ * every phase of a running game; lobby and joining are handled by the page.
+ * `offset`: server clock − this phone's clock. Only the turn screen ticks with it, so the countdown re-renders that screen alone
+ */
+export function Phase(props: P & { offset: number }) {
   const { v } = props;
   // a running game keeps the screen on: nobody wants the phone to lock mid-turn
   const playing = v.phase !== "end";

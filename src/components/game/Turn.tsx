@@ -3,6 +3,7 @@
 import { Check, Eraser } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useHints, useT } from "@/lib/prefs";
+import { useCountdown } from "@/lib/useCountdown";
 import { Bowl, btn, btn2, buzz, fitLine, press, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
 import { DrawPad, DrawView, INKS } from "../DrawBoard";
 import { ruleOf, type P } from "./common";
@@ -73,8 +74,9 @@ function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe, heckle = null 
   );
 }
 
-export function Turn({ v, left, send, live, mode }: P & { left: number }) {
+export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   const t = useT();
+  const left = useCountdown(v, offset); // ticks here, not in the page: the header and the rest stay put
   const d = v.active!;
   const p = v.players[d];
   const me = d === v.me;
