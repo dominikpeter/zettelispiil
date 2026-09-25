@@ -1,10 +1,11 @@
 import { aiEnabled, checkWords } from "@/lib/ai";
-import { allowed, lang } from "../guard";
+import { lang, refusal, refused } from "../guard";
 
 // POST { words: string[], lang } → { ai: false } | { ai: true, results: WordCheck[] }
 export async function POST(req: Request) {
   if (!aiEnabled()) return Response.json({ ai: false });
-  if (!(await allowed(req))) return Response.json({ ai: false, error: "rate_limited" }, { status: 429 });
+  const no = await refused(req);
+  if (no) return refusal(no);
   const body = await req.json().catch(() => ({}));
   const words = Array.isArray(body?.words) ? body.words.map((w: unknown) => String(w ?? "").trim().slice(0, 40)).filter(Boolean).slice(0, 10) : [];
   if (!words.length) return Response.json({ ai: false, error: "bad_request" }, { status: 400 });

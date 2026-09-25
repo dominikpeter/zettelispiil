@@ -31,6 +31,7 @@ function pref<T extends string>(key: string, allowed: readonly T[], fallback: T,
 export const THEMES = ["auto", "light", "dark"] as const;
 export type Theme = (typeof THEMES)[number];
 export const PALETTES = [
+  { id: "postit", swatch: ["#ffe14d", "#ff8fc6", "#7cc8ff"] },
   { id: "night", swatch: ["#25003d", "#c86bfa", "#ffd500"] },
   { id: "ink", swatch: ["#03071e", "#5068ee", "#ffee32"] },
   { id: "gold", swatch: ["#332b00", "#ffd500", "#8907cf"] },
@@ -47,7 +48,7 @@ export const themePref = pref<Theme>("theme", THEMES, "auto", (t) => {
 export const palettePref = pref<Palette>(
   "palette",
   PALETTES.map((p) => p.id),
-  "night",
+  "postit",
   (p) => (root().dataset.palette = p),
 );
 /** AI help while writing (spelling, difficulty, hints) and for funny names; on unless this phone switched it off */

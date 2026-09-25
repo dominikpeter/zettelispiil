@@ -5,7 +5,6 @@ import QRCode from "qrcode";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { AiNameButton, BackButton, GameMenu, Lobby, Phase, Score, Waiting } from "@/components/Game";
 import { TopControls } from "@/components/TopControls";
-import { DICT, pickOne } from "@/lib/i18n";
 import { langPref, useT } from "@/lib/prefs";
 import type { Action, Stroke, View } from "@/lib/room";
 import { api, errKey, funnyName, loadIdentity, loadName, saveIdentity, saveName, type Identity } from "@/lib/roomClient";
@@ -25,8 +24,8 @@ export default function Room() {
   const [id, setId] = useState<Identity | null>(() => (typeof window === "undefined" ? null : loadIdentity(code)));
   const [v, setV] = useState<View | null>(null);
   const [err, setErr] = useState("");
-  // saved name, or a funny one to start from (only runs on the client: the page renders nothing before hydration)
-  const [name, setName] = useState(() => (typeof window === "undefined" ? "" : loadName() || pickOne(DICT[langPref.get()].funnyPlayers)));
+  // the name you used last time; the sparkle suggests a funny one
+  const [name, setName] = useState(() => (typeof window === "undefined" ? "" : loadName()));
   const [busy, setBusy] = useState(false);
   const [qr, setQr] = useState("");
   const [copied, setCopied] = useState(false);

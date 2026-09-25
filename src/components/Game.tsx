@@ -3,7 +3,9 @@
 import { AlertTriangle, ArrowLeft, ArrowLeftRight, Check, Eraser, Loader2, Sparkles, Home, Pause, Play, ChevronDown, ChevronUp, Crown, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { pickOne } from "@/lib/i18n";
+import { aiAllowed, useAiStatus } from "@/lib/aiAccess";
 import { aiPref, langPref, useHints, useT } from "@/lib/prefs";
+import { Account } from "./Account";
 import { funnyName } from "@/lib/roomClient";
 import { norm, ROUND_TYPES, type Action, type RoundType, type Stroke, type Settings, type Slip as SlipT, type Team, type View } from "@/lib/room";
 import { Bowl, btn, btn2, buzz, field, fitLine, ghost, panel, pill, pillBtn, press, round_btn, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
@@ -434,7 +436,9 @@ const CHECK_DELAY = 700; // ms of calm typing before a word is checked
 export function Write({ v, send, busy }: P) {
   const t = useT();
   const lang = langPref.use();
-  const aiOn = aiPref.use() === "on";
+  const aiStatus = useAiStatus();
+  const aiWanted = aiPref.use() === "on";
+  const aiOn = aiWanted && aiAllowed(aiStatus); // switched on here, and signed in where that's required
   const n = v.settings.perPlayer;
   // kept Zetteli stay filled; cancelled duplicates leave an empty slip to rewrite
   const [draft, setDraft] = useState<SlipT[]>(() => {
@@ -537,6 +541,14 @@ export function Write({ v, send, busy }: P) {
         <h2 className="text-3xl font-extrabold tracking-tight">{t.writeTitle(draft.length)}</h2>
         <p className="mt-1 text-muted">{t.writeHelp}</p>
       </div>
+      {aiWanted && aiStatus?.login && !aiStatus.user && (
+        <section className="rounded-3xl bg-surface p-3">
+          <p className="mb-2 flex items-center gap-2 px-1 text-sm text-muted">
+            <Sparkles className="size-4 shrink-0 text-accent" aria-hidden /> {t.loginForAi}
+          </p>
+          <Account compact />
+        </section>
+      )}
       {aiOn && (
         <Ideas
           lang={lang}

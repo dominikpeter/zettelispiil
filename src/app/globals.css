@@ -92,7 +92,40 @@
 
 
 /* ---- color themes: each palette sets --d-* (dark) and --l-* (light); the mode picks one set ---- */
-:root, :root[data-palette="night"] {
+/* default: Post-it — sticky-note yellow, pink and blue on a desk (light) or a charcoal board (dark) */
+:root, :root[data-palette="postit"] {
+  --d-canvas: #1f1d1a;
+  --d-surface: #2a2723;
+  --d-raised: #36322d;
+  --d-line: #48423a;
+  --d-ink: #fbf6ea;
+  --d-muted: #bdb4a4;
+  --d-accent: #ff8fc6;
+  --d-hi: #ffe14d;
+  --d-cta: #ffe14d;
+  --d-cta-ink: #1d1b16;
+  --d-cta-edge: #b39a00;
+  --d-team-a: #ff8fc6;
+  --d-team-b: #7cc8ff;
+  --d-chart-a: #f06aa6;
+  --d-chart-b: #4aa8ee;
+  --l-canvas: #f5f1e8;
+  --l-surface: #ffffff;
+  --l-raised: #fff6c7;
+  --l-line: #ebe2cc;
+  --l-ink: #1d1b16;
+  --l-muted: #6b6457;
+  --l-accent: #d6336c;
+  --l-hi: #d6336c;
+  --l-cta: #ffe14d;
+  --l-cta-ink: #1d1b16;
+  --l-cta-edge: #d4b300;
+  --l-team-a: #d6336c;
+  --l-team-b: #1f7ecf;
+  --l-chart-a: #f06aa6;
+  --l-chart-b: #4aa8ee;
+}
+:root[data-palette="night"] {
   --d-canvas: #0c0014;
   --d-surface: #180029;
   --d-raised: #25003d;

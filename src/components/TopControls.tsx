@@ -1,6 +1,7 @@
 "use client";
 
-import { Moon, Settings, Sparkles, Sun, SunMoon, X } from "lucide-react";
+import { Heart, Moon, Settings, Sparkles, Sun, SunMoon, X } from "lucide-react";
+import { Account } from "./Account";
 import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { LANGS } from "@/lib/i18n";
 import { aiPref, hintPref, langPref, palettePref, PALETTES, themePref, THEMES, useT } from "@/lib/prefs";
@@ -50,6 +51,9 @@ export function SettingsPanel() {
   const icon = { auto: SunMoon, light: Sun, dark: Moon };
   return (
     <>
+      <section className="flex flex-col gap-3 empty:hidden">
+        <Account />
+      </section>
       <section className="flex items-center justify-between gap-4">
         <div className="min-w-0">
           <h3 className="flex items-center gap-2 font-semibold">
@@ -116,6 +120,12 @@ export function SettingsPanel() {
           ))}
         </div>
       </section>
+      <footer className="flex items-center justify-center gap-1.5 pt-2 text-sm text-muted">
+        {t.madeWith} <Heart className="size-4 fill-accent text-accent" aria-label="♥" /> {t.madeBy("Dominik")} ·
+        <a href="https://github.com/dominikpeter/zettelispiil" target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline-offset-4 hover:underline">
+          GitHub
+        </a>
+      </footer>
     </>
   );
 }

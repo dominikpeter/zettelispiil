@@ -6,16 +6,15 @@ import { useState, useSyncExternalStore } from "react";
 import { ScanCode } from "@/components/ScanCode";
 import { AiNameButton } from "@/components/Game";
 import { TopControls } from "@/components/TopControls";
-import { DICT, pickOne } from "@/lib/i18n";
 import { loadLocalGame, loadPlayers, newLocalGame } from "@/lib/localGame";
 import { langPref, useT } from "@/lib/prefs";
 import { api, errKey, funnyName, loadName, saveIdentity, saveName, type Identity } from "@/lib/roomClient";
 import { Bowl, btn, btn2, field, ghost, panel, press, Slip } from "@/lib/ui";
 
 const noop = () => () => {};
-// saved name, or a funny one to start from; picked once so the snapshot stays stable
+// the name you used last time; read once so the snapshot stays stable
 let suggestion: string | undefined;
-const suggestedName = () => (suggestion ??= loadName() || pickOne(DICT[langPref.get()].funnyPlayers));
+const suggestedName = () => (suggestion ??= loadName()); // empty until you type one or tap the sparkle
 const hasLocalGame = () => !!loadLocalGame();
 let savedPlayers: string[] | undefined;
 const playersSnapshot = () => (savedPlayers ??= loadPlayers());
