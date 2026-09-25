@@ -21,7 +21,7 @@ const word = (page: Page) => page.getByTestId("word").innerText();
 
 test("one phone: default players, write, swipe through every round, stats at the end", async ({ page }) => {
   await page.goto("/");
-  for (const n of ["Lisa", "Beni", "Tim", "Nora", "Domi"]) await expect(page.getByLabel(/Spieler \d/).and(page.locator(`[value="${n}"]`))).toBeVisible();
+  for (const n of ["Lisa", "Nora", "Beni", "Tim"]) await expect(page.getByLabel(/Spieler \d/).and(page.locator(`[value="${n}"]`))).toBeVisible();
   await page.getByRole("button", { name: "Neues Spiel" }).click();
   await page.waitForURL(/\/local$/);
 
@@ -33,7 +33,7 @@ test("one phone: default players, write, swipe through every round, stats at the
   await page.getByRole("button", { name: "Spiel starten" }).click();
 
   // the phone goes round: everyone writes one Zetteli
-  const words = ["Schoggi", "Matterhorn", "Velo", "Raclette", "Zytglogge"];
+  const words = ["Schoggi", "Matterhorn", "Velo", "Raclette"];
   for (const w of words) {
     await page.getByRole("button", { name: /^Ich bin / }).click();
     await page.getByLabel("Zetteli 1", { exact: true }).fill(w);
@@ -65,7 +65,7 @@ test("one phone: default players, write, swipe through every round, stats at the
 test("every phone: only the describer sees the Zetteli, one skip with swap back, time up hands over", async ({ browser }) => {
   const host = await phone(browser);
   await host.goto("/");
-  await host.getByRole("button", { name: /Jedes Handy/ }).click();
+  await host.getByRole("button", { name: /Mehrere Handys/ }).click();
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
   await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
@@ -152,7 +152,7 @@ test("unknown room code says so and offers the way back", async ({ page }) => {
 test("drawing round: lines drawn on one phone show up on the others", async ({ browser }) => {
   const host = await phone(browser);
   await host.goto("/");
-  await host.getByRole("button", { name: /Jedes Handy/ }).click();
+  await host.getByRole("button", { name: /Mehrere Handys/ }).click();
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
   await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
@@ -232,7 +232,7 @@ async function localGame(page: Page, write = (i: number) => `Wort${i}`) {
   await page.waitForURL(/\/local$/);
   for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
   await page.getByRole("button", { name: "Spiel starten" }).click();
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 4; i++) {
     await page.getByRole("button", { name: /^Ich bin / }).click();
     await page.getByLabel("Zetteli 1", { exact: true }).fill(write(i));
     await page.getByRole("button", { name: "In die Schüssel" }).click();
@@ -255,7 +255,7 @@ test("pause hides the Zetteli and stops the clock; cancel goes back to the lobby
   await page.getByRole("button", { name: "Pause" }).click();
   await page.getByRole("button", { name: "Spiel abbrechen" }).click();
   await expect(page.getByRole("button", { name: "Spiel starten" })).toBeVisible(); // lobby, same players
-  await expect(page.getByText("Domi", { exact: true })).toBeVisible();
+  await expect(page.getByText("Tim", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Zurück" }).click();
   await expect(page).toHaveURL("/");
 });
@@ -263,7 +263,7 @@ test("pause hides the Zetteli and stops the clock; cancel goes back to the lobby
 test("the same word on two phones is cancelled for both, who each write a new one", async ({ browser }) => {
   const host = await phone(browser);
   await host.goto("/");
-  await host.getByRole("button", { name: /Jedes Handy/ }).click();
+  await host.getByRole("button", { name: /Mehrere Handys/ }).click();
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
   await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
@@ -319,7 +319,7 @@ test("AI help: spelling suggestion, hint filled in and shown to the describer (A
   await expect(page.getByLabel("Zetteli 1", { exact: true })).toHaveValue("Matterhorn");
   await expect(page.getByLabel(/Zetteli 1: Hinweis/)).toHaveValue(/Tipp zu Matter/);
   await page.getByRole("button", { name: "In die Schüssel" }).click();
-  for (let i = 1; i < 5; i++) {
+  for (let i = 1; i < 4; i++) {
     await page.getByRole("button", { name: /^Ich bin / }).click();
     await page.getByLabel("Zetteli 1", { exact: true }).fill(`Wort${i}`);
     await expect(page.getByLabel(/Zetteli 1: Hinweis/)).toHaveValue(`Tipp zu Wort${i}`);
@@ -360,7 +360,7 @@ test("one phone can play the drawing round on a flip chart", async ({ page }) =>
   for (const r of ["Umschreiben", "Pantomime", "Ein Wort", "Geräusch"]) await page.getByRole("button", { name: `${r} weglassen` }).click();
   for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
   await page.getByRole("button", { name: "Spiel starten" }).click();
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 4; i++) {
     await page.getByRole("button", { name: /^Ich bin / }).click();
     await page.getByLabel("Zetteli 1", { exact: true }).fill(`Bild${i}`);
     await page.getByRole("button", { name: "In die Schüssel" }).click();

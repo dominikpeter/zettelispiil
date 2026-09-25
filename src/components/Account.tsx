@@ -6,6 +6,7 @@ import { signIn, signOut, useAiStatus, type Provider } from "@/lib/aiAccess";
 import { press } from "@/lib/ui";
 
 // provider marks, drawn small and in their own colors as the providers ask for
+/* eslint-disable shadcn/no-raw-colors -- brand colors are fixed by Google and Microsoft, not part of our theme */
 function Mark({ p }: { p: Provider }) {
   if (p === "google")
     return (

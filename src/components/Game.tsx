@@ -2,7 +2,7 @@
 
 import { AlertTriangle, ArrowLeft, ArrowLeftRight, Check, Eraser, Loader2, Sparkles, Home, Pause, Play, ChevronDown, ChevronUp, Crown, Infinity as Inf, Minus, Pencil, Plus, Share2, Shuffle, Smartphone, UserPlus, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { pickOne } from "@/lib/i18n";
+
 import { aiAllowed, useAiStatus } from "@/lib/aiAccess";
 import { aiPref, langPref, useHints, useT } from "@/lib/prefs";
 import { Account } from "./Account";
@@ -104,7 +104,7 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
       {(open || paused) && (
         <div role="dialog" aria-modal="true" aria-label={t.paused} className="enter fixed inset-0 z-50 flex flex-col overflow-y-auto overscroll-contain bg-canvas/95 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
           <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 py-6 text-center">
-            <span className="pop grid size-24 place-items-center rounded-[2rem] bg-raised text-accent">
+            <span className="pop grid size-24 place-items-center rounded-4xl bg-raised text-accent">
               <Pause className="size-12" strokeWidth={1.75} aria-hidden />
             </span>
             <h2 className="mt-2 text-5xl font-extrabold tracking-tight">{t.paused}</h2>
@@ -260,11 +260,11 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
     [r[i], r[i + d]] = [r[i + d], r[i]];
     set({ rounds: r });
   };
-  const [adding, setAdding] = useState(() => pickOne(t.funnyPlayers));
+  const [adding, setAdding] = useState("");
   const addPlayer = async () => {
     if (!adding.trim() || !onAdd) return;
     await onAdd(adding.trim());
-    setAdding(pickOne(t.funnyPlayers.filter((n) => !v.players.some((p) => p.name === n))));
+    setAdding("");
   };
 
   return (
@@ -339,7 +339,13 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
             addPlayer();
           }}
         >
-          <input value={adding} onChange={(e) => setAdding(e.target.value)} onFocus={(e) => e.target.select()} maxLength={24} aria-label={t.yourName} className={`${field} min-w-0 flex-1 py-2.5 font-semibold`} />
+          <input value={adding} onChange={(e) => setAdding(e.target.value)} maxLength={24} placeholder={t.addPlayer} aria-label={t.addPlayer} className={`${field} min-w-0 flex-1 py-2.5 font-semibold`} />
+          <AiNameButton
+            label={t.aiName}
+            make={() => funnyName("player", langPref.get(), v.players.map((p) => p.name), t.funnyPlayers)}
+            onName={setAdding}
+            className={`grid size-[3.2rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent ${press}`}
+          />
           <button disabled={busy || !adding.trim() || v.players.length >= 20} aria-label="+" className={`${btn2} w-auto! shrink-0 px-4`}>
             <UserPlus className="size-5" aria-hidden />
           </button>
@@ -706,7 +712,7 @@ export function PassPhone({ name, team, teamName, onReady, note }: { name: strin
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-        <span className={`pop grid size-24 place-items-center rounded-[2rem] ${TEAM[team].soft}`}>
+        <span className={`pop grid size-24 place-items-center rounded-4xl ${TEAM[team].soft}`}>
           <Smartphone className={`size-12 ${TEAM[team].text}`} strokeWidth={1.75} aria-hidden />
         </span>
         <p className="enter mt-2 text-lg text-muted">{t.passTo}</p>
@@ -816,7 +822,7 @@ function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe }: { text: stri
           </p>
           {showHint && hint && <p className="mt-3 text-base text-paper-ink/60">{hint}</p>}
           {/* stamps that fade in while dragging */}
-          <span className="absolute top-3 left-4 -rotate-12 rounded-md border-2 border-[#0a8a3a] px-2 text-sm font-extrabold text-[#0a8a3a]" style={{ opacity: Math.max(0, Math.min(1, dx / SWIPE)) }}>
+          <span className="absolute top-3 left-4 -rotate-12 rounded-md border-2 border-stamp px-2 text-sm font-extrabold text-stamp" style={{ opacity: Math.max(0, Math.min(1, dx / SWIPE)) }}>
             {t.stampGot}
           </span>
           <span className="absolute top-3 right-4 rotate-12 rounded-md border-2 border-paper-ink/60 px-2 text-sm font-extrabold text-paper-ink/60" style={{ opacity: Math.max(0, Math.min(1, -dx / SWIPE)) }}>

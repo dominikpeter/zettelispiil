@@ -4,6 +4,7 @@ export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
 // home-screen icon: the same Zetteli as the favicon, drawn as PNG for iOS
+/* eslint-disable shadcn/no-raw-colors -- rendered to a PNG by next/og, where theme CSS variables do not exist */
 export default function AppleIcon() {
   return new ImageResponse(
     (

@@ -17,11 +17,11 @@ The Swiss party game with paper slips, as a mobile web app. Everyone writes word
 | Pantomime | No words, no sounds |
 | Ein Wort | Exactly one word as a clue |
 | Geräusch | Only noises |
-| Zeichnen | Draw it: on your phone with everyone watching live (every phone), or on a flip chart or paper (one phone). Opt-in |
+| Zeichnen | Draw it: on your phone with everyone watching live (several phones), or on a flip chart or paper (one phone). Opt-in |
 
 The host can reorder or drop rounds and set Zetteli per person, seconds per turn and how many Zetteli may be skipped per turn. With a limit of 1 you can set one aside and swap back and forth, but not skip a second.
 
-In every-phone games, teammates can tap "Erraten" on their own phones too (a word only ever counts once), and each guessed word flashes briefly on every other phone. Long words shrink to stay on one line.
+In games on several phones, teammates can tap "Erraten" on their own phones too (a word only ever counts once), and each guessed word flashes briefly on every other phone. Long words shrink to stay on one line.
 
 The host can pause a turn (the clock stops on every phone and the Zetteli is hidden) and cancel the game back to the lobby.
 
@@ -29,8 +29,8 @@ At the end: the winner, a score race over every turn, points per round, speed pe
 
 ## Two ways to play
 
-- **Ein Handy:** one phone goes round. Players are listed on the start screen (Lisa, Beni, Tim, Nora, Domi by default), the phone asks to be handed to each writer and describer. Runs entirely in the browser, and survives a reload.
-- **Jedes Handy:** the host opens a room, everyone joins with the 5-letter code, the QR code or the link. The Zetteli only ever show on the describer's phone. Rooms live in Redis for a day.
+- **Ein Handy:** one phone goes round. Players are listed on the start screen (Lisa, Nora, Beni, Tim by default), the phone asks to be handed to each writer and describer. Runs entirely in the browser, and survives a reload.
+- **Mehrere Handys:** the host opens a room, everyone joins with the 5-letter code, the QR code or the link. The Zetteli only ever show on the describer's phone. Rooms live in Redis for a day.
 
 ## AI help
 

@@ -23,7 +23,7 @@ for (const name of PHONES) {
     const phone = async (b: Browser) => (await b.newContext({ ...devices[name] })).newPage();
     const host = await phone(browser);
     await host.goto("/");
-    await host.getByRole("button", { name: /Jedes Handy/ }).click();
+    await host.getByRole("button", { name: /Mehrere Handys/ }).click();
     await host.getByLabel("Dein Name").fill("Lisa");
     await host.getByRole("button", { name: "Raum erstellen" }).click();
     await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
@@ -86,7 +86,7 @@ test("iPhone SE: long words stay on one line and the swipe screen fits (one phon
   await page.waitForURL(/\/local$/);
   for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
   await page.getByRole("button", { name: "Spiel starten" }).click();
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 4; i++) {
     await page.getByRole("button", { name: /^Ich bin / }).click();
     await page.getByLabel("Zetteli 1", { exact: true }).fill([...LONG, "Streichholzschächtelchen"][i]);
     await page.getByRole("button", { name: "In die Schüssel" }).click();

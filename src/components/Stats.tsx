@@ -87,7 +87,7 @@ function Race({ race, turns, players, names, teams, t }: { race: [number, number
         {([0, 1] as const).map((t) => (
           <g key={`e${t}`}>
             <circle cx={x(race.length - 1)} cy={y(end[t])} r="4.5" fill={CHART[t]} stroke="var(--color-surface)" strokeWidth="2" />
-            <text x={x(race.length - 1) + 9} y={ly[t] + 4} className="fill-ink text-[12px] font-bold">
+            <text x={x(race.length - 1) + 9} y={ly[t] + 4} className="fill-ink text-xs font-bold">
               {end[t]}
             </text>
           </g>
@@ -147,7 +147,7 @@ function RoundBars({ scores, names, teams, t }: { scores: [number, number][]; na
                   <rect x={bx} y={H - 26 - h} width={bw} height={h} rx="4" fill={CHART[t]} className="grow" style={{ animationDelay: `${r * 0.08 + t * 0.04}s` }}>
                     <title>{`${teams[t]}, ${names[r]}: ${v}`}</title>
                   </rect>
-                  <text x={bx + bw / 2} y={H - 32 - h} textAnchor="middle" className="fill-ink text-[12px] font-bold tabular-nums">
+                  <text x={bx + bw / 2} y={H - 32 - h} textAnchor="middle" className="fill-ink text-xs font-bold tabular-nums">
                     {v}
                   </text>
                 </g>
@@ -177,7 +177,7 @@ function Tempo({ rounds, names, label }: { rounds: { avgMs: number }[]; names: s
         return (
           <g key={i}>
             <rect x={bx} y={H - 26 - h} width={bw} height={h} rx="4" fill="var(--color-accent)" className="grow" style={{ animationDelay: `${i * 0.08}s` }} />
-            <text x={bx + bw / 2} y={H - 32 - h} textAnchor="middle" className="fill-ink text-[12px] font-bold tabular-nums">
+            <text x={bx + bw / 2} y={H - 32 - h} textAnchor="middle" className="fill-ink text-xs font-bold tabular-nums">
               {r.avgMs ? `${fmt(r.avgMs)} s` : "–"}
             </text>
             <text x={gw * i + gw / 2} y={H - 8} textAnchor="middle" className="fill-muted text-[11px]">

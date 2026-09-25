@@ -80,6 +80,7 @@
   --color-ink-black-900: #a8b4f6;
 
   /* the slips look the same in every theme */
+  --color-stamp: #0a8a3a; /* the green "ERRATEN" stamp on a slip */
   --color-paper: #fffcd6;
   --color-paper-edge: #fff585;
   --color-paper-ink: #03071e;

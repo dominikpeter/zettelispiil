@@ -123,11 +123,18 @@ export default function Home() {
                   <input
                     value={p}
                     maxLength={24}
+                    autoFocus={i === players.length - 1 && !p} // a freshly added row: type right away
                     aria-label={t.playerN(i + 1)}
                     placeholder={t.playerN(i + 1)}
                     onChange={(e) => setPlayers(players.map((x, j) => (j === i ? e.target.value : x)))}
                     className="min-w-0 flex-1 rounded-lg bg-transparent px-1 py-3 text-lg font-semibold outline-none placeholder:text-muted/60 focus-visible:bg-raised"
                     autoComplete="off"
+                  />
+                  <AiNameButton
+                    label={`${t.playerN(i + 1)}: ${t.aiName}`}
+                    make={() => funnyName("player", lang, players, t.funnyPlayers)}
+                    onName={(n) => setPlayers((ps) => (ps ?? players).map((x, j) => (j === i ? n : x)))}
+                    className={`grid size-10 shrink-0 place-items-center rounded-full text-muted hover:bg-raised hover:text-accent ${press}`}
                   />
                   <button type="button" onClick={() => setPlayers(players.filter((_, j) => j !== i))} aria-label={t.removePlayer(named[i])} className={`grid size-10 place-items-center rounded-full text-muted hover:bg-raised hover:text-ink ${press}`}>
                     <X className="size-5" aria-hidden />
@@ -137,7 +144,7 @@ export default function Home() {
             </ul>
             <button
               type="button"
-              onClick={async () => setPlayers([...players, await funnyName("player", lang, players, t.funnyPlayers)])}
+              onClick={() => setPlayers([...players, ""])}
               disabled={players.length >= 20}
               className={`${ghost} -ml-3 mt-1 flex items-center gap-2 text-accent`}
             >
