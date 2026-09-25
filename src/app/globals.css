@@ -2,6 +2,7 @@
 
 /* palette: note 100 = darkest, 900 = lightest (reverse of Tailwind default) */
 @theme {
+  --color-whatsapp: #25d366; /* WhatsApp's own green, so the share button is recognised at a glance */
   --breakpoint-xs: 22.5rem; /* below this: the smallest phones (320 px), where rows stack and extras hide */
   --color-deep-indigo: #3d0066;
   --color-deep-indigo-100: #0c0014;

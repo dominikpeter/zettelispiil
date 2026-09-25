@@ -24,6 +24,7 @@ test("signed out: no AI anywhere, sign-in only in the settings sheet", async ({ 
   await expect(page.getByRole("heading", { name: "KI-Hilfe" })).toBeVisible(); // AI help and signing in belong together
   await expect(page.getByRole("button", { name: "Aus", exact: true })).toHaveCount(0); // but no AI switch before signing in
   await expect(page.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/dominikpeter/zettelispiil"); // the credit line
+  await expect(page.getByRole("link", { name: "Zettelispiil per WhatsApp teilen" })).toHaveAttribute("href", /^https:\/\/wa\.me\/\?text=.*zettelispiil\.ch/); // recommend the app
   await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: "Neues Spiel" }).click();

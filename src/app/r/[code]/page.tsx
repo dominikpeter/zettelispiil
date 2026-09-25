@@ -192,7 +192,7 @@ export default function Room() {
         </div>
       )}
 
-      {joined && v.phase === "lobby" && <Lobby v={v} send={send} busy={busy} mode="online" share={{ qr, copied, onShare: share }} />}
+      {joined && v.phase === "lobby" && <Lobby v={v} send={send} busy={busy} mode="online" share={{ qr, copied, onShare: share, url }} />}
       {joined && v.phase !== "lobby" && <Phase v={v} send={send} live={live} busy={busy} mode="online" left={left} />}
 
       {!v && !errMsg && <Waiting text={t.loading} />}

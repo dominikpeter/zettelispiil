@@ -76,6 +76,11 @@ test("every phone: only the describer sees the Zetteli, one skip with swap back,
   await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
   const code = host.url().split("/").pop()!;
   await expect(host.getByAltText(`QR ${code}`)).toBeVisible();
+  // WhatsApp invite: opens the chat picker with the room code and its link ready to send
+  const wa = new URL((await host.getByRole("link", { name: "Per WhatsApp einladen" }).getAttribute("href"))!);
+  expect(wa.hostname).toBe("wa.me");
+  expect(wa.searchParams.get("text")).toContain(`Zettelispiil-Raum ${code}`);
+  expect(wa.searchParams.get("text")).toContain(`/r/${code}`);
 
   const others = await Promise.all(["Nora", "Tim", "Beni"].map(() => phone(browser)));
   for (const [i, n] of ["Nora", "Tim", "Beni"].entries()) {

@@ -12,7 +12,7 @@ import { LANGS } from "@/lib/i18n";
 import { Segmented } from "./TopControls";
 import { funnyName } from "@/lib/roomClient";
 import { norm, ROUND_TYPES, type Action, type RoundType, type Stroke, type Settings, type Slip as SlipT, type Team, type View } from "@/lib/room";
-import { Bowl, btn, btn2, buzz, field, fitLine, ghost, panel, pill, pillBtn, press, round_btn, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
+import { Bowl, btn, btn2, buzz, field, fitLine, ghost, panel, pill, pillBtn, press, round_btn, RoundIcon, Slip, TEAM, TimerRing, WhatsAppIcon, whatsappHref } from "@/lib/ui";
 import { DrawPad, DrawView, INKS } from "./DrawBoard";
 import { Stats } from "./Stats";
 import { SettingsPanel } from "./TopControls";
@@ -261,7 +261,7 @@ function RoundRow({ r, i, children }: { r: RoundType; i: number; children: React
   );
 }
 
-export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr: string; copied: boolean; onShare: () => void }; onAdd?: (name: string) => Promise<void> }) {
+export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr: string; copied: boolean; onShare: () => void; url: string }; onAdd?: (name: string) => Promise<void> }) {
   const t = useT();
   // only the host edits settings: show their taps at once, and send them one after another so quick taps never race
   const [pending, setPending] = useState<Partial<Settings>>({});
@@ -302,10 +302,15 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
           <div className="flex min-w-0 flex-col items-start gap-1">
             <p className="text-sm text-muted">{t.scanOrCode}</p>
             <p translate="no" className="text-3xl font-extrabold tracking-[0.18em] text-hi">{v.code}</p>
-            <button onClick={share.onShare} className={`${ghost} -ml-3 flex items-center gap-2 text-accent`}>
-              {share.copied ? <Check className="size-4" aria-hidden /> : <Share2 className="size-4" aria-hidden />}
-              {share.copied ? t.copied : t.share}
-            </button>
+            <div className="-ml-3 flex flex-col items-start">
+              <button onClick={share.onShare} className={`${ghost} flex items-center gap-2 text-accent`}>
+                {share.copied ? <Check className="size-4" aria-hidden /> : <Share2 className="size-4" aria-hidden />}
+                {share.copied ? t.copied : t.share}
+              </button>
+              <a href={whatsappHref(`${t.shareText(v.code)} ${share.url}`)} target="_blank" rel="noopener noreferrer" aria-label={t.whatsapp} className={`${ghost} flex items-center gap-2 font-semibold text-ink`}>
+                <WhatsAppIcon className="size-5 text-whatsapp" /> WhatsApp
+              </a>
+            </div>
           </div>
         </section>
       )}

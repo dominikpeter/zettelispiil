@@ -6,7 +6,7 @@ import { aiAllowed, useAiRoom, useAiStatus } from "@/lib/aiAccess";
 import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { LANGS } from "@/lib/i18n";
 import { aiPref, hintPref, langPref, palettePref, PALETTES, themePref, THEMES, useT } from "@/lib/prefs";
-import { pill, pillBtn, press } from "@/lib/ui";
+import { pill, pillBtn, press, WhatsAppIcon, whatsappHref } from "@/lib/ui";
 
 const dark = "(prefers-color-scheme: dark)";
 const onSystemChange = (cb: () => void) => {
@@ -136,6 +136,14 @@ export function SettingsPanel() {
           ))}
         </div>
       </section>
+      <a
+        href={whatsappHref(`${t.shareAppText} https://zettelispiil.ch`)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`flex min-h-12 items-center justify-center gap-2.5 rounded-2xl border border-line bg-surface font-semibold text-ink ${press}`}
+      >
+        <WhatsAppIcon className="size-5 text-whatsapp" /> {t.shareApp}
+      </a>
       <footer className="flex items-center justify-center gap-1.5 pt-2 text-sm text-muted">
         {t.madeWith} <Heart className="size-4 fill-accent text-accent" aria-label="♥" /> {t.madeBy("Dominik")} ·
         <a href="https://github.com/dominikpeter/zettelispiil" target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline-offset-4 hover:underline">

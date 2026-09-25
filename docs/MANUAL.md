@@ -29,7 +29,7 @@ Auf der Startseite wählst du, wie ihr spielt.
 - Gib **Dein Name** ein (oder lass dir mit dem Funkel-Knopf einen erfinden).
 - **Neuer Raum**: Du leitest das Spiel (Spielleitung), die anderen kommen per Code dazu. Tippe auf **Raum erstellen**.
 - **Raum beitreten**: Gib den **Raumcode** mit 5 Zeichen ein und tippe auf **Beitreten**, oder nutze **QR-Code scannen**.
-- Im Raum stehen QR-Code und Raumcode gross oben («Scannen oder Code eingeben»). Mit **Link teilen** schickst du die Einladung direkt per Nachricht.
+- Im Raum stehen QR-Code und Raumcode gross oben («Scannen oder Code eingeben»). Mit **Link teilen** schickst du die Einladung direkt per Nachricht, mit dem WhatsApp-Knopf daneben gleich in einen WhatsApp-Chat. In den Einstellungen kannst du Zettelispiil auch per WhatsApp weiterempfehlen.
 - Pro Raum können bis zu 20 Leute mitspielen. Ein Raum bleibt einen Tag lang bestehen.
 - Wer den Raum verlässt, kommt über den Link wieder zurück.
 
