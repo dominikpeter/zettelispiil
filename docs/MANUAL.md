@@ -192,7 +192,8 @@ Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 - **Sprache**: Deutsch, English oder Français.
 - **KI-Hilfe**: An oder Aus. Prüft Rechtschreibung und Schwierigkeit, schlägt Hinweise und lustige Namen vor.
 - **Hinweise beim Erklären**: An oder Aus. Zeigt den KI-Hinweis klein unter dem Zetteli. Braucht KI-Hilfe.
-- **Konto**: Für die KI-Hilfe meldest du dich mit Google, GitHub oder Microsoft an. Spielen geht auch ohne Konto.
+- **Konto**: Für die KI-Hilfe meldest du dich mit Google, GitHub oder einem Code per E-Mail an. Spielen geht auch ohne Konto.
+- **Spendier mir einen Kaffee**: Zettelispiil ist gratis und ohne Werbung. Wer mag, spendiert einen kleinen (CHF 1), grossen (CHF 5) oder Deluxe-Kaffee (CHF 10) oder einen eigenen Betrag. Bezahlt wird bei Stripe, danach kommst du zurück ins Spiel. In den Handy-Apps gibt es den Knopf nicht.
 
 ## Aufs Handy holen
 

@@ -22,7 +22,8 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  env: { NEXT_PUBLIC_VERSION: version },
+  // the coffee button shows only once Stripe is set up (the e2e build switches it on to test the sheet)
+  env: { NEXT_PUBLIC_VERSION: version, NEXT_PUBLIC_COFFEE: process.env.STRIPE_SECRET_KEY || process.env.E2E_COFFEE ? "1" : "" },
   async headers() {
     return [
       {

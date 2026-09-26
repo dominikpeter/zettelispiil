@@ -56,6 +56,8 @@ export default async function Admin() {
     ["Anmeldungen", sum(days, "signins")],
     ["KI-Aufrufe", sum(days, "ai_check", "ai_names", "ai_ideas", "ai_zetteli")],
     ["Tokens", tokens("check") + tokens("names") + tokens("ideas") + tokens("zetteli")],
+    ["Kaffees", sum(days, "coffees")],
+    ["Kaffee-CHF", Math.round(sum(days, "coffee_rappen") / 100)],
   ] as const;
   const cost = usd(sum(days, "tokens_in_check", "tokens_in_names", "tokens_in_ideas", "tokens_in_zetteli"), sum(days, "tokens_out_check", "tokens_out_names", "tokens_out_ideas", "tokens_out_zetteli"));
   const fromCache = sum(days, "cache_check", "cache_names", "cache_ideas", "cache_zetteli");

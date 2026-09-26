@@ -43,7 +43,7 @@ check: lint typecheck test
 
 # fail if a secret-looking string is in the last commit
 secrets:
-    ! git log -p -1 | grep -qE "sk-(proj-)?[A-Za-z0-9_-]{20,}"
+    ! git log -p -1 | grep -qE "sk-(proj-)?[A-Za-z0-9_-]{20,}|(sk|rk)_(live|test)_[A-Za-z0-9]{20,}|whsec_[A-Za-z0-9]{20,}|re_[A-Za-z0-9]{8}_[A-Za-z0-9]{20,}"
 
 # deploy the current tree to production
 deploy:
@@ -65,6 +65,10 @@ auth-setup:
 # sign-in with a code by email: asks for the Resend API key (never shown) and the sender address
 email-setup:
     bash scripts/setup-email.sh
+
+# "buy me a coffee": asks for the Stripe restricted key and webhook secret (never shown)
+stripe-setup:
+    bash scripts/setup-stripe.sh
 
 # phone apps (Capacitor): a native shell around zettelispiil.ch, so web releases reach them without a store update.
 # Android needs JDK 21 and the Android SDK (`brew install openjdk@21 android-commandlinetools`); iOS needs Xcode.

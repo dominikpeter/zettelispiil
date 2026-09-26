@@ -2,6 +2,7 @@
 
 import { Heart, Moon, Settings, Sparkles, Sun, SunMoon, X } from "lucide-react";
 import { Account } from "./Account";
+import { Coffee, CoffeeThanks } from "./Coffee";
 import { aiAllowed, useAiRoom, useAiStatus } from "@/lib/aiAccess";
 import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { LANGS } from "@/lib/i18n";
@@ -136,6 +137,7 @@ export function SettingsPanel() {
           ))}
         </div>
       </section>
+      <Coffee />
       <a
         href={whatsappHref(`${t.shareAppText} https://zettelispiil.ch`)}
         target="_blank"
@@ -165,6 +167,7 @@ export function TopControls() {
 
   return (
     <div className={pill}>
+      <CoffeeThanks />
       <button onClick={() => themePref.set(isDark ? "light" : "dark")} aria-label={t.toggleTheme} className={pillBtn}>
         <span key={String(isDark)} className="pop">
           {isDark ? <Moon className="size-[1.15rem]" strokeWidth={2.25} aria-hidden /> : <Sun className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />}

@@ -29,7 +29,9 @@ export type Counter =
   | "signins"
   | `ai_${AiKind}` // AI calls per feature
   | `tokens_${"in" | "out"}_${AiKind}`
-  | `cache_${AiKind}`; // answered from the cache: no model call (zetteli: Zetteli from the pool)
+  | `cache_${AiKind}` // answered from the cache: no model call (zetteli: Zetteli from the pool)
+  | "coffees" // "buy me a coffee" payments (Stripe webhook)
+  | "coffee_rappen"; // and what they brought in, in Rappen
 
 /** add to today's counters; never throws */
 export async function count(add: Partial<Record<Counter, number>>, now = new Date(), r = client()) {

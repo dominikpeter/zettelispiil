@@ -12,5 +12,5 @@ export default defineConfig({
   use: { ...devices["Pixel 7"], baseURL, trace: "retain-on-failure", screenshot: "only-on-failure" },
   webServer: process.env.BASE_URL
     ? undefined
-    : { command: `OPENAI_API_KEY= npm run build && OPENAI_API_KEY= E2E_HECKLE_DICE=always E2E_FIXED_OTP=123456 BETTER_AUTH_SECRET=e2e-only-secret-never-used-in-production npx next start -p ${port}` /* AI off: fast, free, deterministic */, url: baseURL, reuseExistingServer: true, timeout: 180_000 },
+    : { command: `OPENAI_API_KEY= E2E_COFFEE=1 npm run build && OPENAI_API_KEY= E2E_HECKLE_DICE=always E2E_FIXED_OTP=123456 STRIPE_WEBHOOK_SECRET=whsec_e2e_only BETTER_AUTH_SECRET=e2e-only-secret-never-used-in-production npx next start -p ${port}` /* AI off: fast, free, deterministic */, url: baseURL, reuseExistingServer: true, timeout: 180_000 },
 });

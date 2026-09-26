@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: no-secrets
         name: no API keys
-        entry: bash -c '! git diff --cached -U0 | grep -E "^\+.*sk-(proj-)?[A-Za-z0-9_-]{20,}"'
+        entry: bash -c '! git diff --cached -U0 | grep -E "^\+.*(sk-(proj-)?[A-Za-z0-9_-]{20,}|(sk|rk)_(live|test)_[A-Za-z0-9]{20,}|whsec_[A-Za-z0-9]{20,}|re_[A-Za-z0-9]{8}_[A-Za-z0-9]{20,})"'
         language: system
         pass_filenames: false
       - id: lint
