@@ -1,4 +1,4 @@
-// server only: AI helpers via the Vercel AI SDK. Runs on DeepSeek V4.1 Flash through OpenRouter when OPENROUTER_API_KEY is set,
+// server only: AI helpers via the Vercel AI SDK. Runs on gpt-oss-120b through OpenRouter when OPENROUTER_API_KEY is set,
 // otherwise on OpenAI (OPENAI_API_KEY); without either, everything degrades to "no AI".
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
@@ -21,11 +21,12 @@ const router = env.OPENROUTER_API_KEY
   ? createOpenAICompatible({ name: "openrouter", baseURL: "https://openrouter.ai/api/v1", apiKey: env.OPENROUTER_API_KEY, supportsStructuredOutputs: true })
   : null;
 const openai = createOpenAI({ baseURL: "https://api.openai.com/v1" });
-const model = () => (router ? router(env.OPENROUTER_MODEL ?? "deepseek/deepseek-v4.1-flash") : openai(env.OPENAI_MODEL ?? "gpt-6-luna"));
-// spelling, hints and names need no thinking: no reasoning and short answers keep a call around 2 s.
-// OpenRouter: the fastest host that supports structured output answers; OpenAI: its priority lane.
+const model = () => (router ? router(env.OPENROUTER_MODEL ?? "openai/gpt-oss-120b") : openai(env.OPENAI_MODEL ?? "gpt-6-luna"));
+// spelling, hints and names need no thinking. Measured over the four AI tasks (Sep 2026), gpt-oss-120b was the fastest of the
+// models that still hit every quality check: ~0.6 s a call, ~1.3 s for six Zetteli, at $0.15/$0.60 per million tokens.
+// It only serves with reasoning, so we ask for the least; OpenAI (fallback) uses its own no-reasoning priority lane.
 const fast = {
-  openrouter: { reasoning: { enabled: false }, provider: { sort: "latency", require_parameters: true } },
+  openrouter: { reasoning: { effort: "low" }, provider: { sort: "latency", require_parameters: true } },
   openai: { reasoningEffort: "none", textVerbosity: "low", serviceTier: "priority" },
 } as const;
 const LANG_NAME: Record<Lang, string> = { de: "Swiss Standard German (always \"ss\", never \"ß\"; Swiss German words are fine)", en: "English", fr: "French" };
