@@ -1,5 +1,5 @@
-// server only: AI helpers via the Vercel AI SDK. Runs on gpt-oss-120b through OpenRouter when OPENROUTER_API_KEY is set,
-// otherwise on OpenAI (OPENAI_API_KEY); without either, everything degrades to "no AI".
+// server only: AI helpers via the Vercel AI SDK. Runs on gpt-6-luna straight at OpenAI when OPENAI_API_KEY is set,
+// otherwise on gpt-oss-120b through OpenRouter (OPENROUTER_API_KEY); without either, everything degrades to "no AI".
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, Output } from "ai";
@@ -21,10 +21,26 @@ const router = env.OPENROUTER_API_KEY
   ? createOpenAICompatible({ name: "openrouter", baseURL: "https://openrouter.ai/api/v1", apiKey: env.OPENROUTER_API_KEY, supportsStructuredOutputs: true })
   : null;
 const openai = createOpenAI({ baseURL: "https://api.openai.com/v1" });
-const model = () => (router ? router(env.OPENROUTER_MODEL ?? "openai/gpt-oss-120b") : openai(env.OPENAI_MODEL ?? "gpt-6-luna"));
-// spelling, hints and names need no thinking. Measured over the four AI tasks (Sep 2026), gpt-oss-120b was the fastest of the
-// models that still hit every quality check: ~0.6 s a call, ~1.3 s for six Zetteli, at $0.15/$0.60 per million tokens.
-// It only serves with reasoning, so we ask for the least; OpenAI (fallback) uses its own no-reasoning priority lane.
+// Luna straight at OpenAI, not via OpenRouter: OpenRouter caps newer accounts per minute on Luna, a party typing at once hits it
+const luna = env.OPENAI_API_KEY ? () => openai(env.OPENAI_MODEL ?? "gpt-6-luna") : null;
+const oss = router ? () => router(env.OPENROUTER_MODEL ?? "openai/gpt-oss-120b") : null;
+const [model, fallback] = luna ? [luna, oss] : [oss!, null];
+/**
+ * generateText with a second model: the SDK retries a failed call itself (backoff); if it still fails, the same call runs
+ * once more on the other provider. One retry on the first when a fallback exists, so a Luna outage costs ~2 s, not ~6 s.
+ */
+const generate = (async (args: Parameters<typeof generateText>[0]) => {
+  try {
+    return await generateText({ maxRetries: fallback ? 1 : 2, ...args });
+  } catch (e) {
+    if (!fallback) throw e;
+    console.warn("AI: first model failed, trying the fallback", e instanceof Error ? e.message : e);
+    return generateText({ ...args, model: fallback() });
+  }
+}) as typeof generateText;
+// spelling, hints and names need no thinking: Luna runs without reasoning in OpenAI's priority lane. Measured Sep 2026 with
+// 8 words at once: every check right, ~1.3 s a call, ~1.5 s for six Zetteli. gpt-oss-120b (fallback) was faster (~0.8 s)
+// but only serves with reasoning, so it gets the least.
 const fast = {
   openrouter: { reasoning: { effort: "low" }, provider: { sort: "latency", require_parameters: true } },
   openai: { reasoningEffort: "none", textVerbosity: "low", serviceTier: "priority" },
@@ -65,7 +81,7 @@ export async function checkWords(words: string[], lang: Lang): Promise<WordCheck
 const askCheck = (words: string[], lang: Lang) => Promise.all(words.map((w) => askOne(w, lang).catch(() => undefined)));
 
 async function askOne(word: string, lang: Lang): Promise<WordCheck | undefined> {
-  const { output, usage } = await generateText({
+  const { output, usage } = await generate({
     model: model(),
     providerOptions: fast,
     output: Output.object({ schema: Check }),
@@ -79,7 +95,10 @@ async function askOne(word: string, lang: Lang): Promise<WordCheck | undefined> 
   const r = output.results[0];
   // the model's answer is untrusted too: every text bounded
   // an empty correction means "leave it"; a reason only goes with a word that's too hard (some models explain every word)
-  return r && { word: word.slice(0, 40), corrected: ss(r.corrected.trim().slice(0, 40)) || word.slice(0, 40), tooHard: r.tooHard, reason: r.tooHard ? ss(r.reason.slice(0, 160)) : "", hint: ss(r.hint.slice(0, 80)) };
+  if (!r) return undefined;
+  // a hint that gives the word away is dropped, as for the AI's own Zetteli
+  const hint = ss(r.hint.slice(0, 80));
+  return { word: word.slice(0, 40), corrected: ss(r.corrected.trim().slice(0, 40)) || word.slice(0, 40), tooHard: r.tooHard, reason: r.tooHard ? ss(r.reason.slice(0, 160)) : "", hint: norm(word) && norm(hint).includes(norm(word)) ? "" : hint };
 }
 
 const Ideas = z.object({ words: z.array(z.string()) });
@@ -93,7 +112,7 @@ export async function suggestWords(topic: string, lang: Lang, avoid: string[]): 
 
 // shared by everyone who picks this topic: only the topic goes in, never what a player wrote (their `avoid` is filtered out afterwards)
 async function askIdeas(topic: string, lang: Lang): Promise<string[]> {
-  const { output, usage } = await generateText({
+  const { output, usage } = await generate({
     model: model(),
     providerOptions: fast,
     output: Output.object({ schema: Ideas }),
@@ -126,7 +145,7 @@ export async function aiZetteli(n: number, topics: string[], lang: Lang): Promis
 async function askZetteli(topicId: string, lang: Lang, n: number, avoid: string[]): Promise<Slip[]> {
   const topic = topicById(topicId);
   if (!topic) return [];
-  const { output, usage } = await generateText({
+  const { output, usage } = await generate({
     model: model(),
     providerOptions: fast,
     output: Output.object({ schema: Zetteli }),
@@ -171,7 +190,7 @@ async function askNames(kind: "player" | "team", lang: Lang, base: string): Prom
   const around = base
     ? ` Every name must keep "${base}" exactly as written and add something funny around it, like "Alphorn-Beni" for "Beni". Short: at most ${nameMax(kind, base)} characters in total.`
     : "";
-  const { output, usage } = await generateText({
+  const { output, usage } = await generate({
     model: model(),
     providerOptions: fast,
     output: Output.object({ schema: Names }),

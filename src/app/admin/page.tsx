@@ -27,9 +27,9 @@ async function switchAi(form: FormData) {
 }
 const fmt = (n: number) => n.toLocaleString("de-CH");
 const when = (t: number) => new Date(t).toLocaleString("de-CH", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Zurich" });
-// USD per million tokens (Sep 2026). gpt-oss-120b on OpenRouter: 0.15 in, 0.60 out. gpt-6-luna: list price; its priority lane
-// costs more, so that's the floor
-const PRICE = process.env.OPENROUTER_API_KEY ? { in: 0.15, out: 0.6 } : { in: 0.1, out: 0.5 };
+// USD per million tokens (Sep 2026), the model ai.ts picks. gpt-6-luna: list price; its priority lane costs more, so that's
+// the floor. gpt-oss-120b on OpenRouter (only without an OpenAI key): 0.15 in, 0.60 out
+const PRICE = process.env.OPENAI_API_KEY ? { in: 0.1, out: 0.5 } : { in: 0.15, out: 0.6 };
 const usd = (tokIn: number, tokOut: number) => (tokIn * PRICE.in + tokOut * PRICE.out) / 1e6;
 const money = (n: number) => `$${n < 1 ? n.toFixed(3) : n.toFixed(2)}`;
 const sum = (days: Day[], ...keys: (keyof Day)[]) => days.reduce((s, d) => s + keys.reduce((t, k) => t + (Number(d[k]) || 0), 0), 0);
