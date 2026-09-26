@@ -59,8 +59,12 @@ vercel-ci-setup:
 
 # push the current branch (dev) and open its pull request into main, or show the one that's open
 pr:
+    #!/usr/bin/env bash
+    set -euo pipefail
     git push -u origin HEAD
-    gh pr view --json url -q .url 2>/dev/null || gh pr create --base main --fill
+    # only an open one: `gh pr view` also finds this branch's merged pull requests
+    open=$(gh pr list --head "$(git branch --show-current)" --state open --json url -q '.[0].url // ""')
+    if [ -n "$open" ]; then echo "$open"; else gh pr create --base main --fill; fi
 
 # on dev: bump the version onto the PR into main; merging it ships (CI: tag, GitHub release, Vercel, iOS). `just release 1.16.0 "notes"`
 release version notes: check secrets
@@ -71,8 +75,9 @@ release version notes: check secrets
     git add package.json package-lock.json && git commit -m "release: v{{version}}" || true
     just version-check
     git push -u origin HEAD
-    if gh pr view >/dev/null 2>&1; then gh pr edit --title "Release v{{version}}" --body {{quote(notes)}}; else gh pr create --base main --title "Release v{{version}}" --body {{quote(notes)}}; fi
-    gh pr view --json url -q .url
+    # the open pull request of this branch, if there is one (`gh pr view` would also pick up an already merged one)
+    open=$(gh pr list --head "$(git branch --show-current)" --state open --json number -q '.[0].number // ""')
+    if [ -n "$open" ]; then gh pr edit "$open" --title "Release v{{version}}" --body {{quote(notes)}} && gh pr view "$open" --json url -q .url; else gh pr create --base main --title "Release v{{version}}" --body {{quote(notes)}}; fi
 
 # store any secret without it ever showing: `just secret NAME` (.env.local + Vercel), `just secret NAME local` (.env.local only)
 secret name where="":
