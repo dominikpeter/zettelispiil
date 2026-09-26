@@ -28,6 +28,8 @@ session() {
 STRIPE_CARD_URL=$(session 500) STRIPE_TWINT_URL=$(session 100) BASE_URL="$app" npx playwright test e2e/stripe-sandbox.spec.ts --workers=1 "$@"
 
 sleep 3 # Stripe sends the webhooks right after paying
-ok=$(grep -c "checkout.session.completed.*\[200\]" "$log" || true)
+# stripe listen logs the event and its response on separate lines ("--> type [evt_x]" then "<-- [200] ... [evt_x]"),
+# so count delivered responses directly; --events above already scopes the log to the two events we're testing
+ok=$(grep -c '<-- *\[200\]' "$log" || true)
 echo "webhooks answered 200: $ok (want 2)"
 [ "$ok" -ge 2 ]
