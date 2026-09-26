@@ -16,7 +16,7 @@ Auf der Startseite wählst du, wie ihr spielt.
 
 «Ihr reicht ein Handy herum.» Alles läuft auf einem Gerät.
 
-- Die Spieler stehen gleich auf der Startseite. Zu Beginn sind es Lisa, Nora, Tim und Beni. Tippe einen Namen an, um ihn zu ändern, oder erfinde mit dem Funkel-Knopf («Lustigen Namen erfinden») einen lustigen. Steht schon ein Name da, baut die KI ihn ein: aus «Beni» wird etwa «Tramhopser-Beni». Nochmals drücken gibt eine neue Idee, wieder mit «Beni».
+- Die Spieler stehen gleich auf der Startseite. Zu Beginn sind es Lisa, Nora, Nelly und Tim. Tippe einen Namen an, um ihn zu ändern, oder erfinde mit dem Funkel-Knopf («Lustigen Namen erfinden») einen lustigen. Steht schon ein Name da, baut die KI ihn ein: aus «Nelly» wird etwa «Tramhopser-Nelly». Nochmals drücken gibt eine neue Idee, wieder mit «Nelly».
 - Mit **Spieler hinzufügen** kommen weitere dazu, mit dem X entfernst du jemanden.
 - Ihr braucht mindestens 2 Spieler pro Team, bei zwei Teams also 4.
 - Tippe auf **Neues Spiel**. Ein laufendes Spiel kannst du später mit **Weiterspielen** fortsetzen, auch nach einem Neuladen der Seite.
@@ -188,7 +188,7 @@ Mit **Nochmal spielen** startet die Spielleitung eine neue Partie.
 Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 
 - **Hell oder dunkel**: Der Knopf daneben wechselt direkt. Unter **Darstellung** wählst du Auto, Hell oder Dunkel.
-- **Farben**: Post-it (Standard), Nacht, Tinte, Gold, Abendrot, Ozean, Neon (Zetteli in Neonfarben wie ein Stapel Post-its), Arosa (Blau und Sonnengelb) oder Aarau (Schwarz, Rot, Weiss).
+- **Farben**: Post-it (Standard, ruhige App, Zetteli in Stapel-Post-it-Farben), Klassisch (das ursprüngliche knallige Gelb-Pink-Blau), Nacht, Tinte, Gold, Abendrot, Ozean, Arosa (Blau und Sonnengelb) oder Aarau (Schwarz, Rot, Weiss).
 - **Sprache**: Deutsch, English oder Français.
 - **KI-Hilfe**: An oder Aus. Prüft Rechtschreibung und Schwierigkeit, schlägt Hinweise und lustige Namen vor.
 - **Hinweise beim Erklären**: An oder Aus. Zeigt den KI-Hinweis klein unter dem Zetteli. Braucht KI-Hilfe.
@@ -196,6 +196,8 @@ Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 - **Spendier mir einen Kaffee**: Zettelispiil ist gratis und ohne Werbung. Wer mag, spendiert einen kleinen (CHF 1), grossen (CHF 5) oder Deluxe-Kaffee (CHF 10) oder einen eigenen Betrag. Bezahlt wird bei Stripe, danach kommst du zurück ins Spiel. In den Handy-Apps gibt es den Knopf nicht.
 
 ## Aufs Handy holen
+
+Auf der Startseite erscheint dafür meist ein Hinweis mit einem Installieren-Knopf (Android) oder den zwei nötigen Tipps (iPhone) — einmal beantwortet, kommt er nicht wieder. Von Hand geht es auch so:
 
 - **iPhone**: zettelispiil.ch in Safari öffnen, **Teilen** → **Zum Home-Bildschirm**.
 - **Android**: in Chrome das Menü (⋮) → **App installieren** oder **Zum Startbildschirm hinzufügen**.

@@ -4,8 +4,9 @@ import { Plus, Smartphone, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { ScanCode } from "@/components/ScanCode";
-import { AiNameButton, Cta } from "@/components/game/common"; // not the Game barrel: that pulls every game screen into the home page
+import { AiNameButton } from "@/components/game/common"; // not the Game barrel: that pulls every game screen into the home page
 import { loadDnd } from "@/components/game/RoundRow";
+import { InstallHint } from "@/components/InstallHint";
 import { TopControls } from "@/components/TopControls";
 import { loadLocalGame, loadPlayers, newLocalGame } from "@/lib/localGame";
 import { langPref, useT } from "@/lib/prefs";
@@ -27,13 +28,23 @@ const HERO = [
   { w: "Rösti", tilt: 8, x: "left-1/2 -translate-x-0.5 bottom-[29%]", size: "text-sm", pad: "px-2 pt-1", d: "0.22s" },
   { w: "Fondue", tilt: -9, x: "left-0 top-[28%]", size: "text-2xl", d: "0.3s" },
   { w: "Velo", tilt: 9, x: "right-1 top-[27%]", size: "text-2xl", d: "0.38s" },
+  // fill the gap between the mid-level pair above and the small pair at the bowl's rim, so the pile doesn't look sparse
+  { w: "Chuchi", tilt: -4, x: "left-[24%] bottom-[27%]", size: "text-base", d: "0.42s" },
+  { w: "Glocke", tilt: 5, x: "right-[18%] bottom-[27%]", size: "text-base", d: "0.44s" },
   { w: "Matterhorn", tilt: 2, x: "left-1/2 -translate-x-1/2 top-[6%]", size: "text-[1.55rem]", d: "0.46s" },
 ];
 
 // the words on the hero slips: a fresh Swiss mix on every visit (the server renders the classic set, then the phone shuffles).
 // Side slips take up to 7 letters, the big one in the middle up to 10, so every word fits its spot.
-const SHORT = ["Schoggi", "Gipfeli", "Aare", "Rösti", "Fondue", "Velo", "Brötli", "Hörnli", "Zopf", "Zmorge", "Znüni", "Alphorn", "Gondel", "Rivella", "Chuchi", "Müesli", "Lädeli", "Bärli", "Fähre", "Glocke", "Arosa", "Aarau", "Rüebli", "Chalet", "Grüezi", "Skilift", "Schnee"];
-const LONG = ["Matterhorn", "Jungfrau", "Pilatus", "Gotthard", "Säntis", "Zytglogge", "Raclette", "Bergbahn", "Eiger", "Rheinfall", "Weisshorn", "Bärenland", "Maienzug", "Schlitten", "Rüeblimärt", "Tschuggen"];
+const SHORT = [
+  "Schoggi", "Gipfeli", "Aare", "Rösti", "Fondue", "Velo", "Brötli", "Hörnli", "Zopf", "Zmorge", "Znüni", "Alphorn", "Gondel", "Rivella", "Chuchi", "Müesli", "Lädeli", "Bärli", "Fähre", "Glocke", "Arosa", "Aarau", "Rüebli", "Chalet", "Grüezi", "Skilift", "Schnee",
+  // biking, winter sports, partying, cheese and Jass: the same Swiss mix, just a wider pantry
+  "Bike", "Trail", "Helm", "Firn", "Skitag", "Chilbi", "Ausgang", "Beiz", "Chäs", "Gruyère", "Jass", "Trumpf", "Weis", "Stöck",
+];
+const LONG = [
+  "Matterhorn", "Jungfrau", "Pilatus", "Gotthard", "Säntis", "Zytglogge", "Raclette", "Bergbahn", "Eiger", "Rheinfall", "Weisshorn", "Bärenland", "Maienzug", "Schlitten", "Rüeblimärt", "Tschuggen",
+  "Bikepark", "Skigebiet", "Jugendfest", "Käsefondue", "Emmentaler", "Jasstisch",
+];
 const CLASSIC = HERO.map((h) => h.w);
 let heroWords: string[] | null = null;
 const randomHero = () =>
@@ -100,6 +111,9 @@ export default function Home() {
 
       <h1 translate="no" className="mt-3 text-[2.75rem] leading-[0.95] font-extrabold tracking-tight text-hi">Zettelispiil</h1>
       <p className="mt-2 max-w-[36ch] text-muted">{t.tagline}</p>
+      <div className="mt-4 empty:hidden">
+        <InstallHint />
+      </div>
 
       <form
         className="mt-5 flex flex-1 flex-col gap-4"
@@ -206,23 +220,29 @@ export default function Home() {
           </div>
         )}
 
-        <Cta>
-          <div className="flex flex-col gap-2">
-            <button className={btn} disabled={!ready}>
-              {busy ? t.wait : play === "local" ? (players.length >= 4 ? t.newGame : t.needFour) : mode === "create" ? t.createRoom : t.join}
-            </button>
-            {play === "local" && resumable && (
-              <button type="button" onClick={() => router.push("/local")} className={btn2}>
-                {t.resume}
+        {/* fixed, not the shared sticky Cta: the home page's content above (install banner, many players) can run past
+            one screen, and sticky-in-a-flex-column only stays glued to the bottom while everything still fits one
+            viewport (it works fine on every in-game screen, which are all short); fixed always pins to the viewport */}
+        <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-canvas from-75% to-transparent pt-6 short:pt-3 tiny:pt-2">
+          <div className="mx-auto max-w-md px-4 pb-[max(0.9rem,env(safe-area-inset-bottom))]">
+            <div className="flex flex-col gap-2">
+              <button className={btn} disabled={!ready}>
+                {busy ? t.wait : play === "local" ? (players.length >= 4 ? t.newGame : t.needFour) : mode === "create" ? t.createRoom : t.join}
               </button>
-            )}
-            {err && (
-              <p role="alert" className="enter text-center font-medium text-hi">
-                {err}
-              </p>
-            )}
+              {play === "local" && resumable && (
+                <button type="button" onClick={() => router.push("/local")} className={btn2}>
+                  {t.resume}
+                </button>
+              )}
+              {err && (
+                <p role="alert" className="enter text-center font-medium text-hi">
+                  {err}
+                </p>
+              )}
+            </div>
           </div>
-        </Cta>
+        </div>
+        <div aria-hidden className="h-24" /> {/* the fixed bar's own height, so it never covers the form's last field */}
       </form>
     </main>
   );
