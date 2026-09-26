@@ -47,10 +47,11 @@ export function Ready({ v, send, busy, mode }: P) {
         </p>
       )}
       <div className="enter flex flex-1 flex-col items-center justify-center gap-2 text-center [animation-delay:120ms]">
-        <Bowl count={v.bowlLeft} className="w-28 short:w-20 tiny:w-14" />
-        <p className="mt-3 text-muted short:mt-1">{local ? t.passTo : me ? t.yourTurn : t.upNext}</p>
-        <h1 className={`text-5xl font-extrabold tracking-tight break-words short:text-4xl tiny:text-3xl ${TEAM[p.team].text}`}>{me && !local ? t.youBang : p.name}</h1>
-        <p className="text-muted">
+        {/* the middle of the screen is this moment: a big bowl showing what's left, and whose turn it is */}
+        <Bowl count={v.bowlLeft} className="w-44 short:w-28 tiny:w-16" />
+        <p className="mt-3 text-lg text-muted short:mt-1 short:text-base">{local ? t.passTo : me ? t.yourTurn : t.upNext}</p>
+        <h1 className={`text-6xl font-extrabold tracking-tight break-words short:text-4xl tiny:text-3xl ${TEAM[p.team].text}`}>{me && !local ? t.youBang : p.name}</h1>
+        <p className="text-lg text-muted short:text-base">
           {t.forTeam(v.teamNames[p.team])}
           {carry > 0 && `, ${t.carry(carry)}`}
         </p>

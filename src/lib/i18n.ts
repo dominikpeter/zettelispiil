@@ -292,6 +292,10 @@ const de = {
   } as Record<RoundType, { name: string; rule: string }>,
   namePrefixes: ["Turbo", "Alpen", "Gipfel", "Schoggi", "Blitz", "Super", "Chäs", "Rüebli"], // no AI answer: typed name gets one of these in front
   funnyPlayers: ["Fondue-Fritz", "Rösti-Rosa", "Velo-Vreni", "Schoggi-Sepp", "Gipfeli-Gabi", "Alphorn-Anni", "Zmorge-Zoe", "Raclette-Ruedi", "Chäsli-Chrigi", "Murmeli-Mia"],
+  // generated team names on top of the list: one of these, a hyphen, one of those ("Raclette-Raketen"); max 18 characters
+  teamA: ["Rösti", "Fondue", "Schoggi", "Gipfeli", "Alphorn", "Murmeli", "Raclette", "Bergkäse", "Zopf", "Guetzli", "Älpler", "Gletscher", "Lawinen", "Föhn", "Znüni", "Bratwurst", "Chäs", "Velo", "Jodel", "Treichel"],
+  teamB: ["Gang", "Bande", "Raketen", "Kommando", "Allstars", "Crew", "Profis", "Truppe", "Express", "Club", "Piraten", "Helden"],
+  teamCombo: (a: string, b: string) => `${a}-${b}`,
   funnyTeams: ["Rösti-Raketen", "Fondue-Gang", "Schoggi-Bande", "Gipfelstürmer", "Zetteli-Zauberer", "Murmeltiere", "Alphorn-Allstars", "Bergziegen", "Käse-Kommando", "Gipfeli-Gang"],
 };
 
@@ -574,6 +578,9 @@ const en: Dict = {
   },
   namePrefixes: ["Turbo", "Captain", "Disco", "Super", "Lightning", "Mega", "Cheesy", "Funky"],
   funnyPlayers: ["Captain Cheese", "Sir Snacksalot", "Waffle Wizard", "Noodle Ninja", "Pickle Pro", "Disco Llama", "Muffin Mayhem", "Taco Tornado", "Banana Bandit", "Nacho Libre"],
+  teamA: ["Rösti", "Fondue", "Chocolate", "Croissant", "Alphorn", "Marmot", "Raclette", "Yodel", "Cowbell", "Glacier", "Avalanche", "Cheese", "Pretzel", "Muesli"],
+  teamB: ["Rockets", "Gang", "Crew", "Squad", "Allstars", "Pirates", "Heroes", "Express", "Club", "Legends"],
+  teamCombo: (a: string, b: string) => `${a} ${b}`,
   funnyTeams: ["Mighty Muffins", "Snack Attack", "The Clueless", "Pun Intended", "Team Spaghetti", "Guess Who", "Slip Happens", "The Wild Guesses", "Bowl Busters", "Word Nerds"],
 };
 
@@ -854,6 +861,9 @@ const fr: Dict = {
   },
   namePrefixes: ["Turbo", "Super", "Capitaine", "Disco", "Éclair", "Méga", "Fromage", "Baguette"],
   funnyPlayers: ["Baguette Bernard", "Croissant Claire", "Fromage Fifi", "Crêpe Camille", "Raclette René", "Escargot Émile", "Madeleine Mimi", "Fondue Fanfan", "Macaron Max", "Brioche Bibi"],
+  teamA: ["Rösti", "Fondue", "Chocolat", "Croissant", "Marmotte", "Raclette", "Yodel", "Glacier", "Gruyère", "Avalanche", "Toblerone", "Meringue"],
+  teamB: ["Brigade", "Bande", "Équipe", "Commando", "Club", "Clan", "Troupe", "Team"],
+  teamCombo: (a: string, b: string) => `${b} ${a}`,
   funnyTeams: ["Croissants Volants", "Fromages Qui Rient", "Baguettes Magiques", "Escargots Turbo", "Crêpes Sauvages", "Papiers Froissés", "Bols Pleins", "Mimes Masqués", "Cerveaux Frits", "Quiches Lorraines"],
 };
 
@@ -863,9 +873,12 @@ export const pickOne = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)
 /** two different funny team names in one language */
 /** `n` different funny team names, none of `taken` */
 export function funnyTeams(lang: Lang, n = 2, taken: string[] = []): string[] {
+  const d = DICT[lang];
+  // the hand-picked names plus every "teamA + teamB" pair: a couple of hundred, so the same two don't keep coming back
+  const all = [...d.funnyTeams, ...d.teamA.flatMap((a) => d.teamB.map((b) => d.teamCombo(a, b)))];
   const out: string[] = [];
   while (out.length < n) {
-    const pool = DICT[lang].funnyTeams.filter((x) => !out.includes(x) && !taken.includes(x));
+    const pool = all.filter((x) => !out.includes(x) && !taken.includes(x));
     out.push(pool.length ? pickOne(pool) : `Team ${taken.length + out.length + 1}`);
   }
   return out;
