@@ -7,9 +7,13 @@ export const DEFAULT_ROUNDS: RoundType[] = ["describe", "pantomime", "oneword", 
 // every phone: drawing needs a screen each, so it's on by default there, second-to-last (a late-game highlight, one round before the finish)
 export const ONLINE_DEFAULT_ROUNDS: RoundType[] = ["describe", "pantomime", "oneword", "draw", "sound"];
 export const MAX_TEAMS = 4; // the app is built for any number; colours exist for four
-export type Settings = { perPlayer: number; seconds: number; rounds: RoundType[]; skips: number; lang: Lang; teams: number; heckle: boolean; heckleMode: "auto" | "fixed"; heckles: number; source: "players" | "ai"; topics: string[] }; // skips: per turn, -1 = unlimited; lang: of the Zetteli (AI check, hints, ideas), each phone keeps its own UI language; heckle: the other teams may disturb the describer, `heckles` times each per turn; source: who writes the Zetteli (ai: nobody knows a word beforehand), about `topics`
+export type Settings = { perPlayer: number; seconds: number; roundSeconds: Partial<Record<RoundType, number>>; rounds: RoundType[]; skips: number; lang: Lang; teams: number; heckle: boolean; heckleMode: "auto" | "fixed"; heckles: number; source: "players" | "ai"; topics: string[] }; // skips: per turn, -1 = unlimited; lang: of the Zetteli (AI check, hints, ideas), each phone keeps its own UI language; heckle: the other teams may disturb the describer, `heckles` times each per turn; source: who writes the Zetteli (ai: nobody knows a word beforehand), about `topics`
 
 const clamp = (n: unknown, lo: number, hi: number, def: number) => Math.max(lo, Math.min(hi, Math.round(Number(n)) || def));
+const secs = (n: unknown, def: number) => Math.round(clamp(n, 10, 120, def) / 5) * 5; // a turn: 10 to 120 s, in steps of 5
+
+/** a turn's seconds in this round: its own time if the host set one per round (drawing may want more), else the usual */
+export const secondsFor = (s: Settings, r: RoundType | undefined) => (r && s.roundSeconds?.[r]) || s.seconds; // ?.: rooms saved before this setting
 
 /** the host's settings, kept in range; anything missing or unknown gets its default (also for rooms from before a setting existed) */
 export function cleanSettings(s: Partial<Settings>): Settings {
@@ -17,7 +21,13 @@ export function cleanSettings(s: Partial<Settings>): Settings {
   const topics = Array.isArray(s.topics) ? [...new Set(s.topics.filter((x) => TOPIC_IDS.includes(x)))] : [];
   return {
     perPlayer: clamp(s.perPlayer, 1, 10, 4),
-    seconds: Math.round(clamp(s.seconds, 10, 120, 30) / 5) * 5,
+    seconds: secs(s.seconds, 30),
+    // per round type, only for the known ones; none set: every round uses `seconds`
+    roundSeconds: Object.fromEntries(
+      Object.entries(s.roundSeconds && typeof s.roundSeconds === "object" ? s.roundSeconds : {})
+        .filter(([r]) => ROUND_TYPES.includes(r as RoundType))
+        .map(([r, n]) => [r, secs(n, 30)]),
+    ),
     rounds: rounds.length ? rounds : [...DEFAULT_ROUNDS],
     skips: s.skips === -1 ? -1 : clamp(s.skips ?? 1, 0, 5, 0),
     lang: s.lang === "en" || s.lang === "fr" ? s.lang : "de",

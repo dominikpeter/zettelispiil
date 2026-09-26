@@ -17,8 +17,12 @@ export function loadIdentity(code: string): Identity | null {
 export function saveIdentity(code: string, id: Identity) {
   try {
     localStorage.setItem(idKey(code), JSON.stringify(id));
+    localStorage.setItem(PLAYED_KEY, "1");
   } catch {}
 }
+
+/** this phone has been in a game (one phone or a room): the install banner waits for that, a first visit is for playing */
+export const PLAYED_KEY = "zettelispiil:played";
 
 // names are typed fresh each time (or made up with the sparkle); a name saved by older versions is dropped once
 try {

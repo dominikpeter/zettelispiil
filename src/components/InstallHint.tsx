@@ -4,6 +4,7 @@ import { Download, Share, SquarePlus, type LucideIcon } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { isNative } from "@/lib/native";
 import { useT } from "@/lib/prefs";
+import { PLAYED_KEY } from "@/lib/roomClient";
 import { ghost, press } from "@/lib/ui";
 
 // "Zettelispiil as an app": on a phone that hasn't installed it yet. Android/Chrome hand us an install prompt to call;
@@ -44,6 +45,9 @@ function kind(): Kind {
   if (standalone || !matchMedia("(pointer: coarse)").matches) return null; // installed already, or not a phone
   try {
     if (localStorage.getItem(KEY)) return null; // asked once already
+    // not on a first visit: then the page is for finding out how to play (the banner pushed the mode choice off screen);
+    // after a first game, when someone likes it, it's a good moment to offer the app
+    if (!localStorage.getItem(PLAYED_KEY)) return null;
   } catch {}
   if (deferred) return "prompt";
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); // iPadOS says Mac

@@ -1,7 +1,7 @@
 // the one-phone game in progress: its room code and every player's identity, in join order
 import { clearLocal, localStore } from "./localStore";
 import { createRoom, joinRoom } from "./room";
-import type { Identity } from "./roomClient";
+import { PLAYED_KEY, type Identity } from "./roomClient";
 import type { Lang } from "./i18n";
 
 export type LocalGame = { code: string; ids: Identity[] };
@@ -65,6 +65,9 @@ export function subscribePlayers(onChange: () => void) {
 /** fresh one-phone game, first player hosts; teams fill alternately; replaces any earlier game */
 export async function newLocalGame(players: string[], lang: Lang) {
   savePlayers(players);
+  try {
+    localStorage.setItem(PLAYED_KEY, "1");
+  } catch {}
   clearLocal();
   const r = await createRoom(localStore, players[0], lang);
   const ids = [{ pid: r.pid, token: r.token }];

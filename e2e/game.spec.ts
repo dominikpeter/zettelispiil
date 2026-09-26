@@ -197,7 +197,7 @@ test("every phone: only the describer sees the Zetteli, one skip with swap back,
   await expect(d.getByTestId("word")).not.toHaveText(first);
   const second = await word(d);
   await expect(d.getByRole("button", { name: `Zurück zu ${first}` })).toBeVisible();
-  await expect(d.getByRole("button", { name: /^Weiter/ })).toBeDisabled();
+  await expect(d.getByRole("button", { name: /^Passen/ })).toBeDisabled();
   await d.getByRole("button", { name: `Zurück zu ${first}` }).click();
   await expect(d.getByTestId("word")).toHaveText(first);
   await d.getByRole("button", { name: `Zurück zu ${second}` }).click();

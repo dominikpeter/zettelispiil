@@ -64,7 +64,8 @@ export function Ready({ v, send, busy, mode }: P) {
         ) : (
           <Waiting text={v.players[v.me]?.team === p.team ? t.youGuess(p.name) : t.youListen(p.name)} />
         )}
-        {v.isHost && (
+        {/* "Anna ist nicht da": not on Anna's own phone (she is here); on one phone it's the host's call as before */}
+        {v.isHost && (local || !me) && (
           <button onClick={() => send({ type: "pass" })} disabled={busy} className={`${ghost} w-full text-sm tiny:min-h-9`}>
             {t.notHere(p.name)}
           </button>

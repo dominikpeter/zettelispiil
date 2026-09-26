@@ -41,7 +41,7 @@ export function Score({ v }: { v: View }) {
 }
 
 /** back arrow for the header: straight home outside a game, after a confirm inside one */
-export function BackButton({ v, onLeave, label }: { v: View | null; onLeave: () => void; label?: string }) {
+export function BackButton({ v, onLeave, label, local = false }: { v: View | null; onLeave: () => void; label?: string; local?: boolean }) {
   const t = useT();
   const [asking, setAsking] = useState(false);
   const safe = !v || v.me < 0 || v.phase === "lobby" || v.phase === "end";
@@ -55,7 +55,7 @@ export function BackButton({ v, onLeave, label }: { v: View | null; onLeave: () 
           </span>
         )}
       </button>
-      {asking && <Confirm text={t.leaveConfirm} yes={t.leaveGame} no={t.resumeTurn} onYes={onLeave} onNo={() => setAsking(false)} />}
+      {asking && <Confirm text={local ? t.leaveConfirmLocal : t.leaveConfirm} yes={t.leaveGame} no={t.resumeTurn} onYes={onLeave} onNo={() => setAsking(false)} />}
     </>
   );
 }
@@ -120,12 +120,18 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
             )}
             {!canPause && paused && <Waiting text={t.pausedBy} />}
             {canCancel && (
-              <button onClick={() => setAsking(true)} className={btn2}>
-                <X className="size-5" aria-hidden /> {t.cancelGame}
+              <button onClick={() => setAsking(true)} className={`${btn2} flex-col gap-0 py-2`}>
+                <span className="flex items-center gap-2">
+                  <X className="size-5" aria-hidden /> {t.cancelGame}
+                </span>
+                <span className="text-sm font-normal text-muted">{t.cancelNote}</span>
               </button>
             )}
-            <button onClick={onLeave} className={`${ghost} flex w-full items-center justify-center gap-2`}>
-              <Home className="size-4" aria-hidden /> {t.leaveGame}
+            <button onClick={onLeave} className={`${ghost} flex w-full flex-col items-center justify-center gap-0 py-1`}>
+              <span className="flex items-center gap-2">
+                <Home className="size-4" aria-hidden /> {t.leaveGame}
+              </span>
+              <span className="text-sm font-normal">{local ? t.leaveNoteLocal : t.leaveNote}</span>
             </button>
           </div>
         </div>

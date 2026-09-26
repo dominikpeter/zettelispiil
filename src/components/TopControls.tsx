@@ -57,6 +57,32 @@ export function SettingsPanel() {
   };
   return (
     <>
+      {/* first what everyone may want (language, look); AI and the account after it: playing needs no account */}
+      <section className="flex flex-col gap-2">
+        <h3 className="font-semibold">{t.language}</h3>
+        <Segmented options={LANGS.map((l) => ({ id: l.id, label: l.label }))} value={lang} onChange={langPref.set} />
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h3 className="font-semibold">{t.appearance}</h3>
+        <Segmented
+          options={THEMES.map((id) => {
+            const I = icon[id];
+            return {
+              id,
+              label: (
+                <>
+                  <I className="size-4" aria-hidden />
+                  {id === "auto" ? t.themeAuto : id === "light" ? t.themeLight : t.themeDark}
+                </>
+              ),
+            };
+          })}
+          value={theme}
+          onChange={themePref.set}
+        />
+      </section>
+
       {/* AI and the account belong together: signed out, the AI section is just the way in (hidden when no sign-in is set up) */}
       {!canAi && status?.login && (
         <section className="flex flex-col gap-2">
@@ -92,31 +118,6 @@ export function SettingsPanel() {
         <p className="text-sm leading-snug text-muted">{t.showHintsNote}</p>
       </fieldset>
       </>)}
-
-          <section className="flex flex-col gap-2">
-        <h3 className="font-semibold">{t.language}</h3>
-        <Segmented options={LANGS.map((l) => ({ id: l.id, label: l.label }))} value={lang} onChange={langPref.set} />
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h3 className="font-semibold">{t.appearance}</h3>
-        <Segmented
-          options={THEMES.map((id) => {
-            const I = icon[id];
-            return {
-              id,
-              label: (
-                <>
-                  <I className="size-4" aria-hidden />
-                  {id === "auto" ? t.themeAuto : id === "light" ? t.themeLight : t.themeDark}
-                </>
-              ),
-            };
-          })}
-          value={theme}
-          onChange={themePref.set}
-        />
-      </section>
 
       <section className="flex flex-col gap-2">
         <h3 className="font-semibold">{t.colors}</h3>

@@ -116,6 +116,12 @@ test("iPhone SE: long words stay on one line and the swipe screen fits (one phon
   await page.getByRole("button", { name: "Los, Zetteli ziehen" }).click();
   await expect(page.getByTestId("word")).toBeVisible();
   expect(await fits(page)).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });
+  // one skipped: the set-aside Zetteli shows below, and the buttons must stay on screen (feedback: they slid off mid-turn)
+  const first = await page.getByTestId("word").innerText();
+  await page.getByRole("button", { name: /^Passen/ }).click();
+  await expect(page.getByTestId("word")).not.toHaveText(first);
+  await expect(page.getByRole("button", { name: `Zurück zu ${first}` })).toBeVisible();
+  await expect.poll(() => fits(page), { message: "turn screen with a set-aside Zetteli", timeout: 3000 }).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });
 });
 
 test("iPhone SE: no screen scrolls sideways and single-screen views fit, through a whole one-phone game with drawing on paper", async ({ browser }) => {

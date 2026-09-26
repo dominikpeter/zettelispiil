@@ -1,9 +1,9 @@
 import { funnyTeams, type Lang } from "./i18n.ts";
 import type { Store } from "./store.ts";
-import { cleanSettings, type RoundType, type Settings } from "./settings.ts";
+import { cleanSettings, secondsFor, type RoundType, type Settings } from "./settings.ts";
 import { heckle, heckleView, startHeckles, type Heckles } from "./heckle.ts";
 
-export { cleanSettings, DEFAULT_ROUNDS, MAX_TEAMS, ONLINE_DEFAULT_ROUNDS, ROUND_TYPES, type RoundType, type Settings } from "./settings.ts";
+export { cleanSettings, DEFAULT_ROUNDS, MAX_TEAMS, ONLINE_DEFAULT_ROUNDS, ROUND_TYPES, secondsFor, type RoundType, type Settings } from "./settings.ts";
 
 const TTL = 60 * 60 * 24; // rooms vanish a day after the last write
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I lookalikes
@@ -428,7 +428,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       break;
     case "go": {
       need(room.phase === "ready" && idx === describer(room));
-      const ms = room.carryMs || room.settings.seconds * 1000;
+      const ms = room.carryMs || secondsFor(room.settings, room.settings.rounds[room.round]) * 1000;
       Object.assign(room, { carryMs: 0, turnStart: now, endsAt: now + ms, turnGot: 0, phase: "turn", turnNo: room.turnNo + 1 } satisfies Partial<Room>);
       startHeckles(room, process.env.E2E_HECKLE_DICE === "always" ? () => 0 : Math.random); // e2e server only: loaded dice
       draw(room, now);

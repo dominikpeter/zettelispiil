@@ -3,6 +3,7 @@
 import { Check, Eraser } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useHints, useT } from "@/lib/prefs";
+import { secondsFor } from "@/lib/settings";
 import { useCountdown } from "@/lib/useCountdown";
 import { Bowl, btn, btn2, buzz, fitLine, press, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
 import { DrawPad, DrawView, INKS } from "../DrawBoard";
@@ -11,7 +12,7 @@ import { HeckleFx, useHeckle } from "./Heckle";
 
 const SWIPE = 90; // px to count as a swipe
 
-function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe, heckle = null }: { text: string; hint: string; locked: boolean; canSkip: boolean; fling: "r" | "l" | null; onSwipe: (d: "r" | "l") => void; heckle?: { ms: number } | null }) {
+function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe, heckle = null, compact = false }: { text: string; hint: string; locked: boolean; canSkip: boolean; fling: "r" | "l" | null; onSwipe: (d: "r" | "l") => void; heckle?: { ms: number } | null; compact?: boolean }) {
   const t = useT();
   const showHint = useHints();
   const [dx, setDx] = useState(0);
@@ -52,7 +53,7 @@ function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe, heckle = null 
         style={{ transform: `translateX(${dx}px) rotate(${dx / 14}deg)`, transition: dragging ? "none" : "transform 0.3s var(--ease-spring)" }}
       >
         <HeckleFx fx={heckle}>
-          <Slip tilt={-1.5} className={`unfold relative @container px-5 pt-10 pb-12 text-center [@media(max-height:640px)]:pt-6 [@media(max-height:640px)]:pb-8 ${locked ? "opacity-70 grayscale" : ""}`}>
+          <Slip tilt={-1.5} className={`unfold relative @container px-5 text-center ${compact ? "pt-6 pb-7" : "pt-10 pb-12 [@media(max-height:640px)]:pt-6 [@media(max-height:640px)]:pb-8"} ${locked ? "opacity-70 grayscale" : ""}`}>
             <p data-testid="word" className="font-hand leading-tight font-bold" style={fitLine(text)}>
               {text}
             </p>
@@ -80,7 +81,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   const d = v.active!;
   const p = v.players[d];
   const me = d === v.me;
-  const total = v.carryMs || v.settings.seconds * 1000;
+  const total = v.carryMs || secondsFor(v.settings, v.settings.rounds[v.round]) * 1000;
   const shownLeft = left === Infinity ? total : left;
   const up = left <= 0;
   const [fling, setFling] = useState<"r" | "l" | null>(null);
@@ -272,14 +273,16 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center">
-        {v.word && <SwipeSlip key={v.word.id} text={v.word.text} hint={v.word.hint} locked={up} canSkip={v.canSkip} fling={fling} onSwipe={act} heckle={heckleSlip} />}
-        {!up && <p className="mt-4 text-center text-sm text-muted [@media(max-height:640px)]:hidden">{t.swipeHint}</p>}
+        {/* a set-aside Zetteli adds a row below: the slip gets slimmer and the swipe hint (known by now) goes, so the buttons
+            never slide off the screen mid-turn */}
+        {v.word && <SwipeSlip key={v.word.id} text={v.word.text} hint={v.word.hint} locked={up} canSkip={v.canSkip} fling={fling} onSwipe={act} heckle={heckleSlip} compact={v.held.length > 0} />}
+        {!up && !v.held.length && <p className="mt-4 text-center text-sm text-muted [@media(max-height:640px)]:hidden">{t.swipeHint}</p>}
       </div>
 
       {v.held.length > 0 && (
         <div className="enter">
-          <p className="mb-2 text-sm text-muted">{t.setAside}</p>
-          <div className="flex flex-wrap gap-3">
+          <p className="mb-1.5 text-xs text-muted">{t.setAside}</p>
+          <div className="flex flex-wrap gap-2">
             {v.held.map((h, i) => (
               <button
                 key={h.id}
@@ -288,8 +291,8 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
                 aria-label={t.swapBack(h.text)}
                 className={`${press} disabled:opacity-50`}
               >
-                <Slip tilt={i % 2 ? 2 : -3} className="unfold px-3 pt-1 pb-1">
-                  <span className="font-hand text-2xl font-bold">{h.text}</span>
+                <Slip tilt={i % 2 ? 2 : -3} className="unfold px-2.5 pt-0.5 pb-0.5">
+                  <span className="font-hand text-xl font-bold">{h.text}</span>
                 </Slip>
               </button>
             ))}

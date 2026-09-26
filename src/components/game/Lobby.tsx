@@ -9,7 +9,7 @@ import { langPref, useT } from "@/lib/prefs";
 import { LANGS } from "@/lib/i18n";
 import { Segmented } from "../TopControls";
 import { funnyName } from "@/lib/roomClient";
-import { MAX_TEAMS, ROUND_TYPES, type Settings, type Team } from "@/lib/room";
+import { MAX_TEAMS, ROUND_TYPES, secondsFor, type Settings, type Team } from "@/lib/room";
 import { TOPIC_IDS, TOPICS, topicById, type TopicIcon } from "@/lib/topics";
 import { btn, btn2, field, ghost, panel, press, round_btn, RoundIcon, TEAM, WhatsAppIcon, whatsappHref } from "@/lib/ui";
 import { mini, Waiting, Cta, AiNameButton, type P } from "./common";
@@ -120,6 +120,10 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
   // only the host edits settings: show their taps at once, and send them one after another so quick taps never race
   const [pending, setPending] = useState<Partial<Settings>>({});
   const s = { ...v.settings, ...pending };
+  const perRound = Object.keys(s.roundSeconds ?? {}).length > 0;
+  const settingsRef = useRef<HTMLElement>(null);
+  const secs = s.rounds.map((r) => secondsFor(s, r));
+  const secondsLabel = Math.min(...secs) === Math.max(...secs) ? `${secs[0]} s` : `${Math.min(...secs)}–${Math.max(...secs)} s`;
   const aiRoom = useAiRoom();
   const aiOn = useAiOn();
   const lang = langPref.use(); // this phone's language, for topic names
@@ -256,14 +260,31 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
         )}
       </div>
 
-      <section className={panel}>
+      <section ref={settingsRef} className={`${panel} scroll-mt-4`}>
         <h2 className="text-lg font-bold">{t.settings}</h2>
         {v.isHost ? (
           <>
             <div className="mt-2 divide-y divide-line">
               <Stepper label={t.teamsCount} value={s.teams} set={(n) => set({ teams: n })} min={2} max={MAX_TEAMS} />
               <Stepper label={t.perPlayer} value={s.perPlayer} set={(n) => set({ perPlayer: n })} min={1} max={10} />
-              <Stepper label={t.seconds} value={s.seconds} set={(n) => set({ seconds: s.seconds + (n - s.seconds) * 5 })} min={10} max={120} />
+              {perRound ? (
+                s.rounds.map((r) => (
+                  <Stepper key={r} label={`${t.round[r].name}: ${t.seconds}`} value={secondsFor(s, r)} set={(n) => set({ roundSeconds: { ...s.roundSeconds, [r]: secondsFor(s, r) + (n - secondsFor(s, r)) * 5 } })} min={10} max={120} />
+                ))
+              ) : (
+                <Stepper label={t.seconds} value={s.seconds} set={(n) => set({ seconds: s.seconds + (n - s.seconds) * 5 })} min={10} max={120} />
+              )}
+              {/* drawing or charades may want more time than describing: every round its own seconds */}
+              <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
+                <span className="font-medium">{t.secondsPerRound}</span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={perRound}
+                  onChange={(e) => set({ roundSeconds: e.target.checked ? Object.fromEntries(s.rounds.map((r) => [r, s.seconds])) : {} })}
+                  className="relative h-7 w-12 shrink-0 cursor-pointer appearance-none rounded-full border border-line bg-raised transition-colors before:absolute before:top-0.5 before:left-0.5 before:size-5.5 before:rounded-full before:bg-muted before:transition-transform checked:border-accent checked:bg-accent checked:before:translate-x-5 checked:before:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                />
+              </label>
               <Stepper label={t.skips} value={skipStep} display={s.skips === -1 ? <Inf className="size-6" aria-label="∞" /> : undefined} set={(n) => set({ skips: n >= 6 ? -1 : n })} min={0} max={6} />
               {!local && (
                 <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
@@ -328,7 +349,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
           <ul className="mt-2 flex flex-col gap-1 text-muted">
             <li>{t.sumTeams(s.teams)}</li>
             <li>{t.sumPerPlayer(s.perPlayer)}</li>
-            <li>{t.sumSeconds(s.seconds)}</li>
+            <li>{perRound ? t.sumSecondsRounds(s.rounds.map((r) => `${t.round[r].name} ${secondsFor(s, r)} s`).join(", ")) : t.sumSeconds(s.seconds)}</li>
             <li>{t.sumSkips(s.skips)}</li>
             {s.heckle && <li>{s.heckleMode === "auto" ? t.sumHeckleAuto : t.sumHeckle(s.heckles)}</li>}
             <li>{t.sumLang(LANGS.find((l) => l.id === s.lang)!.label)}</li>
@@ -346,6 +367,11 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
       </section>
 
       <Cta>
+        {v.isHost && (
+          <button onClick={() => settingsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} className={`${ghost} -mt-1 mb-1 w-full text-sm`}>
+            {t.settingsLine(s.perPlayer, secondsLabel, s.rounds.length)}
+          </button>
+        )}
         {v.isHost ? (
           <button onClick={() => send({ type: "start" })} disabled={busy || !canStart} className={btn}>
             {canStart ? t.start : t.needTwo}
