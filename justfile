@@ -57,16 +57,22 @@ deploy:
 vercel-ci-setup:
     bash scripts/setup-vercel-ci.sh
 
-# full release: checks, e2e, tag, push, GitHub release. `just release 1.3.0 "notes"`
-# the pushed v-tag triggers .github/workflows/ci.yml, which deploys to Vercel and kicks off the iOS build — not done here,
-# so a release only ever deploys once
-release version notes: check e2e secrets
+# push the current branch (dev) and open its pull request into main, or show the one that's open
+pr:
+    git push -u origin HEAD
+    gh pr view --json url -q .url 2>/dev/null || gh pr create --base main --fill
+
+# on dev: bump the version onto the PR into main; merging it ships (CI: tag, GitHub release, Vercel, iOS). `just release 1.16.0 "notes"`
+release version notes: check secrets
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [ "$(git branch --show-current)" != main ] || { echo "release from dev: main only changes through a pull request"; exit 1; }
     npm version {{version}} --no-git-tag-version --allow-same-version
     git add package.json package-lock.json && git commit -m "release: v{{version}}" || true
-    git tag v{{version}}
     just version-check
-    git push && git push --tags
-    gh release create v{{version}} --title "v{{version}}" --notes {{quote(notes)}}
+    git push -u origin HEAD
+    if gh pr view >/dev/null 2>&1; then gh pr edit --title "Release v{{version}}" --body {{quote(notes)}}; else gh pr create --base main --title "Release v{{version}}" --body {{quote(notes)}}; fi
+    gh pr view --json url -q .url
 
 # store any secret without it ever showing: `just secret NAME` (.env.local + Vercel), `just secret NAME local` (.env.local only)
 secret name where="":

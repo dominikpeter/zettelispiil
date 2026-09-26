@@ -1,0 +1,24 @@
+name: Copilot setup steps
+
+# Prepares the environment the Copilot coding agent works in (assign it an issue from the repo's Agents tab):
+# dependencies and the Playwright browsers, so it can run `just check` and `just e2e`.
+# GitHub runs the job named `copilot-setup-steps`; running this workflow by hand checks that the setup still works.
+on:
+  workflow_dispatch:
+  push:
+    paths: [.github/workflows/copilot-setup-steps.yml]
+  pull_request:
+    paths: [.github/workflows/copilot-setup-steps.yml]
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: npm }
+      - uses: extractions/setup-just@v4
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
