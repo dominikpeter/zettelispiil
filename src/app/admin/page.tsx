@@ -27,8 +27,9 @@ async function switchAi(form: FormData) {
 }
 const fmt = (n: number) => n.toLocaleString("de-CH");
 const when = (t: number) => new Date(t).toLocaleString("de-CH", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Zurich" });
-// gpt-6-luna list prices, USD per million tokens (openai.com, Sep 2026); the priority lane costs more, so this is the floor
-const PRICE = { in: 0.1, out: 0.5 };
+// USD per million tokens (Sep 2026). DeepSeek V4.1 Flash on OpenRouter: hosts charge 0.035–0.18 in, 0.29–0.75 out, and we take
+// the fastest, so DeepSeek's own price stands in. gpt-6-luna: list price; its priority lane costs more, so that's the floor
+const PRICE = process.env.OPENROUTER_API_KEY ? { in: 0.15, out: 0.6 } : { in: 0.1, out: 0.5 };
 const usd = (tokIn: number, tokOut: number) => (tokIn * PRICE.in + tokOut * PRICE.out) / 1e6;
 const money = (n: number) => `$${n < 1 ? n.toFixed(3) : n.toFixed(2)}`;
 const sum = (days: Day[], ...keys: (keyof Day)[]) => days.reduce((s, d) => s + keys.reduce((t, k) => t + (Number(d[k]) || 0), 0), 0);

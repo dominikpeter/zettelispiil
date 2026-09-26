@@ -34,7 +34,7 @@ At the end: the winner, a score race over every turn, points per round, speed pe
 
 ## AI help
 
-With `OPENAI_API_KEY` set (Vercel AI SDK, model `OPENAI_MODEL`, default `gpt-6-luna`), writing a Zetteli gets checked in the background: spelling suggestions, a warning for words that are hard to guess, and a short hint the writer can change. The describer sees the hint under the word. The ✨ buttons invent funny player and team names. Each phone can switch AI help and hints off in the settings. AI calls are rate limited (300/min per network, 5000/day overall).
+With `OPENROUTER_API_KEY` set (Vercel AI SDK via OpenRouter, model `OPENROUTER_MODEL`, default `deepseek/deepseek-v4.1-flash`), or else `OPENAI_API_KEY` (model `OPENAI_MODEL`, default `gpt-6-luna`), writing a Zetteli gets checked in the background: spelling suggestions, a warning for words that are hard to guess, and a short hint the writer can change. The describer sees the hint under the word. The ✨ buttons invent funny player and team names. Each phone can switch AI help and hints off in the settings. AI calls are rate limited (300/min per network, 5000/day overall).
 
 Stuck for words? Type a topic and the AI suggests three to pick from.
 
@@ -101,7 +101,7 @@ just e2e             # Playwright: Pixel 7 plus WebKit iPhone SE / 15 / 15 Pro M
 
 ## Deploy
 
-Deployed on Vercel. AI help needs `OPENAI_API_KEY`. Rooms need `KV_REST_API_URL` and `KV_REST_API_TOKEN` (set by the Upstash for Redis integration) or `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`. Without them the API answers `503 no_storage` on Vercel, and one-phone games still work.
+Deployed on Vercel. AI help needs `OPENROUTER_API_KEY` or `OPENAI_API_KEY`. Rooms need `KV_REST_API_URL` and `KV_REST_API_TOKEN` (set by the Upstash for Redis integration) or `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`. Without them the API answers `503 no_storage` on Vercel, and one-phone games still work.
 
 Sign-in (needed for AI help) uses Google, GitHub or Microsoft: `just auth-setup` asks for the OAuth keys and stores them locally and in Vercel.
 

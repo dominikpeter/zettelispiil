@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.74",
+    "@ai-sdk/openai-compatible": "^3.0.57",
     "@capacitor-community/keep-awake": "^8.0.1",
     "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.5.2",

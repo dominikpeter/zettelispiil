@@ -1,5 +1,7 @@
-// server only: AI helpers via the Vercel AI SDK. Everything degrades to "no AI" when OPENAI_API_KEY is missing.
+// server only: AI helpers via the Vercel AI SDK. Runs on DeepSeek V4.1 Flash through OpenRouter when OPENROUTER_API_KEY is set,
+// otherwise on OpenAI (OPENAI_API_KEY); without either, everything degrades to "no AI".
 import { createOpenAI } from "@ai-sdk/openai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import type { Lang } from "./i18n";
@@ -10,15 +12,22 @@ import { supplyZetteli } from "./aiZetteli";
 import { norm, type Slip } from "./room";
 import { topicById } from "./topics";
 
-export const aiEnabled = () => !!process.env.OPENAI_API_KEY;
+const env = process.env;
+export const aiEnabled = () => !!(env.OPENROUTER_API_KEY || env.OPENAI_API_KEY);
 /** AI is set up and the owner hasn't switched it off in /admin */
 export const aiLive = async () => aiEnabled() && !(await aiSwitchedOff());
-// always the real API: a shell-wide OPENAI_BASE_URL (e.g. a local proxy) must not leak into the game
+// fixed base URLs: a shell-wide OPENAI_BASE_URL (e.g. a local proxy) must not leak into the game
+const router = env.OPENROUTER_API_KEY
+  ? createOpenAICompatible({ name: "openrouter", baseURL: "https://openrouter.ai/api/v1", apiKey: env.OPENROUTER_API_KEY, supportsStructuredOutputs: true })
+  : null;
 const openai = createOpenAI({ baseURL: "https://api.openai.com/v1" });
-const model = () => openai(process.env.OPENAI_MODEL ?? "gpt-6-luna");
-// spelling, hints and names need no thinking: no reasoning and short answers halve the wait (measured ~4.3 s → ~2.2 s),
-// and the priority lane takes another ~30% off (~1.9 s). At Luna's prices a call still costs a fraction of a cent.
-const fast = { openai: { reasoningEffort: "none", textVerbosity: "low", serviceTier: "priority" } } as const;
+const model = () => (router ? router(env.OPENROUTER_MODEL ?? "deepseek/deepseek-v4.1-flash") : openai(env.OPENAI_MODEL ?? "gpt-6-luna"));
+// spelling, hints and names need no thinking: no reasoning and short answers keep a call around 2 s.
+// OpenRouter: the fastest host that supports structured output answers; OpenAI: its priority lane.
+const fast = {
+  openrouter: { reasoning: { enabled: false }, provider: { sort: "latency", require_parameters: true } },
+  openai: { reasoningEffort: "none", textVerbosity: "low", serviceTier: "priority" },
+} as const;
 const LANG_NAME: Record<Lang, string> = { de: "Swiss Standard German (always \"ss\", never \"ß\"; Swiss German words are fine)", en: "English", fr: "French" };
 
 const Check = z.object({
@@ -62,7 +71,8 @@ async function askOne(word: string, lang: Lang): Promise<WordCheck | undefined> 
   await meter("check", usage);
   const r = output.results[0];
   // the model's answer is untrusted too: every text bounded
-  return r && { word: word.slice(0, 40), corrected: r.corrected.trim().slice(0, 40), tooHard: r.tooHard, reason: r.reason.slice(0, 160), hint: r.hint.slice(0, 80) };
+  // an empty correction means "leave it"; a reason only goes with a word that's too hard (some models explain every word)
+  return r && { word: word.slice(0, 40), corrected: r.corrected.trim().slice(0, 40) || word.slice(0, 40), tooHard: r.tooHard, reason: r.tooHard ? r.reason.slice(0, 160) : "", hint: r.hint.slice(0, 80) };
 }
 
 const Ideas = z.object({ words: z.array(z.string()) });
