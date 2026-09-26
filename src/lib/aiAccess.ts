@@ -3,7 +3,7 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
 import { aiPref } from "./prefs";
 
-export type Provider = "google" | "github" | "microsoft";
+export type Provider = "google" | "github" | "microsoft" | "email";
 export type AiStatus = { ai: boolean; login: boolean; providers: Provider[]; user: { name: string; email: string; image?: string | null } | null };
 
 let status: AiStatus | null = null;
@@ -48,7 +48,15 @@ export function useAiOn() {
 const auth = () => import("./authClient").then((m) => m.authClient);
 /** start loading the auth client as the finger lands, so the tap itself doesn't wait for it */
 export const warmAuth = () => void auth().catch(() => {});
-export const signIn = async (provider: Provider) => (await auth()).signIn.social({ provider, callbackURL: location.pathname + location.search });
+export const signIn = async (provider: Exclude<Provider, "email">) => (await auth()).signIn.social({ provider, callbackURL: location.pathname + location.search });
+/** a sign-in code to this address */
+export const sendCode = async (email: string) => (await auth()).emailOtp.sendVerificationOtp({ email, type: "sign-in" });
+/** sign in with the code from the mail; on success the whole app sees the new user */
+export async function signInWithCode(email: string, otp: string) {
+  const r = await (await auth()).signIn.emailOtp({ email, otp });
+  if (!r.error) await load();
+  return r;
+}
 export async function signOut() {
   await (await auth()).signOut();
   await load();

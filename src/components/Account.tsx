@@ -1,14 +1,14 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { LogOut, Mail } from "lucide-react";
 import { useState } from "react";
 import { useT } from "@/lib/prefs";
-import { signIn, signOut, useAiStatus, warmAuth, type Provider } from "@/lib/aiAccess";
-import { press } from "@/lib/ui";
+import { sendCode, signIn, signInWithCode, signOut, useAiStatus, warmAuth, type Provider } from "@/lib/aiAccess";
+import { field, press } from "@/lib/ui";
 
 // provider marks, drawn small and in their own colors as the providers ask for
 /* eslint-disable shadcn/no-raw-colors -- brand colors are fixed by Google and Microsoft, not part of our theme */
-function Mark({ p }: { p: Provider }) {
+function Mark({ p }: { p: Social }) {
   if (p === "google")
     return (
       <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
@@ -34,14 +34,15 @@ function Mark({ p }: { p: Provider }) {
   );
 }
 
-const NAME: Record<Provider, string> = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
+type Social = Exclude<Provider, "email">;
+const NAME: Record<Social, string> = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
 
 /** sign-in buttons, or who is signed in; renders nothing when sign-in isn't set up */
 export function Account() {
   const t = useT();
   const s = useAiStatus();
   const [err, setErr] = useState("");
-  const go = async (p: Provider) => {
+  const go = async (p: Social) => {
     setErr("");
     // on success the page navigates to the provider; an answer here means it didn't
     const r = await signIn(p).catch(() => ({ error: { status: 0 } }));
@@ -63,14 +64,14 @@ export function Account() {
     <div className="flex flex-col gap-2">
       <p className="text-sm text-muted">{t.signInNote}</p>
       <div className="grid gap-2">
-        {s.providers.map((p) => (
+        {s.providers.filter((p): p is Social => p !== "email").map((p) => (
           <button
             key={p}
             type="button"
             onPointerDown={warmAuth}
             onClick={() => go(p)}
             aria-label={t.signInWith(NAME[p])}
-            className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 font-semibold text-ink hover:bg-raised ${press}`}
+            className={option}
           >
             <Mark p={p} />
             {t.signInWith(NAME[p])}
@@ -78,6 +79,74 @@ export function Account() {
         ))}
       </div>
       {err && <p role="alert" className="enter text-sm font-medium text-hi">{err}</p>}
+      {s.providers.includes("email") && <EmailCode />}
     </div>
+  );
+}
+
+const option = `flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 font-semibold text-ink hover:bg-raised disabled:opacity-50 ${press}`;
+
+/** sign in without a provider: a six-digit code by email (a code, not a link: a link would open the browser, not this app) */
+function EmailCode() {
+  const t = useT();
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const fail = (status?: number) => setErr(status === 429 ? t.rate_limited : status === 400 || status === 403 ? t.codeWrong : t.offline);
+  const send = async () => {
+    setBusy(true);
+    setErr("");
+    const r = await sendCode(email.trim()).catch(() => ({ error: { status: 0 } }));
+    setBusy(false);
+    if (r.error) fail(r.error.status);
+    else setSent(true);
+  };
+  const verify = async () => {
+    setBusy(true);
+    setErr("");
+    const r = await signInWithCode(email.trim(), code).catch(() => ({ error: { status: 0 } }));
+    setBusy(false);
+    if (r.error) fail(r.error.status === 429 ? 429 : 400);
+  };
+  return (
+    <form
+      className="mt-1 flex flex-col gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!busy) void (sent ? verify() : send());
+      }}
+    >
+      <p className="text-center text-sm text-muted">{t.orEmail}</p>
+      {!sent ? (
+        <>
+          <input type="email" required value={email} onPointerDown={warmAuth} onChange={(e) => setEmail(e.target.value)} placeholder={t.emailAddress} aria-label={t.emailAddress} autoComplete="email" className={field} />
+          <button disabled={busy || !email.includes("@")} className={option}>
+            <Mail className="size-5" aria-hidden /> {t.sendCode}
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="text-sm text-muted">{t.codeSent(email.trim())}</p>
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="000000"
+            aria-label={t.codeLabel}
+            className={`${field} text-center text-2xl font-bold tracking-[0.4em]`}
+          />
+          <button disabled={busy || code.length !== 6} className={option}>
+            {t.codeSignIn}
+          </button>
+          <button type="button" onClick={() => (setSent(false), setCode(""), setErr(""))} className="self-center text-sm text-muted underline">
+            {t.otherEmail}
+          </button>
+        </>
+      )}
+      {err && <p role="alert" className="enter text-sm font-medium text-hi">{err}</p>}
+    </form>
   );
 }

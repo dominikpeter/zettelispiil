@@ -1,7 +1,8 @@
-// server only: sign-in with Google, GitHub or Microsoft (Better Auth, no database).
+// server only: sign-in with Google, GitHub, Microsoft or a code by email (Better Auth, no database).
 // The session lives in an encrypted cookie; it only unlocks the AI features, playing needs no account.
 import { betterAuth } from "better-auth";
-import { createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
+import { emailOTP } from "better-auth/plugins/email-otp";
 import { Ratelimit } from "@upstash/ratelimit";
 import { redis } from "./store";
 import { signedIn } from "./usage";
@@ -16,13 +17,53 @@ const github = pair(env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET);
 const microsoftKeys = pair(env.MICROSOFT_CLIENT_ID, env.MICROSOFT_CLIENT_SECRET);
 const microsoft = microsoftKeys && { ...microsoftKeys, tenantId: "common", prompt: "select_account" as const }; // personal and work accounts
 
-export const PROVIDERS = (["google", "github", "microsoft"] as const).filter((p) => ({ google, github, microsoft })[p]);
+// a code by email (Resend). The e2e server has no mail: it uses a fixed code, never on Vercel
+const mail = env.RESEND_API_KEY && env.EMAIL_FROM ? { key: env.RESEND_API_KEY, from: env.EMAIL_FROM } : undefined;
+const fixedOtp = !env.VERCEL && !mail ? env.E2E_FIXED_OTP : undefined;
+const email = !!(mail || fixedOtp);
+
+export const PROVIDERS = (["google", "github", "microsoft", "email"] as const).filter((p) => ({ google, github, microsoft, email })[p]);
 export type Provider = (typeof PROVIDERS)[number];
 /** sign-in is required for AI only when it's actually set up */
 export const authEnabled = () => !!env.BETTER_AUTH_SECRET && PROVIDERS.length > 0;
 
 // built only once sign-in is set up: without its secret Better Auth refuses to run in production
 const make = () => betterAuth({
+  // Redis holds the email codes (and sessions) so every serverless instance sees them; without Redis (local, e2e) memory does
+  ...(redis && {
+    secondaryStorage: {
+      // stored as JSON strings; Upstash parses JSON on read, so it's turned back into a string
+      get: async (k: string) => str(await redis!.get(`auth:${k}`)),
+      getAndDelete: async (k: string) => str(await redis!.getdel(`auth:${k}`)),
+      set: async (k: string, v: string, ttl?: number) => void (ttl ? await redis!.set(`auth:${k}`, v, { ex: ttl }) : await redis!.set(`auth:${k}`, v)),
+      delete: async (k: string) => void (await redis!.del(`auth:${k}`)),
+      increment: async (k: string, ttl: number) => {
+        const n = await redis!.incr(`auth:${k}`);
+        if (n === 1) await redis!.expire(`auth:${k}`, ttl); // ponytail: two calls, not one script; a lost expire only makes a counter linger
+        return n;
+      },
+    },
+  }),
+  plugins: email
+    ? [
+        emailOTP({
+          expiresIn: 600,
+          allowedAttempts: 3,
+          ...(fixedOtp && { generateOTP: () => fixedOtp }),
+          sendVerificationOTP: async ({ email, otp }) => {
+            if (!mail) return; // e2e: the code is fixed
+            // every address can be typed in: at most 5 codes per address and hour, so nobody floods an inbox (or our Resend quota)
+            if (redis && !(await mailLimit().limit(email.toLowerCase())).success) throw new APIError("TOO_MANY_REQUESTS");
+            const r = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${mail.key}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ from: mail.from, to: [email], subject: `Zettelispiil: ${otp}`, text: codeMail(otp) }),
+            });
+            if (!r.ok) throw new APIError("BAD_GATEWAY", { message: "mail not sent" });
+          },
+        }),
+      ]
+    : [],
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL, // unset in dev: taken from the request
   // sign-in may only send people back to these; localhost only outside production
@@ -37,7 +78,7 @@ const make = () => betterAuth({
     window: 60,
     max: 30,
     // Better Auth allows 3 sign-ins per 10 s by default; a table of friends signing in together shares one IP
-    customRules: { "/sign-in/*": { window: 10, max: 20 } },
+    customRules: { "/sign-in/*": { window: 10, max: 20 }, "/email-otp/send-verification-otp": { window: 60, max: 3 } },
     // atomic check-and-count in Redis; without Redis (local dev) Better Auth's memory store is fine
     ...(redis && {
       customStorage: {
@@ -55,10 +96,18 @@ const make = () => betterAuth({
   hooks: {
     after: createAuthMiddleware(async (ctx) => {
       const s = ctx.context.newSession;
-      if (ctx.path.startsWith("/callback/") && s) await signedIn(s.user, ctx.path.slice("/callback/".length));
+      if (!s) return;
+      if (ctx.path.startsWith("/callback/")) await signedIn(s.user, ctx.path.slice("/callback/".length));
+      else if (ctx.path === "/sign-in/email-otp") await signedIn(s.user, "email");
     }),
   },
 });
+const str = (v: unknown) => (v == null ? null : typeof v === "string" ? v : JSON.stringify(v));
+let mailLimiter: Ratelimit | null = null;
+const mailLimit = () => (mailLimiter ??= new Ratelimit({ redis: redis!, limiter: Ratelimit.slidingWindow(5, "1 h"), prefix: "ratelimit:mail" }));
+const codeMail = (otp: string) =>
+  `Dein Code für Zettelispiil: ${otp}\nYour Zettelispiil code: ${otp}\nTon code Zettelispiil : ${otp}\n\nEr gilt 10 Minuten. Valid for 10 minutes. Valable 10 minutes.\n\nNicht angefragt? Einfach ignorieren. Didn't ask for it? Just ignore this mail.`;
+
 let instance: ReturnType<typeof make> | null = null;
 export const getAuth = () => (authEnabled() ? (instance ??= make()) : null);
 

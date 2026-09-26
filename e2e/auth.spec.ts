@@ -137,3 +137,24 @@ test("the admin page shows nothing to anyone else", async ({ page }) => {
   if (res?.status() !== 404) await expect(page.getByRole("button", { name: /anmelden$/ }).first()).toBeVisible();
   for (const secret of ["KI nach Funktion", "Konten", "Spiele pro Tag"]) await expect(page.getByText(secret)).toHaveCount(0);
 });
+
+test("sign in with a code by email: wrong code refused, right code signs in, sign out again", async ({ page }) => {
+  // the real server (no mocks): the e2e server sends no mail and uses the fixed code 123456
+  await page.goto("/");
+  await openSettings(page);
+  await page.getByLabel("E-Mail-Adresse").fill("e2e@example.com");
+  await page.getByRole("button", { name: "Code per E-Mail" }).click();
+  await expect(page.getByText("Code an e2e@example.com geschickt")).toBeVisible();
+  const code = page.getByLabel("Code aus der E-Mail");
+  await code.fill("000000");
+  await page.getByRole("button", { name: "Anmelden", exact: true }).click();
+  await expect(page.getByText("Der Code stimmt nicht oder ist abgelaufen.")).toBeVisible();
+  await code.fill("123456");
+  await page.getByRole("button", { name: "Anmelden", exact: true }).click();
+  await expect(page.getByText("e2e@example.com", { exact: true })).toBeVisible(); // signed in as …
+  await page.reload(); // the session is a cookie: it survives a reload
+  await openSettings(page);
+  await expect(page.getByText("e2e@example.com", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Abmelden" }).click();
+  await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible();
+});

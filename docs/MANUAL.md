@@ -109,7 +109,7 @@ Schreibt jemand anderes denselben Begriff wie du, sind beide Zetteli raus. Ihr b
 
 ### KI-Hilfe beim Schreiben
 
-Die KI-Hilfe braucht ein Konto (Google oder GitHub, in den Einstellungen unter **KI-Hilfe**). Ohne Anmeldung siehst du keine KI-Funktionen, spielen geht trotzdem.
+Die KI-Hilfe braucht ein Konto (Google, GitHub oder deine E-Mail-Adresse, in den Einstellungen unter **KI-Hilfe**). Mit E-Mail bekommst du einen sechsstelligen Code, den tippst du ein, fertig: kein Passwort. Ohne Anmeldung siehst du keine KI-Funktionen, spielen geht trotzdem.
 
 Erstellt eine angemeldete Person einen Raum (oder meldet sich die Spielleitung im Raum an), gilt die KI-Hilfe für alle darin, auch ohne eigenes Konto. In der Lobby steht dann «KI-Hilfe für alle».
 

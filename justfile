@@ -62,6 +62,10 @@ release version notes: check e2e secrets
 auth-setup:
     bash scripts/setup-auth.sh
 
+# sign-in with a code by email: asks for the Resend API key (never shown) and the sender address
+email-setup:
+    bash scripts/setup-email.sh
+
 # phone apps (Capacitor): a native shell around zettelispiil.ch, so web releases reach them without a store update.
 # Android needs JDK 21 and the Android SDK (`brew install openjdk@21 android-commandlinetools`); iOS needs Xcode.
 export JAVA_HOME := env("JAVA_HOME", "/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home")
