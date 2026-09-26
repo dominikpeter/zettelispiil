@@ -66,9 +66,9 @@ auth-setup:
 email-setup:
     bash scripts/setup-email.sh
 
-# "buy me a coffee": asks for the Stripe restricted key and webhook secret (never shown)
-stripe-setup:
-    bash scripts/setup-stripe.sh
+# "buy me a coffee": asks for the Stripe restricted key and webhook secret (never shown); `just stripe-setup local` for .env.local only
+stripe-setup *where:
+    bash scripts/setup-stripe.sh {{where}}
 
 # phone apps (Capacitor): a native shell around zettelispiil.ch, so web releases reach them without a store update.
 # Android needs JDK 21 and the Android SDK (`brew install openjdk@21 android-commandlinetools`); iOS needs Xcode.
