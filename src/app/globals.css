@@ -503,6 +503,7 @@
 html {
   font-size: 112.5%; /* 18px base */
   scroll-padding-bottom: 7rem; /* a focused field never hides behind the sticky main button */
+  scroll-padding-top: calc(env(safe-area-inset-top) + 4.5rem); /* ...nor behind the sticky settings pill at the top */
 }
 
 body {

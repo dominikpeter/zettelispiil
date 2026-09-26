@@ -129,22 +129,27 @@ export default function Room() {
   const joined = !!v && v.me >= 0;
   const players = v?.players ?? [];
   const errMsg = err && err !== "forbidden" ? t[errKey(err)] : "";
-  const playing = v && v.phase !== "lobby" && v.phase !== "write" && v.phase !== "end";
+  const inGame = joined && v.phase !== "lobby" && v.phase !== "end";
+  const playing = v &&v.phase !== "lobby" && v.phase !== "write" && v.phase !== "end";
   // a signed-in host opened this room: AI is on for everyone who joined
   const aiRoom = joined && v.ai && id ? { code, pid: id.pid, token: id.token } : null;
 
   return (
     <AiRoomContext value={aiRoom}>
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-      <header className="mb-4 flex min-h-11 items-center justify-between gap-2">
+      {/* settings float at the top right while the lobby scrolls: a zero-height sticky row over the header's right end */}
+      {!inGame && (
+        <div className="sticky top-[calc(env(safe-area-inset-top)+0.75rem)] z-30 flex h-0 items-start justify-end">
+          <TopControls />
+        </div>
+      )}
+      <header className="mb-4 flex min-h-[calc(2.75rem+2px)] items-center justify-between gap-2">
         <BackButton v={v} onLeave={() => router.push("/")} label={code} />
-        {joined && v.phase !== "lobby" && v.phase !== "end" ? (
+        {inGame && (
           <div className="flex items-center gap-2">
             {playing && <Score v={v} />}
             <GameMenu v={v} send={send} mode="online" onLeave={() => router.push("/")} />
           </div>
-        ) : (
-          <TopControls />
         )}
       </header>
 

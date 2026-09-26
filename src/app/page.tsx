@@ -85,7 +85,8 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3">
-      <header className="flex justify-end">
+      {/* sticky: settings stay a thumb away while the player list scrolls; self-end keeps it pill-sized so it covers nothing beside it */}
+      <header className="sticky top-[calc(env(safe-area-inset-top)+0.75rem)] z-30 self-end">
         <TopControls />
       </header>
       <div className="relative mt-4 h-44" aria-hidden>

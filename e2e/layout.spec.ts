@@ -182,6 +182,33 @@ async function allReachable(page: Page) {
   expect(covered).toEqual([]);
 }
 
+/** scrolled to the very bottom, the settings button still floats on screen and is what a finger hits */
+async function settingsOnScreen(page: Page) {
+  await page.evaluate(() => scrollTo(0, document.scrollingElement!.scrollHeight));
+  await expect.poll(() => page.evaluate("scrollY"), { message: "page scrolls" }).toBeGreaterThan(0);
+  const settings = page.getByRole("button", { name: "Einstellungen", exact: true });
+  const box = (await settings.boundingBox())!;
+  expect(box.y, "settings top").toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height, "settings bottom").toBeLessThanOrEqual(page.viewportSize()!.height);
+  expect(await settings.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !!hit && (el === hit || el.contains(hit));
+  }), "settings is what a tap hits").toBe(true);
+}
+
+test("iPhone SE: the settings controls stay on screen while the page scrolls (home with 8 players, lobby)", async ({ browser }) => {
+  const page = await openPhone(browser, { ...devices["iPhone SE"] });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Ein Handy/ }).click();
+  for (let i = 0; i < 4; i++) await page.getByRole("button", { name: "Spieler hinzufügen" }).click();
+  await settingsOnScreen(page);
+  await page.getByRole("button", { name: "Neues Spiel" }).click();
+  await page.waitForURL(/\/local$/);
+  await expect(page.getByRole("button", { name: "Spiel starten" })).toBeVisible();
+  await settingsOnScreen(page);
+});
+
 for (const name of ["iPhone SE", "iPhone 15"] as const) {
   test(`${name}: main buttons stay sticky and every field stays reachable (home with many players, lobby)`, async ({ browser }) => {
     const page = await openPhone(browser, { ...devices[name] });
