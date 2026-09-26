@@ -159,3 +159,14 @@ test("sign in with a code by email: wrong code refused, right code signs in, sig
   await page.getByRole("button", { name: "Abmelden" }).click();
   await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible();
 });
+
+test("live: a code mail really goes out through Resend", async ({ page }) => {
+  test.skip(!process.env.BASE_URL, "only against the live site: the local server sends no mail");
+  // Resend's test address accepts the mail without an inbox behind it: proves key, verified sender domain and sending.
+  // Reading the code back isn't possible (no inbox); typing a code is covered by the local test above.
+  await page.goto("/");
+  await openSettings(page);
+  await page.getByLabel("E-Mail-Adresse").fill("delivered@resend.dev");
+  await page.getByRole("button", { name: "Code per E-Mail" }).click();
+  await expect(page.getByText("Code an delivered@resend.dev geschickt")).toBeVisible({ timeout: 15_000 });
+});
