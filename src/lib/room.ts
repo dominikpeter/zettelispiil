@@ -558,7 +558,7 @@ export type View = {
   done: number; // players who wrote their words
   iDone: boolean;
   turnNo: number;
-  stats: null | { words: string[]; authors: number[]; log: Ev[]; turns: TurnLog[]; drawings: Drawing[]; heckles: { by: number; bonus: boolean }[]; bonusGot: number[] };
+  stats: null | { words: string[]; hints: string[]; authors: number[]; log: Ev[]; turns: TurnLog[]; drawings: Drawing[]; heckles: { by: number; bonus: boolean }[]; bonusGot: number[] };
 };
 
 /** What one player may see: Zetteli only while describing them, everything at the end. */
@@ -621,6 +621,6 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
     iDone,
     myWrite,
     turnNo: room.turnNo,
-    stats: room.phase === "end" ? { words: room.words, authors: room.authors, log: room.log, turns: room.turns, drawings: room.drawings ?? [], heckles: room.heckleLog ?? [], bonusGot: room.bonusGot ?? [] } : null,
+    stats: room.phase === "end" ? { words: room.words, hints: room.hints ?? [], authors: room.authors, log: room.log, turns: room.turns, drawings: room.drawings ?? [], heckles: room.heckleLog ?? [], bonusGot: room.bonusGot ?? [] } : null,
   };
 }
