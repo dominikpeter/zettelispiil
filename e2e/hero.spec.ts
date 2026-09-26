@@ -12,7 +12,7 @@ test("home hero: a dense pile, no big empty space between the outer slips and th
   const hero = page.locator(".slip").first().locator("..");
   const h = (await hero.boundingBox())!;
   const boxes = (
-    await hero.locator(":scope > .slip").evaluateAll((els) =>
+    await hero.locator(".slip").evaluateAll((els) =>
       els.filter((e) => getComputedStyle(e).display !== "none").map((e) => {
         const r = e.getBoundingClientRect();
         return { word: e.textContent ?? "", top: r.top, bottom: r.bottom, left: r.left, right: r.right };

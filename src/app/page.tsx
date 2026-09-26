@@ -2,7 +2,7 @@
 
 import { Plus, Smartphone, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ScanCode } from "@/components/ScanCode";
 import { AiNameButton } from "@/components/game/common"; // not the Game barrel: that pulls every game screen into the home page
 import { loadDnd } from "@/components/game/RoundRow";
@@ -11,6 +11,7 @@ import { TopControls } from "@/components/TopControls";
 import { loadLocalGame, loadPlayers, newLocalGame } from "@/lib/localGame";
 import { langPref, useT } from "@/lib/prefs";
 import { api, errKey, funnyName, saveIdentity, type Identity } from "@/lib/roomClient";
+import { aimDrops } from "@/lib/heroDrop";
 import { Bowl, btn, btn2, field, ghost, panel, press, Slip } from "@/lib/ui";
 
 const noop = () => () => {};
@@ -21,18 +22,32 @@ const NO_PLAYERS: string[] = [];
 
 // fanned out above the bowl so every word stays readable; back row first, smaller
 const HERO = [
-  { w: "Schoggi", tilt: -6, x: "left-[3%] top-0 max-xs:hidden", size: "text-lg", d: "0s" },
-  { w: "Gipfeli", tilt: 6, x: "right-[3%] top-[1%]", size: "text-lg", d: "0.08s" },
-  // these two are in the bowl: small, fanned out from its middle, their lower part hidden behind its front
-  { w: "Aare", tilt: -9, x: "right-1/2 translate-x-0.5 bottom-[31%]", size: "text-sm", pad: "px-2 pt-1", d: "0.16s" },
-  { w: "Rösti", tilt: 8, x: "left-1/2 -translate-x-0.5 bottom-[29%]", size: "text-sm", pad: "px-2 pt-1", d: "0.22s" },
-  { w: "Fondue", tilt: -9, x: "left-0 top-[28%]", size: "text-2xl", d: "0.3s" },
-  { w: "Velo", tilt: 9, x: "right-1 top-[27%]", size: "text-2xl", d: "0.38s" },
-  // fill the gap between the mid-level pair above and the small pair at the bowl's rim, so the pile doesn't look sparse
-  { w: "Chuchi", tilt: -4, x: "left-[24%] bottom-[27%]", size: "text-base", d: "0.42s" },
-  { w: "Glocke", tilt: 5, x: "right-[18%] bottom-[27%]", size: "text-base", d: "0.44s" },
-  { w: "Matterhorn", tilt: 2, x: "left-1/2 -translate-x-1/2 top-[6%]", size: "text-[1.55rem]", d: "0.46s" },
+  // first in the pile, so painted behind the rest: it lands in the bowl behind the big one in the middle
+  { w: "Schoggi", tilt: -6, x: "left-[3%] top-0", size: "text-lg", d: "0s", drop: { "--slot": -0.15, "--rot": "9deg" } },
+  { w: "Gipfeli", tilt: 6, x: "right-[3%] top-[1%]", size: "text-lg", d: "0.08s", drop: { "--slot": 0.25, "--rot": "-10deg" } },
+  // in the bowl (bowl: true, placed within the bowl's own box, so they stay inside it at any phone width): small ones
+  // fanned out from its middle, their lower part hidden behind its front
+  { w: "Aare", tilt: -9, x: "right-1/2 translate-x-0.5 bottom-[50%]", size: "text-sm", pad: "px-2 pt-1", d: "0.16s", bowl: true },
+  { w: "Rösti", tilt: 8, x: "left-1/2 -translate-x-0.5 bottom-[48%]", size: "text-sm", pad: "px-2 pt-1", d: "0.22s", bowl: true },
+  { w: "Fondue", tilt: -9, x: "left-0 top-[17%]", size: "text-2xl", d: "0.3s", drop: { "--slot": -0.45, "--rot": "14deg" } },
+  { w: "Velo", tilt: 9, x: "right-1 top-[16%]", size: "text-2xl", d: "0.38s", drop: { "--slot": 0.45, "--rot": "-15deg" } },
+  // the front of the pile in the bowl: fills the gap between the mid-level pair above and the small pair, so it doesn't look sparse
+  { w: "Chuchi", tilt: -4, x: "left-[13%] bottom-[46%]", size: "text-base", d: "0.42s", bowl: true },
+  { w: "Glocke", tilt: 5, x: "right-[11%] bottom-[46%]", size: "text-base", d: "0.44s", bowl: true },
+  // centred with margins, not a translate: the toss animates translate
+  { w: "Matterhorn", tilt: 2, x: "inset-x-0 mx-auto w-fit top-[6%]", size: "text-[1.55rem]", d: "0.46s", drop: { "--slot": -0.05, "--rot": "-6deg" } },
 ];
+
+const heroSlip = (h: (typeof HERO)[number], word: string, i: number) => (
+  <Slip
+    key={i}
+    tilt={h.tilt}
+    className={`unfold absolute ${"pad" in h ? h.pad : "px-3.5 pt-1.5"} ${h.x} ${"drop" in h ? "drop-in" : ""}`}
+    style={{ animationDelay: "drop" in h ? `${h.d}, 0s` : h.d, ...("drop" in h ? h.drop : {}) }}
+  >
+    <span className={`font-hand font-bold whitespace-nowrap ${h.size}`}>{word}</span>
+  </Slip>
+);
 
 // the words on the hero slips: a fresh Swiss mix on every visit (the server renders the classic set, then the phone shuffles).
 // Side slips take up to 7 letters, the big one in the middle up to 10, so every word fits its spot.
@@ -41,7 +56,7 @@ const SHORT = [
   // biking, winter sports, partying, cheese and Jass: the same Swiss mix, just a wider pantry
   "Bike", "Trail", "Helm", "Firn", "Skitag", "Chilbi", "Ausgang", "Beiz", "Chäs", "Gruyère", "Jass", "Trumpf", "Weis", "Stöck",
   // a bit more dialect: none of these need explaining if you grew up here
-  "Mungg", "Güsel", "Gugus", "Stürmi", "Glünggi", "Bise", "Gfrörli", "Gstürm", "Pfnüsel", "Gaggi",
+  "Mungg", "Güsel", "Gugus", "Stürmi", "Glünggi", "Bise", "Gfrörli", "Gstürm", "Pfnüsel",
 ];
 const LONG = [
   "Matterhorn", "Jungfrau", "Pilatus", "Gotthard", "Säntis", "Zytglogge", "Raclette", "Bergbahn", "Eiger", "Rheinfall", "Weisshorn", "Bärenland", "Maienzug", "Schlitten", "Rüeblimärt", "Tschuggen",
@@ -61,6 +76,18 @@ export default function Home() {
   const lang = langPref.use();
   const router = useRouter();
   const hero = useSyncExternalStore(noop, randomHero, () => CLASSIC);
+  const heroRef = useRef<HTMLDivElement>(null);
+  // re-aim when the words change (server set → shuffled), once the handwriting font is in (it sets slip widths), and on resize
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el) return;
+    const aim = () => aimDrops(el);
+    aim();
+    document.fonts.ready.then(aim);
+    const ro = new ResizeObserver(aim);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [hero]);
   const resumable = useSyncExternalStore(noop, hasLocalGame, () => false);
   const [name, setName] = useState(""); // empty: you type your name, or tap the sparkle for a funny one
   const savedList = useSyncExternalStore(noop, playersSnapshot, () => NO_PLAYERS);
@@ -110,13 +137,14 @@ export default function Home() {
       <header className="sticky top-0 z-30 -mx-4 -mb-6 flex justify-end bg-gradient-to-b from-canvas from-60% to-transparent px-4 pt-6 pb-6 pointer-events-none">
         <TopControls />
       </header>
-      <div className="relative mt-4 h-44" aria-hidden>
-        {HERO.map((h, i) => (
-          <Slip key={i} tilt={h.tilt} className={`unfold absolute ${"pad" in h ? h.pad : "px-3.5 pt-1.5"} ${h.x}`} style={{ animationDelay: h.d }}>
-            <span className={`font-hand font-bold whitespace-nowrap ${h.size}`}>{hero[i]}</span>
-          </Slip>
-        ))}
-        <Bowl pile={false} className="absolute bottom-0 left-1/2 w-36 -translate-x-1/2" /> {/* the two slips above are its pile */}
+      {/* a few slips are tossed into the bowl on scroll: aimDrops measures where each one lands */}
+      <div ref={heroRef} className="relative mt-4 h-44" aria-hidden>
+        {HERO.map((h, i) => !("bowl" in h) && heroSlip(h, hero[i], i))}
+        {/* the bowl's own box: the slips in it are placed against the bowl, and it paints over them (relative, after them) */}
+        <div className="absolute bottom-0 left-1/2 w-52 -translate-x-1/2">
+          {HERO.map((h, i) => "bowl" in h && heroSlip(h, hero[i], i))}
+          <Bowl pile={false} className="relative w-full" />
+        </div>
       </div>
 
       <h1 translate="no" className="mt-3 text-[2.75rem] leading-[0.95] font-extrabold tracking-tight text-hi">Zettelispiil</h1>

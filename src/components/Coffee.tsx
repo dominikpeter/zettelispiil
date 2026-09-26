@@ -65,7 +65,7 @@ export function Coffee() {
             className={`flex min-h-24 flex-col items-center justify-center gap-1 rounded-2xl border border-line bg-surface px-1 text-center disabled:opacity-50 ${press}`}
           >
             <Cup className={`${CUP[c.id]} text-accent`} aria-hidden />
-            <span className="text-sm leading-tight font-semibold">{t[`coffee_${c.id}`]}</span>
+            <span className="text-sm leading-tight font-semibold">{t.coffeeSize[c.id]}</span>
             <span className="text-sm text-muted tabular-nums">CHF {c.chf}</span>
           </button>
         ))}

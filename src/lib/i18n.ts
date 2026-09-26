@@ -31,6 +31,7 @@ const de = {
   coffee_small: "Kleiner Kaffee",
   coffee_big: "Grosser Kaffee",
   coffee_deluxe: "Deluxe-Kaffee",
+  coffeeSize: { small: "Klein", big: "Gross", deluxe: "Deluxe" }, // on the cards: the heading already says coffee
   coffeeCustom: "Eigener Betrag in CHF",
   coffeeGive: "Spendieren",
   coffeePaid: "Bezahlt wird sicher bei Stripe.",
@@ -319,6 +320,7 @@ const en: Dict = {
   coffee_small: "Small coffee",
   coffee_big: "Big coffee",
   coffee_deluxe: "Deluxe coffee",
+  coffeeSize: { small: "Small", big: "Big", deluxe: "Deluxe" },
   coffeeCustom: "Your amount in CHF",
   coffeeGive: "Buy",
   coffeePaid: "Payment is handled securely by Stripe.",
@@ -598,6 +600,7 @@ const fr: Dict = {
   coffee_small: "Petit café",
   coffee_big: "Grand café",
   coffee_deluxe: "Café deluxe",
+  coffeeSize: { small: "Petit", big: "Grand", deluxe: "Deluxe" },
   coffeeCustom: "Ton montant en CHF",
   coffeeGive: "Offrir",
   coffeePaid: "Le paiement passe de façon sûre par Stripe.",

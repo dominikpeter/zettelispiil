@@ -5,7 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
 // With several payment methods on, Stripe shows them as an accordion: each method has its own "Pay with …" button.
 const card = process.env.STRIPE_CARD_URL;
 const twint = process.env.STRIPE_TWINT_URL;
-test.skip(!card || !twint, "run through `just stripe-e2e`");
+test.skip(!card, "run through `just stripe-e2e`");
 test.setTimeout(120_000);
 
 async function email(page: Page) {
@@ -38,7 +38,8 @@ test("card: pay CHF 5 on Stripe's page, back in the app with a thank-you", async
   await backWithThanks(page);
 });
 
-test("TWINT: pay CHF 1 via TWINT's test page, back in the app with a thank-you", async ({ page }) => {
+// TWINT is excluded from checkout (the account is ineligible for it, see api/coffee/route.ts); kept for if that changes
+test.skip("TWINT: pay CHF 1 via TWINT's test page, back in the app with a thank-you", async ({ page }) => {
   await page.goto(twint!);
   await method(page, "TWINT");
   await email(page); // fill last: selecting a method can remount the shared email field above it

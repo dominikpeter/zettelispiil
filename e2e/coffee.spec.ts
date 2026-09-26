@@ -60,7 +60,7 @@ test("live: a coffee opens Stripe's real payment page in CHF, card on, no Klarna
   await page.waitForURL(/^https:\/\/checkout\.stripe\.com\//, { timeout: 20_000 });
   await expect(page.getByText("Ein Kaffee für Zettelispiil")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText(/1[.,]00/).first()).toBeVisible();
-  await expect(page.getByText("Karte", { exact: true }).first()).toBeVisible(); // card; Apple Pay, Google Pay and TWINT depend on the device and country
+  await expect(page.getByText("Karte", { exact: true }).first()).toBeVisible(); // card; Apple Pay and Google Pay depend on the device
   await expect(page.getByText("Klarna")).toHaveCount(0);
   await expect(page.getByText("Amazon Pay")).toHaveCount(0);
   // not paid: the session simply expires

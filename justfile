@@ -80,7 +80,7 @@ auth-setup:
 email-setup:
     bash scripts/setup-email.sh
 
-# a real test-mode payment end to end (card + TWINT on Stripe's test pages, webhook to the app); needs `stripe login`
+# a real test-mode payment end to end (card on Stripe's test page, webhook to the app); needs `stripe login`
 stripe-e2e *args:
     bash scripts/stripe-e2e.sh {{args}}
 

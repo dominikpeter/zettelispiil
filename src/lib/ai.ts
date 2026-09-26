@@ -1,7 +1,7 @@
 // server only: AI helpers via the Vercel AI SDK. Runs on gpt-6-luna straight at OpenAI when OPENAI_API_KEY is set,
 // otherwise on gpt-oss-120b through OpenRouter (OPENROUTER_API_KEY); without either, everything degrades to "no AI".
 import { createOpenAI } from "@ai-sdk/openai";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import type { Lang } from "./i18n";
@@ -17,13 +17,14 @@ export const aiEnabled = () => !!(env.OPENROUTER_API_KEY || env.OPENAI_API_KEY);
 /** AI is set up and the owner hasn't switched it off in /admin */
 export const aiLive = async () => aiEnabled() && !(await aiSwitchedOff());
 // fixed base URLs: a shell-wide OPENAI_BASE_URL (e.g. a local proxy) must not leak into the game
-const router = env.OPENROUTER_API_KEY
-  ? createOpenAICompatible({ name: "openrouter", baseURL: "https://openrouter.ai/api/v1", apiKey: env.OPENROUTER_API_KEY, supportsStructuredOutputs: true })
-  : null;
+const router = env.OPENROUTER_API_KEY ? createOpenRouter({ baseURL: "https://openrouter.ai/api/v1", apiKey: env.OPENROUTER_API_KEY }) : null;
 const openai = createOpenAI({ baseURL: "https://api.openai.com/v1" });
 // Luna straight at OpenAI, not via OpenRouter: OpenRouter caps newer accounts per minute on Luna, a party typing at once hits it
 const luna = env.OPENAI_API_KEY ? () => openai(env.OPENAI_MODEL ?? "gpt-6-luna") : null;
-const oss = router ? () => router(env.OPENROUTER_MODEL ?? "openai/gpt-oss-120b") : null;
+// gpt-oss-120b only serves with reasoning: the least of it, on the fastest provider that takes every parameter we send
+const oss = router
+  ? () => router(env.OPENROUTER_MODEL ?? "openai/gpt-oss-120b", { reasoning: { effort: "low" }, provider: { sort: "latency", require_parameters: true } })
+  : null;
 const [model, fallback] = luna ? [luna, oss] : [oss!, null];
 /**
  * generateText with a second model: the SDK retries a failed call itself (backoff); if it still fails, the same call runs
@@ -39,12 +40,8 @@ const generate = (async (args: Parameters<typeof generateText>[0]) => {
   }
 }) as typeof generateText;
 // spelling, hints and names need no thinking: Luna runs without reasoning in OpenAI's priority lane. Measured Sep 2026 with
-// 8 words at once: every check right, ~1.3 s a call, ~1.5 s for six Zetteli. gpt-oss-120b (fallback) was faster (~0.8 s)
-// but only serves with reasoning, so it gets the least.
-const fast = {
-  openrouter: { reasoning: { effort: "low" }, provider: { sort: "latency", require_parameters: true } },
-  openai: { reasoningEffort: "none", textVerbosity: "low", serviceTier: "priority" },
-} as const;
+// 8 words at once: every check right, ~1.3 s a call, ~1.5 s for six Zetteli. The gpt-oss-120b fallback was faster (~0.8 s).
+const fast = { openai: { reasoningEffort: "none", textVerbosity: "low", serviceTier: "priority" } } as const;
 const LANG_NAME: Record<Lang, string> = { de: "Swiss Standard German (always \"ss\", never \"ß\"; Swiss German words are fine)", en: "English", fr: "French" };
 // the model is told "ss, never ß" above but very occasionally slips on any output; guarantee it rather than just ask for it
 const ss = (s: string) => s.replace(/ß/g, "ss");

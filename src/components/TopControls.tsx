@@ -146,19 +146,22 @@ export function SettingsPanel() {
         </div>
       </section>
       <Coffee />
-      <div className="grid grid-cols-2 gap-2">
+      {/* side by side when both labels fit on one line, stacked when not ("Copier le lien" on a 320px phone): no wrapped labels */}
+      <div className="flex flex-wrap gap-2">
         <a
           href={whatsappHref(`${t.shareAppText} https://zettelispiil.ch`)}
           target="_blank"
           rel="noopener noreferrer"
-          className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface font-semibold text-ink ${press}`}
+          aria-label={t.shareApp}
+          className={`flex min-h-12 flex-auto items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 font-semibold whitespace-nowrap text-ink ${press}`}
         >
-          <WhatsAppIcon className="size-5 shrink-0 text-whatsapp" /> {t.shareApp}
+          {/* the brand name alone (same in every language): "Per WhatsApp teilen" wrapped onto two lines in half a row */}
+          <WhatsAppIcon className="size-5 shrink-0 text-whatsapp" /> WhatsApp
         </a>
         <button
           type="button"
           onClick={copyLink}
-          className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface font-semibold text-ink ${press}`}
+          className={`flex min-h-12 flex-auto items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 font-semibold whitespace-nowrap text-ink ${press}`}
         >
           <span key={String(copied)} className="pop flex items-center gap-2">
             {copied ? <Check className="size-5 shrink-0 text-accent" aria-hidden /> : <Copy className="size-5 shrink-0" aria-hidden />}

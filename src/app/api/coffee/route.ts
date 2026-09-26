@@ -26,6 +26,9 @@ export async function POST(req: Request) {
       submit_type: "donate",
       locale: lang,
       integration_identifier: FLOW,
+      // TWINT: the account is ineligible (Stripe puts tips for this business on TWINT's prohibited list), so never offer it;
+      // drop this line only if `just stripe-check` ever shows twint_payments active
+      excluded_payment_method_types: ["twint"],
       line_items: [{ quantity: 1, price_data: { currency: "chf", unit_amount: chf * 100, product_data: { name: DICT[lang].coffeeProduct } } }],
       success_url: `${site}${back}${back.includes("?") ? "&" : "?"}coffee=thanks`,
       cancel_url: `${site}${back}`,
