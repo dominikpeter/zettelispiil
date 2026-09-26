@@ -1,16 +1,21 @@
 name: CI
 
-# Lint, typecheck, unit tests, e2e; on main (after everything passes) deploy to Vercel, then kick off the iOS build.
-# Mirrors `just check` / `just e2e` / `just deploy` exactly, so CI runs the same thing a laptop does.
+# Work happens on dev and reaches main by pull request (GitHub Copilot reviews it; main is protected: PRs only, green
+# check + e2e). Every push to dev and every PR: lint, typecheck, unit tests, e2e (the same `just check` / `just e2e` a
+# laptop runs). PRs also get a Vercel preview; Vercel's own deploy of main is off (vercel.json). A merge into main runs them again, and if package.json carries a version with no tag yet
+# (`just release` bumps it on dev), that merge is the release: tag + GitHub release, Vercel deploy, iOS build. A merge
+# without a version bump only runs the checks. All in one run: a tag pushed by a workflow can't start another workflow.
 on:
   push:
-    branches: [main]
-    tags: ["v*"]
+    branches: [main, dev]
   pull_request:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }} # a newer push replaces the run; never cut a release short
 
 jobs:
   check:
@@ -39,11 +44,32 @@ jobs:
         if: failure()
         with: { name: playwright-report, path: playwright-report/, retention-days: 7 }
 
-  # only on a version tag (v*, pushed by `just release`), not every main commit: a release is the one thing that
-  # should reach production, and once IOS_SIGNING_READY is set every run here also uploads to TestFlight.
-  deploy:
+  # a merge into main whose package.json version isn't tagged yet: tag it and write the GitHub release (notes from the
+  # merged PRs). Only then deploy: a release is the one thing that reaches production (and, with IOS_SIGNING_READY, TestFlight)
+  release:
     needs: e2e
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with: { fetch-depth: 0 }
+      - id: tag
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          v="v$(node -p 'require("./package.json").version')"
+          if git rev-parse -q --verify "refs/tags/$v" >/dev/null; then echo "$v is out already: checks only, no release"; exit 0; fi
+          # the notes are the merged release PR's description (what `just release` wrote), then GitHub's list of merged PRs
+          notes=$(gh pr list --state merged --search "$GITHUB_SHA" --json body -q '.[0].body // ""')
+          gh release create "$v" --target "$GITHUB_SHA" --title "$v" --notes "$notes" --generate-notes
+          echo "tag=$v" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: release
+    if: needs.release.outputs.tag != ''
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -63,7 +89,6 @@ jobs:
 
   ios:
     needs: deploy
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       actions: write

@@ -21,8 +21,9 @@ Run `just` to list recipes. Prefer them over raw commands so everyone runs the s
 | `just check` | lint + typecheck + unit tests (what the pre-commit hook runs) |
 | `just e2e [args]` | Playwright against a local production build on :3217: game and auth tests two at a time, then the multi-phone layout tests one at a time (in parallel they overload a laptop) |
 | `just e2e-prod [args]` | Playwright against https://zettelispiil.ch |
-| `just deploy` | `vercel deploy --prod` |
-| `just release X.Y.Z "notes"` | check, e2e, secret scan, bump, tag, push, GitHub release, deploy |
+| `just pr` | push the current branch and open its pull request into `main` (or show the open one) |
+| `just release X.Y.Z "notes"` | on `dev`: check, secret scan, bump the version onto the PR; merging it ships (CI tags, writes the GitHub release, deploys to Vercel, builds iOS) |
+| `just deploy` | `vercel deploy --prod` by hand (normally CI does it) |
 | `just secret NAME [local]` | store any key: asks for it hidden, writes `.env.local` and Vercel (or `.env.local` only). The user runs it; agents may start it for them but never see the value |
 | `just auth-setup` | OAuth keys for sign-in; the user runs it, it prompts for secrets |
 | `just email-setup` | Resend key for sign-in with a code by email; the user runs it, it prompts for the key |
@@ -31,6 +32,11 @@ Run `just` to list recipes. Prefer them over raw commands so everyone runs the s
 | `just android` / `just android-run` | Android test build (APK) / install it on a USB phone. Needs JDK 21 + Android SDK |
 | `just ios` | sync the iOS project and open it in Xcode |
 | `just app-icons` | regenerate app icons and splash screens from `assets/` |
+
+## Branches and releases
+
+- Work on `dev`, never commit to `main`: it only changes through a pull request (`just pr`). CI runs lint, typecheck, unit and e2e tests on every push to `dev` and every PR; GitHub Copilot reviews the PR (`.github/copilot-instructions.md`) and Vercel posts a preview link for it.
+- Merging a PR into `main` is what ships: if `package.json` carries a new version (`just release` bumps it), CI tags it, writes the GitHub release from the PR description, deploys to Vercel and starts the iOS build. A merge without a version bump only runs the checks.
 
 ## Script standards
 
