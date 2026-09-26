@@ -1,0 +1,2 @@
+# never upload env files (keys) with a deploy; Vercel has its own copy of every variable
+.env*
