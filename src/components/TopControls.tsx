@@ -4,17 +4,10 @@ import { Check, Copy, Heart, Moon, Settings, Sparkles, Sun, SunMoon, X } from "l
 import { Account } from "./Account";
 import { Coffee, CoffeeThanks } from "./Coffee";
 import { aiAllowed, useAiRoom, useAiStatus } from "@/lib/aiAccess";
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LANGS } from "@/lib/i18n";
 import { aiPref, hintPref, langPref, palettePref, PALETTES, themePref, THEMES, useT } from "@/lib/prefs";
 import { pill, pillBtn, press, WhatsAppIcon, whatsappHref } from "@/lib/ui";
-
-const dark = "(prefers-color-scheme: dark)";
-const onSystemChange = (cb: () => void) => {
-  const m = matchMedia(dark);
-  m.addEventListener("change", cb);
-  return () => m.removeEventListener("change", cb);
-};
 
 const round = `grid size-11 place-items-center rounded-full border border-line bg-surface text-ink ${press}`;
 
@@ -183,17 +176,17 @@ export function SettingsPanel() {
           </a>
           <span className="tabular-nums">· v{process.env.NEXT_PUBLIC_VERSION}</span>
         </span>
+        <a href="https://github.com/dominikpeter/zettelispiil/issues" target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">
+          {t.reportProblem}
+        </a>
       </footer>
     </>
   );
 }
 
-/** header right side: quick light/dark toggle + settings sheet (language, appearance, colors) */
+/** header right side: the settings button and its sheet (language, appearance incl. light/dark, colors) */
 export function TopControls() {
   const t = useT();
-  const theme = themePref.use();
-  const systemDark = useSyncExternalStore(onSystemChange, () => matchMedia(dark).matches, () => true);
-  const isDark = theme === "dark" || (theme === "auto" && systemDark);
   const sheet = useRef<HTMLDialogElement>(null);
 
   // signing in with Google/GitHub/Microsoft leaves the page and comes back (OAuth), which closes the sheet by itself;
@@ -212,11 +205,6 @@ export function TopControls() {
       {/* fixed, but not inside the pill: its backdrop-blur would become the containing block and trap this at pill size */}
       <CoffeeThanks />
       <div className={`${pill} pointer-events-auto`}>
-        <button onClick={() => themePref.set(isDark ? "light" : "dark")} aria-label={t.toggleTheme} className={pillBtn}>
-          <span key={String(isDark)} className="pop">
-            {isDark ? <Moon className="size-[1.15rem]" strokeWidth={2.25} aria-hidden /> : <Sun className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />}
-          </span>
-        </button>
         <button onClick={() => sheet.current?.showModal()} aria-label={t.settings} className={pillBtn}>
           <Settings className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />
         </button>

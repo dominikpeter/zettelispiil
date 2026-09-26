@@ -97,6 +97,14 @@ export default function Home() {
   const named = players.map((p, i) => p.trim() || t.playerN(i + 1));
   const [play, setPlay] = useState<"local" | "online">("local");
   const [mode, setMode] = useState<"create" | "join">("create");
+  const codeRef = useRef<HTMLInputElement>(null);
+  // "Raum beitreten": the code field showed up below the fold, behind the start button. Bring it (and the scan button
+  // next to it) into view and put the cursor there, so it's obvious: type the code or scan it
+  useEffect(() => {
+    if (mode !== "join") return;
+    codeRef.current?.focus({ preventScroll: true });
+    codeRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [mode]);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -234,6 +242,7 @@ export default function Home() {
             {mode === "join" && (
               <div key="join" className="enter flex items-center gap-2">
                 <input
+                  ref={codeRef}
                   value={code}
                   maxLength={6}
                   autoCapitalize="characters"

@@ -37,6 +37,12 @@ for (const name of PHONES) {
     await host.getByRole("button", { name: "Raum erstellen" }).click();
     await host.waitForURL(/\/r\/[A-Z0-9]{6}$/);
     const code = host.url().split("/").pop()!;
+    // the room code (six characters) sits on one line inside its card, next to the QR (feedback: it ran out of the box)
+    const fit = await host.locator("section").getByText(code, { exact: true }).evaluate((el) => {
+      const r = el.getBoundingClientRect(), card = el.closest("section")!.getBoundingClientRect();
+      return { inside: r.right <= card.right - 8, oneLine: r.height < 60 };
+    });
+    expect(fit, `room code ${code} fits its card`).toEqual({ inside: true, oneLine: true });
     const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
     for (const [i, p] of others.entries()) {
       await p.goto(`/r/${code}`);
@@ -246,3 +252,25 @@ for (const name of ["iPhone SE", "iPhone 15"] as const) {
     expect(await sideways(page)).toBe(0);
   });
 }
+
+// feedback: after "Raum beitreten" you had to scroll to find where the code goes (it was behind the start button)
+test("iPhone SE: joining a room brings the code field and the scan button into view, ready to type", async ({ browser }) => {
+  const page = await openPhone(browser, { ...devices["iPhone SE"] });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Mehrere Handys/ }).click();
+  await page.getByRole("button", { name: /^Raum beitreten/ }).click();
+  const field = page.getByLabel("Raumcode");
+  await expect(field).toBeFocused();
+  for (const target of [field, page.getByRole("button", { name: "Scannen" })]) {
+    // settled after the smooth scroll: on screen and really what a finger hits (not the fixed start bar)
+    await expect
+      .poll(() =>
+        target.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return r.top >= 0 && r.bottom <= innerHeight && !!hit && (el === hit || el.contains(hit));
+        }),
+      )
+      .toBe(true);
+  }
+});

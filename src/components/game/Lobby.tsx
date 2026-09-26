@@ -79,8 +79,8 @@ function ZetteliSource({ s, set }: { s: Settings; set: (patch: Partial<Settings>
   const t = useT();
   const lang = langPref.use();
   const all = s.topics.length === TOPIC_IDS.length;
+  // every topic is a switch, lit when it's in: "Alle Themen" lights them all, a tap turns one off or on again
   const toggle = (id: string) => {
-    if (all) return set({ topics: [id] }); // from all topics, the first tap picks just this one
     const next = s.topics.includes(id) ? s.topics.filter((x) => x !== id) : [...s.topics, id];
     set({ topics: next.length ? next : [...TOPIC_IDS] }); // never none: the last one off means all again
   };
@@ -100,7 +100,7 @@ function ZetteliSource({ s, set }: { s: Settings; set: (patch: Partial<Settings>
             </button>
             {TOPICS.map((tp) => {
               const Icon = TOPIC_ICON[tp.icon];
-              const on = !all && s.topics.includes(tp.id);
+              const on = s.topics.includes(tp.id);
               return (
                 <button key={tp.id} onClick={() => toggle(tp.id)} aria-pressed={on} className={tile(on)}>
                   <Icon className={`size-5 shrink-0 ${on ? "" : "text-accent"}`} aria-hidden />
@@ -158,11 +158,12 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
         <section className={`${panel} flex items-center gap-4`}>
           {share.qr && (
             // eslint-disable-next-line @next/next/no-img-element -- local data: URL, nothing to optimise
-            <img src={share.qr} alt={`QR ${v.code}`} width={132} height={132} className="pop size-33 shrink-0 rounded-xl" />
+            <img src={share.qr} alt={`QR ${v.code}`} width={132} height={132} className="pop size-33 shrink-0 rounded-xl max-xs:size-26" />
           )}
-          <div className="flex min-w-0 flex-col items-start gap-1">
+          <div className="@container flex min-w-0 flex-1 flex-col items-start gap-1">
             <p className="text-sm text-muted">{t.scanOrCode}</p>
-            <p translate="no" className="text-3xl font-extrabold tracking-[0.18em] text-hi">{v.code}</p>
+            {/* six characters: sized to the column next to the QR (≈4.9em wide), so it fits on every phone and font, never broken */}
+            <p translate="no" className="text-[min(1.875rem,19cqw)] font-extrabold tracking-[0.1em] whitespace-nowrap text-hi">{v.code}</p>
             <div className="-ml-3 flex flex-col items-start">
               <button onClick={share.onShare} className={`${ghost} flex items-center gap-2 text-accent`}>
                 {share.copied ? <Check className="size-4" aria-hidden /> : <Share2 className="size-4" aria-hidden />}

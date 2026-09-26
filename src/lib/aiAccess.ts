@@ -6,24 +6,37 @@ import { aiPref, langPref } from "./prefs";
 export type Provider = "google" | "github" | "microsoft" | "email";
 export type AiStatus = { ai: boolean; login: boolean; providers: Provider[]; user: { name: string; email: string; image?: string | null } | null };
 
-let status: AiStatus | null = null;
-let loading = false;
+// the last answer is kept on the phone: a reload (or coming back from Google/GitHub) starts signed in as it was, instead
+// of showing everyone as signed out until the server answers and then flipping (AI buttons popping in: the flicker).
+// The fresh answer still comes once per page load and replaces it
+const KEY = "zettelispiil:ai-status";
+const remembered = (): AiStatus | null => {
+  try {
+    return JSON.parse(localStorage.getItem(KEY) ?? "null");
+  } catch {
+    return null;
+  }
+};
+let status: AiStatus | null = typeof window === "undefined" ? null : remembered();
+let fetched = false;
 const listeners = new Set<() => void>();
 
 async function load() {
-  loading = true;
+  fetched = true;
   try {
     status = await fetch("/api/ai/status", { cache: "no-store" }).then((r) => r.json());
+    try {
+      localStorage.setItem(KEY, JSON.stringify(status));
+    } catch {}
   } catch {
-    status = { ai: false, login: false, providers: [], user: null };
+    status ??= { ai: false, login: false, providers: [], user: null }; // offline: keep what we knew
   }
-  loading = false;
   listeners.forEach((l) => l());
 }
 
 const subscribe = (l: () => void) => {
   listeners.add(l);
-  if (!status && !loading) load();
+  if (!fetched) load();
   return () => listeners.delete(l);
 };
 
