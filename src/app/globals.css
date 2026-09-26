@@ -99,38 +99,38 @@
 
 
 /* ---- color themes: each palette sets --d-* (dark) and --l-* (light); the mode picks one set ---- */
-/* default: Post-it — sticky-note yellow, pink and blue on a desk (light) or a charcoal board (dark) */
+/* default: Post-it — the app stays neutral and modern; colour lives on the Zetteli, like a stack of sticky notes */
 :root, :root[data-palette="postit"] {
-  --d-canvas: #1f1d1a;
-  --d-surface: #2a2723;
-  --d-raised: #36322d;
-  --d-line: #48423a;
-  --d-ink: #fbf6ea;
-  --d-muted: #bdb4a4;
-  --d-accent: #ff8fc6;
-  --d-hi: #ffe14d;
-  --d-cta: #ffe14d;
-  --d-cta-ink: #1d1b16;
-  --d-cta-edge: #b39a00;
-  --d-team-a: #ff8fc6;
-  --d-team-b: #7cc8ff;
-  --d-chart-a: #f06aa6;
-  --d-chart-b: #4aa8ee;
-  --l-canvas: #f5f1e8;
+  --d-canvas: #0f0f11;
+  --d-surface: #18181b;
+  --d-raised: #222226;
+  --d-line: #2e2e33;
+  --d-ink: #f6f6f4;
+  --d-muted: #a9a9b1;
+  --d-accent: #ff5ca0;
+  --d-hi: #f3f566;
+  --d-cta: #ffb02e;
+  --d-cta-ink: #1a1206;
+  --d-cta-edge: #b86e00;
+  --d-team-a: #ff5ca0;
+  --d-team-b: #56b4ec;
+  --d-chart-a: #f0508f;
+  --d-chart-b: #4aa3dc;
+  --l-canvas: #fafaf8;
   --l-surface: #ffffff;
-  --l-raised: #fff6c7;
-  --l-line: #ebe2cc;
-  --l-ink: #1d1b16;
-  --l-muted: #6b6457;
-  --l-accent: #d6336c;
-  --l-hi: #d6336c;
-  --l-cta: #ffe14d;
-  --l-cta-ink: #1d1b16;
-  --l-cta-edge: #d4b300;
-  --l-team-a: #d6336c;
-  --l-team-b: #1f7ecf;
-  --l-chart-a: #f06aa6;
-  --l-chart-b: #4aa8ee;
+  --l-raised: #f1f1ee;
+  --l-line: #e2e2dc;
+  --l-ink: #17171a;
+  --l-muted: #5f5f66;
+  --l-accent: #d81b6a;
+  --l-hi: #d81b6a;
+  --l-cta: #ffb02e;
+  --l-cta-ink: #1a1206;
+  --l-cta-edge: #b86e00;
+  --l-team-a: #d81b6a;
+  --l-team-b: #1f7fbf;
+  --l-chart-a: #f0508f;
+  --l-chart-b: #4aa3dc;
   /* teams three and four: a green and an orange that read on every palette (palettes only override them on a clash) */
   --d-team-c: #5fdc8f;
   --d-team-d: #ffa552;
@@ -301,39 +301,38 @@
   --l-chart-a: #ae26f7;
   --l-chart-b: #cca000;
 }
-/* Neon: a stack of neon sticky notes, and in this palette the Zetteli come in those colours too */
-:root[data-palette="neon"] {
-  /* the app stays neutral and modern; the colour lives on the Zetteli, with hot pink, sun yellow and orange as accents */
-  --d-canvas: #0f0f11;
-  --d-surface: #18181b;
-  --d-raised: #222226;
-  --d-line: #2e2e33;
-  --d-ink: #f6f6f4;
-  --d-muted: #a9a9b1;
-  --d-accent: #ff5ca0;
-  --d-hi: #f3f566;
-  --d-cta: #ffb02e;
-  --d-cta-ink: #1a1206;
-  --d-cta-edge: #b86e00;
-  --d-team-a: #ff5ca0;
-  --d-team-b: #56b4ec;
-  --d-chart-a: #f0508f;
-  --d-chart-b: #4aa3dc;
-  --l-canvas: #fafaf8;
+/* Classic: the original loud sticky-note yellow, pink and blue, all over the app */
+:root[data-palette="classic"] {
+  --d-canvas: #1f1d1a;
+  --d-surface: #2a2723;
+  --d-raised: #36322d;
+  --d-line: #48423a;
+  --d-ink: #fbf6ea;
+  --d-muted: #bdb4a4;
+  --d-accent: #ff8fc6;
+  --d-hi: #ffe14d;
+  --d-cta: #ffe14d;
+  --d-cta-ink: #1d1b16;
+  --d-cta-edge: #b39a00;
+  --d-team-a: #ff8fc6;
+  --d-team-b: #7cc8ff;
+  --d-chart-a: #f06aa6;
+  --d-chart-b: #4aa8ee;
+  --l-canvas: #f5f1e8;
   --l-surface: #ffffff;
-  --l-raised: #f1f1ee;
-  --l-line: #e2e2dc;
-  --l-ink: #17171a;
-  --l-muted: #5f5f66;
-  --l-accent: #d81b6a;
-  --l-hi: #d81b6a;
-  --l-cta: #ffb02e;
-  --l-cta-ink: #1a1206;
-  --l-cta-edge: #b86e00;
-  --l-team-a: #d81b6a;
-  --l-team-b: #1f7fbf;
-  --l-chart-a: #f0508f;
-  --l-chart-b: #4aa3dc;
+  --l-raised: #fff6c7;
+  --l-line: #ebe2cc;
+  --l-ink: #1d1b16;
+  --l-muted: #6b6457;
+  --l-accent: #d6336c;
+  --l-hi: #d6336c;
+  --l-cta: #ffe14d;
+  --l-cta-ink: #1d1b16;
+  --l-cta-edge: #d4b300;
+  --l-team-a: #d6336c;
+  --l-team-b: #1f7ecf;
+  --l-chart-a: #f06aa6;
+  --l-chart-b: #4aa8ee;
 }
 /* Arosa: the crest's deep blue, its sun yellow and the snow */
 :root[data-palette="arosa"] {
@@ -545,13 +544,16 @@ button { user-select: none; }
 
 /* animation helpers live in the components layer so utilities like `flex` still win */
 @layer components {
-/* Neon palette: each slip a different sticky note */
-:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 1) { --color-paper: #bdef6b; --color-paper-edge: #9fdc45; }
-:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 2) { --color-paper: #f3f566; --color-paper-edge: #dfe23a; }
-:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 3) { --color-paper: #ffc04d; --color-paper-edge: #f2a21e; }
-:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 4) { --color-paper: #ff9d78; --color-paper-edge: #f47c55; }
-:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 5) { --color-paper: #ff77aa; --color-paper-edge: #ec4f8a; }
-:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n) { --color-paper: #7cc3ec; --color-paper-edge: #4ea8dc; }
+/* Post-it palette: each slip a different sticky note. Matches the bare default too (no attribute yet, e.g. before
+   hydration, or a fresh visitor with nothing in localStorage) — same reasoning as the base ":root, :root[data-palette=
+   \"postit\"]" color block above, so a brand-new visitor's slips are never plain lemon while their chrome is already
+   the Post-it colours. */
+:root:not([data-palette]) :is(.slip, .mini-slip):nth-child(6n + 1), :root[data-palette="postit"] :is(.slip, .mini-slip):nth-child(6n + 1) { --color-paper: #bdef6b; --color-paper-edge: #9fdc45; }
+:root:not([data-palette]) :is(.slip, .mini-slip):nth-child(6n + 2), :root[data-palette="postit"] :is(.slip, .mini-slip):nth-child(6n + 2) { --color-paper: #f3f566; --color-paper-edge: #dfe23a; }
+:root:not([data-palette]) :is(.slip, .mini-slip):nth-child(6n + 3), :root[data-palette="postit"] :is(.slip, .mini-slip):nth-child(6n + 3) { --color-paper: #ffc04d; --color-paper-edge: #f2a21e; }
+:root:not([data-palette]) :is(.slip, .mini-slip):nth-child(6n + 4), :root[data-palette="postit"] :is(.slip, .mini-slip):nth-child(6n + 4) { --color-paper: #ff9d78; --color-paper-edge: #f47c55; }
+:root:not([data-palette]) :is(.slip, .mini-slip):nth-child(6n + 5), :root[data-palette="postit"] :is(.slip, .mini-slip):nth-child(6n + 5) { --color-paper: #ff77aa; --color-paper-edge: #ec4f8a; }
+:root:not([data-palette]) :is(.slip, .mini-slip):nth-child(6n), :root[data-palette="postit"] :is(.slip, .mini-slip):nth-child(6n) { --color-paper: #7cc3ec; --color-paper-edge: #4ea8dc; }
 /* slip unfolding out of the bowl */
 @keyframes unfold {
   0% { opacity: 0; transform: translateY(40px) rotate(var(--tilt, -2deg)) scaleY(0.05); }

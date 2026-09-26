@@ -24,3 +24,9 @@ repos:
         language: system
         pass_filenames: false
         files: ^src/
+      - id: version
+        name: version matches the release
+        entry: bash scripts/check-version.sh
+        language: system
+        pass_filenames: false
+        files: ^package\.json$

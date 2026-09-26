@@ -31,13 +31,13 @@ function pref<T extends string>(key: string, allowed: readonly T[], fallback: T,
 export const THEMES = ["auto", "light", "dark"] as const;
 export type Theme = (typeof THEMES)[number];
 export const PALETTES = [
-  { id: "postit", swatch: ["#ffe14d", "#ff8fc6", "#7cc8ff"] },
+  { id: "postit", swatch: ["#ff5ca0", "#ffc04d", "#7cc3ec"] }, // formerly "Neon": neutral app, colour on the Zetteli — the sticky-note look
+  { id: "classic", swatch: ["#ffe14d", "#ff8fc6", "#7cc8ff"] }, // the original loud Post-it yellow/pink/blue, now under its own name
   { id: "night", swatch: ["#25003d", "#c86bfa", "#ffd500"] },
   { id: "ink", swatch: ["#03071e", "#5068ee", "#ffee32"] },
   { id: "gold", swatch: ["#332b00", "#ffd500", "#8907cf"] },
   { id: "sunset", swatch: ["#003049", "#f77f00", "#fcbf49"] },
   { id: "ocean", swatch: ["#00131d", "#50c2ff", "#d62828"] },
-  { id: "neon", swatch: ["#ff5ca0", "#ffc04d", "#7cc3ec"] },
   { id: "arosa", swatch: ["#0a1fd6", "#ffe000", "#ffffff"] },
   { id: "aarau", swatch: ["#111111", "#e30613", "#ffffff"] },
 ] as const;
@@ -48,6 +48,11 @@ export const themePref = pref<Theme>("theme", THEMES, "auto", (t) => {
   if (t === "auto") delete root().dataset.theme;
   else root().dataset.theme = t;
 });
+// "neon" was renamed to "postit" (and made the default): keep a phone that saved "neon" on its own colors, not a silent
+// fallback the next time this reads localStorage directly (the inline script in layout.tsx handles the very first paint)
+try {
+  if (localStorage.getItem("palette") === "neon") localStorage.setItem("palette", "postit");
+} catch {}
 export const palettePref = pref<Palette>(
   "palette",
   PALETTES.map((p) => p.id),

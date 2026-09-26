@@ -21,7 +21,8 @@ export const viewport: Viewport = {
 };
 
 // applies saved light/dark, color theme and language before first paint; "auto" leaves light/dark to the system
-const prefsScript = `try{var d=document.documentElement,t=localStorage.getItem("theme"),p=localStorage.getItem("palette"),l=localStorage.getItem("lang");if(t==="light"||t==="dark")d.dataset.theme=t;if(p)d.dataset.palette=p;if(l)d.lang=l}catch(e){}`;
+// "neon" was renamed to "postit" (it became the default); a phone that saved "neon" still gets its own colors, not a blank fallback
+const prefsScript = `try{var d=document.documentElement,t=localStorage.getItem("theme"),p=localStorage.getItem("palette"),l=localStorage.getItem("lang");if(p==="neon")p="postit";if(t==="light"||t==="dark")d.dataset.theme=t;if(p)d.dataset.palette=p;if(l)d.lang=l}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
