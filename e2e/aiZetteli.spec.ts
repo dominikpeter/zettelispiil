@@ -1,3 +1,4 @@
+import { TOPICS } from "../src/lib/topics";
 import { expect, test, type Page } from "@playwright/test";
 
 // "KI schreibt": the AI writes every Zetteli, nobody knows a word beforehand. AI status and answer are mocked
@@ -30,11 +31,21 @@ test("KI schreibt: the host picks two topics, nobody writes, no word shows befor
   await expect(page.getByRole("button", { name: "Selber schreiben" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "Tiere", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "KI schreibt" }).click();
-  await expect(page.getByRole("button", { name: "Alle Themen" })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Tiere", exact: true }).click();
-  await page.getByRole("button", { name: "Schwiiz", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Tiere", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("button", { name: "Alle Themen" })).toHaveAttribute("aria-pressed", "false");
+  // "Alle Themen" lights every topic; a tap switches one off, "Alle Themen" brings them all back
+  const all = page.getByRole("button", { name: "Alle Themen" });
+  const topic = (name: string) => page.getByRole("button", { name, exact: true });
+  await expect(all).toHaveAttribute("aria-pressed", "true");
+  for (const tp of TOPICS) await expect(topic(tp.name.de)).toHaveAttribute("aria-pressed", "true");
+  await topic("Tiere").click();
+  await expect(topic("Tiere")).toHaveAttribute("aria-pressed", "false");
+  await expect(topic("Schwiiz")).toHaveAttribute("aria-pressed", "true");
+  await expect(all).toHaveAttribute("aria-pressed", "false");
+  await all.click();
+  await expect(topic("Tiere")).toHaveAttribute("aria-pressed", "true");
+  // just two: switch the others off
+  for (const tp of TOPICS.filter((x) => x.id !== "animals" && x.id !== "switzerland")) await topic(tp.name.de).click();
+  await expect(topic("Tiere")).toHaveAttribute("aria-pressed", "true");
+  await expect(topic("Promis")).toHaveAttribute("aria-pressed", "false");
   await page.getByRole("button", { name: "Spiel starten" }).click();
 
   // no writing: the AI writes, and nobody sees what

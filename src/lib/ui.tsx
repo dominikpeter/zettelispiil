@@ -49,18 +49,30 @@ export function RoundIcon({ type, className = "size-6" }: { type: RoundType; cla
 }
 
 /** the bowl with slips peeking out; `count` sits on its belly */
+// The pile in the bowl shows how many Zetteli are left: one is one slip, none an empty bowl, a full bowl a heap (up to 15
+// drawn). Filled from the middle out, five to a row, each row a little higher; the rest of every slip is hidden behind the
+// bowl's front (rim at y 34), like paper really lying in it. Fixed pseudo-random offsets, so it doesn't jitter.
+const PILE = Array.from({ length: 15 }, (_, i) => {
+  const r = (n: number) => {
+    const x = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  };
+  const layer = Math.floor(i / 5);
+  const w = 18 + r(1) * 5;
+  const top = 26 - layer * 6 - r(2) * 5;
+  const cx = 60 + [0, -1, 1, -2, 2][i % 5] * 17 + (r(3) - 0.5) * 6;
+  return { x: cx - w / 2, y: top, w, h: 44 - top, rot: (r(4) - 0.5) * (22 + layer * 8), cx, fill: ["var(--color-paper)", "var(--color-gold-800)", "var(--color-paper-edge)"][i % 3] };
+});
+
 export function Bowl({ count, className = "w-24", pile = true }: { count?: number; className?: string; pile?: boolean }) {
   return (
     <div className={className}>
       <div className="relative">
       <svg viewBox="0 0 120 80" className="w-full" aria-hidden>
-        {pile && count !== 0 && (
-          <>
-            <rect x="38" y="10" width="20" height="28" rx="2" fill="var(--color-paper)" transform="rotate(-14 48 24)" />
-            <rect x="58" y="6" width="20" height="30" rx="2" fill="var(--color-gold-800)" transform="rotate(9 68 21)" />
-            <rect x="48" y="14" width="22" height="26" rx="2" fill="var(--color-paper-edge)" transform="rotate(-2 59 27)" />
-          </>
-        )}
+        {pile &&
+          PILE.slice(0, Math.min(count ?? 3, PILE.length)).map((p, i) => (
+            <rect key={i} x={p.x} y={p.y} width={p.w} height={p.h} rx="2" fill={p.fill} transform={`rotate(${p.rot.toFixed(1)} ${p.cx.toFixed(1)} 40)`} />
+          ))}
         {/* follows the color theme: a deeper shade of its accent, with the accent as rim */}
         <path d="M6 34h108c0 24-24 42-54 42S6 58 6 34z" style={{ fill: "color-mix(in oklab, var(--color-accent) 55%, #0c0014)" }} />
         <path d="M6 34h108" style={{ stroke: "var(--color-accent)" }} strokeWidth="4" strokeLinecap="round" />
@@ -71,6 +83,28 @@ export function Bowl({ count, className = "w-24", pile = true }: { count?: numbe
         </span>
       )}
       </div>
+    </div>
+  );
+}
+
+// three slips dropping into the bowl, over and over (while the bowl is being filled). Start offsets and where each lands,
+// from the box's middle (px): they fall under gravity into the opening and vanish behind the bowl's front
+const DROPS = [
+  { from: -14, to: -26, r0: "-20deg", r1: "8deg" },
+  { from: 20, to: 0, r0: "-5deg", r1: "-6deg" },
+  { from: 55, to: 26, r0: "10deg", r1: "-14deg" },
+];
+export function FillingBowl() {
+  return (
+    <div className="relative h-40 w-48">
+      {DROPS.map((d, i) => (
+        <span
+          key={i}
+          className="fall-in mini-slip absolute top-6 h-8 w-12"
+          style={{ left: `calc(50% + ${d.from}px - 1.5rem)`, animationDelay: `${i * 0.55}s`, "--dx": `${d.to - d.from}px`, "--r0": d.r0, "--r1": d.r1 } as CSSProperties}
+        />
+      ))}
+      <Bowl className="absolute bottom-0 left-1/2 w-40 -translate-x-1/2" />
     </div>
   );
 }

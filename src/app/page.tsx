@@ -8,7 +8,7 @@ import { AiNameButton } from "@/components/game/common"; // not the Game barrel:
 import { loadDnd } from "@/components/game/RoundRow";
 import { InstallHint } from "@/components/InstallHint";
 import { TopControls } from "@/components/TopControls";
-import { loadLocalGame, loadPlayers, newLocalGame } from "@/lib/localGame";
+import { loadLocalGame, loadPlayers, newLocalGame, savePlayers, subscribePlayers } from "@/lib/localGame";
 import { langPref, useT } from "@/lib/prefs";
 import { api, errKey, funnyName, saveIdentity, type Identity } from "@/lib/roomClient";
 import { aimDrops } from "@/lib/heroDrop";
@@ -16,8 +16,6 @@ import { Bowl, btn, btn2, field, ghost, panel, press, Slip } from "@/lib/ui";
 
 const noop = () => () => {};
 const hasLocalGame = () => !!loadLocalGame();
-let savedPlayers: string[] | undefined;
-const playersSnapshot = () => (savedPlayers ??= loadPlayers());
 const NO_PLAYERS: string[] = [];
 
 // fanned out above the bowl so every word stays readable; back row first, smaller
@@ -42,8 +40,13 @@ const heroSlip = (h: (typeof HERO)[number], word: string, i: number) => (
   <Slip
     key={i}
     tilt={h.tilt}
-    className={`unfold absolute ${"pad" in h ? h.pad : "px-3.5 pt-1.5"} ${h.x} ${"drop" in h ? "drop-in" : ""}`}
-    style={{ animationDelay: "drop" in h ? `${h.d}, 0s` : h.d, ...("drop" in h ? h.drop : {}) }}
+    className={`unfold absolute ${"pad" in h ? h.pad : "px-3.5 pt-1.5"} ${h.x} ${"drop" in h ? "drop-in" : ""} ${"bowl" in h ? "sway" : ""}`}
+    style={{
+      // the swaying ones each on their own beat and direction, so the pile never moves in step
+      animationDelay: `${h.d}, ${"drop" in h ? 0 : -((i * 1.3) % 4.5)}s`,
+      ...("drop" in h ? h.drop : {}),
+      ...("bowl" in h ? { "--sway": i % 2 ? "-1deg" : "1.2deg" } : {}),
+    }}
   >
     <span className={`font-hand font-bold whitespace-nowrap ${h.size}`}>{word}</span>
   </Slip>
@@ -90,12 +93,18 @@ export default function Home() {
   }, [hero]);
   const resumable = useSyncExternalStore(noop, hasLocalGame, () => false);
   const [name, setName] = useState(""); // empty: you type your name, or tap the sparkle for a funny one
-  const savedList = useSyncExternalStore(noop, playersSnapshot, () => NO_PLAYERS);
-  const [edited, setPlayers] = useState<string[] | null>(null);
-  const players = edited ?? savedList;
+  const players = useSyncExternalStore(subscribePlayers, loadPlayers, () => NO_PLAYERS);
   const named = players.map((p, i) => p.trim() || t.playerN(i + 1));
   const [play, setPlay] = useState<"local" | "online">("local");
   const [mode, setMode] = useState<"create" | "join">("create");
+  const codeRef = useRef<HTMLInputElement>(null);
+  // "Raum beitreten": the code field showed up below the fold, behind the start button. Bring it (and the scan button
+  // next to it) into view and put the cursor there, so it's obvious: type the code or scan it
+  useEffect(() => {
+    if (mode !== "join") return;
+    codeRef.current?.focus({ preventScroll: true });
+    codeRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [mode]);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -126,15 +135,10 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4">
-      {/* sticky: settings stay a thumb away while the player list scrolls. Full-width with a canvas fade behind the pill
-          (mirrors the bottom CTA's own fade below) so scrolled-up content — the install banner, translucent itself —
-          fades out before it reaches the pill instead of visually blending into it. -mb-6: the fade overlaps the hero
-          instead of pushing it down (main's own pt-3 moved here, in the header's own top padding, so nothing shifts).
-          No safe-area calc here: body already reserves env(safe-area-inset-top) as real padding (layout.tsx), and this
-          header is sticky (in-flow, below that padding), not fixed — adding the inset again would double it.
-          pointer-events-none: the fade's transparent reach must not block taps on content scrolled under it; the pill
-          and the coffee toast (both real DOM children of TopControls) opt back in with their own pointer-events-auto */}
-      <header className="sticky top-0 z-30 -mx-4 -mb-6 flex justify-end bg-gradient-to-b from-canvas from-60% to-transparent px-4 pt-6 pb-6 pointer-events-none">
+      {/* sticky: settings stay a thumb away while the player list scrolls. No band behind it: the pill floats on its own
+          (it has its own blurred background). pointer-events-none: the header's full width must not block taps on what
+          scrolls under it; the pill and the coffee toast (DOM children of TopControls) opt back in */}
+      <header className="sticky top-0 z-30 -mx-4 flex justify-end px-4 pt-6 pointer-events-none">
         <TopControls />
       </header>
       {/* a few slips are tossed into the bowl on scroll: aimDrops measures where each one lands */}
@@ -166,7 +170,9 @@ export default function Home() {
         <div className="grid grid-cols-2 gap-2">
           {(["local", "online"] as const).map((o) => (
             <button key={o} type="button" onClick={() => setPlay(o)} aria-pressed={play === o} className={choice(play === o)}>
-              {o === "local" ? <Smartphone className="size-6 text-accent" aria-hidden /> : <Users className="size-6 text-accent" aria-hidden />}
+              <span key={String(play === o)} className={play === o ? "pop" : ""}>
+                {o === "local" ? <Smartphone className="size-6 text-accent" aria-hidden /> : <Users className="size-6 text-accent" aria-hidden />}
+              </span>
               <span className="font-semibold">{o === "local" ? t.onePhone : t.everyPhone}</span>
               <span className="text-sm leading-snug text-muted">{o === "local" ? t.onePhoneHelp : t.everyPhoneHelp}</span>
             </button>
@@ -190,17 +196,17 @@ export default function Home() {
                     autoFocus={i === players.length - 1 && !p} // a freshly added row: type right away
                     aria-label={t.playerN(i + 1)}
                     placeholder={t.playerN(i + 1)}
-                    onChange={(e) => setPlayers(players.map((x, j) => (j === i ? e.target.value : x)))}
+                    onChange={(e) => savePlayers(players.map((x, j) => (j === i ? e.target.value : x)))}
                     className="min-w-0 flex-1 rounded-lg bg-transparent px-1 py-3 text-lg font-semibold outline-none placeholder:text-muted/60 focus-visible:bg-raised"
                     autoComplete="off"
                   />
                   <AiNameButton
                     label={`${t.playerN(i + 1)}: ${t.aiName}`}
                     make={() => funnyName("player", lang, players, t.funnyPlayers, null, players[i], t.namePrefixes)}
-                    onName={(n) => setPlayers((ps) => (ps ?? players).map((x, j) => (j === i ? n : x)))}
+                    onName={(n) => savePlayers(loadPlayers().map((x, j) => (j === i ? n : x)))} // the list as it is when the name arrives
                     className={`grid size-10 shrink-0 place-items-center rounded-full text-muted hover:bg-raised hover:text-accent ${press}`}
                   />
-                  <button type="button" onClick={() => setPlayers(players.filter((_, j) => j !== i))} aria-label={t.removePlayer(named[i])} className={`grid size-10 place-items-center rounded-full text-muted hover:bg-raised hover:text-ink ${press}`}>
+                  <button type="button" onClick={() => savePlayers(players.filter((_, j) => j !== i))} aria-label={t.removePlayer(named[i])} className={`grid size-10 place-items-center rounded-full text-muted hover:bg-raised hover:text-ink ${press}`}>
                     <X className="size-5" aria-hidden />
                   </button>
                 </li>
@@ -208,7 +214,7 @@ export default function Home() {
             </ul>
             <button
               type="button"
-              onClick={() => setPlayers([...players, ""])}
+              onClick={() => savePlayers([...players, ""])}
               disabled={players.length >= 20}
               className={`${ghost} -ml-3 mt-1 flex items-center gap-2 text-accent`}
             >
@@ -236,6 +242,7 @@ export default function Home() {
             {mode === "join" && (
               <div key="join" className="enter flex items-center gap-2">
                 <input
+                  ref={codeRef}
                   value={code}
                   maxLength={6}
                   autoCapitalize="characters"
@@ -264,7 +271,7 @@ export default function Home() {
         <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-canvas from-75% to-transparent pt-6 short:pt-3 tiny:pt-2">
           <div className="mx-auto max-w-md px-4 pb-[max(0.9rem,env(safe-area-inset-bottom))]">
             <div className="flex flex-col gap-2">
-              <button className={btn} disabled={!ready}>
+              <button key={String(ready)} className={`${btn} ${ready ? "hop" : ""}`} disabled={!ready}>
                 {busy ? t.wait : play === "local" ? (players.length >= 4 ? t.newGame : t.needFour) : mode === "create" ? t.createRoom : t.join}
               </button>
               {play === "local" && resumable && (

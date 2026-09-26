@@ -501,7 +501,7 @@
 
 html {
   font-size: 112.5%; /* 18px base */
-  scroll-padding-bottom: 7rem; /* a focused field never hides behind the sticky main button */
+  scroll-padding-bottom: 9rem; /* a focused field never hides behind the sticky main button (and the lobby's settings line above it) */
   scroll-padding-top: calc(env(safe-area-inset-top) + 4.5rem); /* ...nor behind the sticky settings pill at the top */
 }
 
@@ -614,6 +614,22 @@ button { user-select: none; }
 }
 .bump { animation: bump 0.4s var(--ease-spring); display: inline-block; }
 
+/* a little jump: a choice just picked, a button that just became ready */
+@keyframes hop {
+  30% { transform: translateY(-28%) scale(1.08); }
+  55% { transform: translateY(0) scale(0.97); }
+  75% { transform: translateY(-8%); }
+}
+.hop { animation: hop 0.55s var(--ease-out) both; }
+
+/* the sparkle while the AI thinks up a name */
+@keyframes twinkle { 50% { transform: rotate(18deg) scale(1.25); opacity: 0.55; } }
+.twinkle { animation: twinkle 0.9s ease-in-out infinite; }
+
+/* home hero: the slips resting in the bowl stir a little, like paper in a draught (`rotate`, so it stacks on the tilt) */
+@keyframes sway { 50% { rotate: var(--sway, 1deg); } }
+.unfold.sway { animation: unfold 0.55s var(--ease-spring) both, sway 4.5s ease-in-out infinite; }
+
 /* last seconds of the timer */
 @keyframes throb {
   50% { transform: scale(1.06); }
@@ -654,13 +670,21 @@ button { user-select: none; }
 }
 
 /* slips raining into the bowl while players write */
-@keyframes fall {
-  0% { transform: translateY(-120px) rotate(var(--r0)); opacity: 0; }
-  15% { opacity: 1; }
-  80% { transform: translateY(0) rotate(var(--r1)); opacity: 1; }
-  100% { transform: translateY(8px) rotate(var(--r1)); opacity: 0; }
+/* a slip dropped into the bowl: gravity (y grows with t², sideways steady), a tumble, then out of sight behind its front */
+@keyframes fall-in {
+  0% { translate: 0 -70px; rotate: var(--r0); opacity: 0; }
+  8% { translate: 0 -70px; rotate: var(--r0); opacity: 1; }
+  16% { translate: calc(var(--dx) * 0.125) -67.7px; rotate: calc(var(--r0) + (var(--r1) - var(--r0)) * 0.125); opacity: 1; }
+  24% { translate: calc(var(--dx) * 0.25) -60.7px; rotate: calc(var(--r0) + (var(--r1) - var(--r0)) * 0.25); opacity: 1; }
+  32% { translate: calc(var(--dx) * 0.375) -49.0px; rotate: calc(var(--r0) + (var(--r1) - var(--r0)) * 0.375); opacity: 1; }
+  40% { translate: calc(var(--dx) * 0.5) -32.8px; rotate: calc(var(--r0) + (var(--r1) - var(--r0)) * 0.5); opacity: 1; }
+  48% { translate: calc(var(--dx) * 0.625) -11.8px; rotate: calc(var(--r0) + (var(--r1) - var(--r0)) * 0.625); opacity: 1; }
+  56% { translate: calc(var(--dx) * 0.75) 13.8px; rotate: calc(var(--r0) + (var(--r1) - var(--r0)) * 0.75); opacity: 1; }
+  64% { translate: calc(var(--dx) * 0.875) 44.1px; rotate: calc(var(--r0) + (var(--r1) - var(--r0)) * 0.875); opacity: 1; }
+  72% { translate: calc(var(--dx) * 1) 79.0px; rotate: calc(var(--r0) + (var(--r1) - var(--r0)) * 1); opacity: 1; }
+  76%, 100% { translate: var(--dx) 79px; rotate: var(--r1); opacity: 0; }
 }
-.fall { animation: fall 1.8s var(--ease-out) infinite; }
+.fall-in { animation: fall-in 1.65s linear infinite; }
 
 /* confetti made of tiny slips */
 @keyframes confetti {
@@ -712,14 +736,24 @@ dialog.sheet[open]::backdrop { animation: fade-in 0.3s ease-out both; }
 }
 
 /* slip flung off screen after a swipe or button */
-@keyframes fling-r { to { transform: translate(130vw, -10vh) rotate(35deg); opacity: 0.6; } }
-@keyframes fling-l { to { transform: translate(-130vw, 6vh) rotate(-30deg); opacity: 0.6; } }
-.fling-r { animation: fling-r 0.32s var(--ease-out) forwards; }
-.fling-l { animation: fling-l 0.32s var(--ease-out) forwards; }
+/* a Zetteli thrown off the table: from where the finger let go (--dx, its tilt), a short lift and grow, then away:
+   guessed flies up and right, spinning; passed drops away down-left, towards the set-aside row */
+@keyframes fling-r {
+  0% { transform: translateX(var(--dx, 0px)) rotate(var(--rot, 0deg)); }
+  18% { transform: translate(calc(var(--dx, 0px) + 18px), -14px) rotate(calc(var(--rot, 0deg) + 5deg)) scale(1.06); }
+  100% { transform: translate(125vw, -22vh) rotate(42deg) scale(0.9); opacity: 0.4; }
+}
+@keyframes fling-l {
+  0% { transform: translateX(var(--dx, 0px)) rotate(var(--rot, 0deg)); }
+  18% { transform: translate(calc(var(--dx, 0px) - 16px), -8px) rotate(calc(var(--rot, 0deg) - 4deg)) scale(1.03); }
+  100% { transform: translate(-120vw, 18vh) rotate(-32deg) scale(0.85); opacity: 0.4; }
+}
+.fling-r { animation: fling-r 0.42s cubic-bezier(0.3, 0.6, 0.4, 1) forwards; }
+.fling-l { animation: fling-l 0.42s cubic-bezier(0.3, 0.6, 0.4, 1) forwards; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .unfold, .drop-in, .toss, .back, .fling-r, .fling-l, .into-bowl, .catch, dialog.sheet[open], .enter, .pop, .bump, .throb, .shake, .fall, .grow, .growx, .draw { animation: none; }
+  .unfold, .drop-in, .hop, .twinkle, .toss, .back, .fling-r, .fling-l, .into-bowl, .catch, dialog.sheet[open], .enter, .pop, .bump, .throb, .shake, .fall-in, .grow, .growx, .draw { animation: none; }
   .confetti { display: none; }
   .heckle-fx { animation-name: heckle-calm; animation-timing-function: ease-out; } /* no jitter, the blur just fades; duration stays inline */
   * { transition-duration: 0.01ms !important; }

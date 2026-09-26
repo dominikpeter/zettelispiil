@@ -106,7 +106,7 @@ export default function LocalGamePage() {
         </div>
       )}
       <header className="mb-4 flex min-h-[calc(2.75rem+2px)] items-center justify-between gap-2">
-        <BackButton v={v} onLeave={() => router.push("/")} />
+        <BackButton v={v} onLeave={() => router.push("/")} local />
         {inGame && (
           <div className="flex items-center gap-2">
             {playing && <Score v={v} />}

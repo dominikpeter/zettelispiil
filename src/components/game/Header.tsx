@@ -6,7 +6,7 @@ import { useT } from "@/lib/prefs";
 import { type View } from "@/lib/room";
 import { btn, btn2, ghost, pill, pillBtn, TEAM } from "@/lib/ui";
 import { SettingsPanel } from "../TopControls";
-import { Waiting, type Mode, type Send } from "./common";
+import { Confirm, Waiting, type Mode, type Send } from "./common";
 
 export function Score({ v }: { v: View }) {
   const tot = v.teamNames.map((_, t) => v.scores.reduce((s, r) => s + (r[t] ?? 0), 0));
@@ -41,18 +41,22 @@ export function Score({ v }: { v: View }) {
 }
 
 /** back arrow for the header: straight home outside a game, after a confirm inside one */
-export function BackButton({ v, onLeave, label }: { v: View | null; onLeave: () => void; label?: string }) {
+export function BackButton({ v, onLeave, label, local = false }: { v: View | null; onLeave: () => void; label?: string; local?: boolean }) {
   const t = useT();
+  const [asking, setAsking] = useState(false);
   const safe = !v || v.me < 0 || v.phase === "lobby" || v.phase === "end";
   return (
-    <button onClick={() => (safe || confirm(t.leaveConfirm)) && onLeave()} aria-label={t.back} className={`${ghost} -ml-3 flex items-center gap-1.5`}>
-      <ArrowLeft className="size-5" aria-hidden />
-      {label && (
-        <span translate="no" className="font-bold tracking-[0.2em] text-ink">
-          {label}
-        </span>
-      )}
-    </button>
+    <>
+      <button onClick={() => (safe ? onLeave() : setAsking(true))} aria-label={t.back} className={`${ghost} -ml-3 flex items-center gap-1.5`}>
+        <ArrowLeft className="size-5" aria-hidden />
+        {label && (
+          <span translate="no" className="font-bold tracking-[0.2em] text-ink">
+            {label}
+          </span>
+        )}
+      </button>
+      {asking && <Confirm text={local ? t.leaveConfirmLocal : t.leaveConfirm} yes={t.leaveGame} no={t.resumeTurn} onYes={onLeave} onNo={() => setAsking(false)} />}
+    </>
   );
 }
 
@@ -60,6 +64,7 @@ export function BackButton({ v, onLeave, label }: { v: View | null; onLeave: () 
 export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode: Mode; onLeave: () => void }) {
   const t = useT();
   const [open, setOpen] = useState(false);
+  const [asking, setAsking] = useState(false);
   const local = mode === "local";
   const turn = v.phase === "turn";
   const paused = turn && v.pausedLeft > 0;
@@ -76,7 +81,7 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
     if (paused) await send({ type: "resume" });
   };
   const cancel = async () => {
-    if (!confirm(t.cancelConfirm)) return;
+    setAsking(false);
     setOpen(false);
     await send({ type: "cancel" }, 0);
   };
@@ -115,16 +120,23 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
             )}
             {!canPause && paused && <Waiting text={t.pausedBy} />}
             {canCancel && (
-              <button onClick={cancel} className={btn2}>
-                <X className="size-5" aria-hidden /> {t.cancelGame}
+              <button onClick={() => setAsking(true)} className={`${btn2} flex-col gap-0 py-2`}>
+                <span className="flex items-center gap-2">
+                  <X className="size-5" aria-hidden /> {t.cancelGame}
+                </span>
+                <span className="text-sm font-normal text-muted">{t.cancelNote}</span>
               </button>
             )}
-            <button onClick={onLeave} className={`${ghost} flex w-full items-center justify-center gap-2`}>
-              <Home className="size-4" aria-hidden /> {t.leaveGame}
+            <button onClick={onLeave} className={`${ghost} flex w-full flex-col items-center justify-center gap-0 py-1`}>
+              <span className="flex items-center gap-2">
+                <Home className="size-4" aria-hidden /> {t.leaveGame}
+              </span>
+              <span className="text-sm font-normal">{local ? t.leaveNoteLocal : t.leaveNote}</span>
             </button>
           </div>
         </div>
       )}
+      {asking && <Confirm text={t.cancelConfirm} yes={t.cancelGame} no={t.resumeTurn} onYes={cancel} onNo={() => setAsking(false)} />}
     </>
   );
 }

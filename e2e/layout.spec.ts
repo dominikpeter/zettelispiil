@@ -37,6 +37,12 @@ for (const name of PHONES) {
     await host.getByRole("button", { name: "Raum erstellen" }).click();
     await host.waitForURL(/\/r\/[A-Z0-9]{6}$/);
     const code = host.url().split("/").pop()!;
+    // the room code (six characters) sits on one line inside its card, next to the QR (feedback: it ran out of the box)
+    const fit = await host.locator("section").getByText(code, { exact: true }).evaluate((el) => {
+      const r = el.getBoundingClientRect(), card = el.closest("section")!.getBoundingClientRect();
+      return { inside: r.right <= card.right - 8, oneLine: r.height < 60 };
+    });
+    expect(fit, `room code ${code} fits its card`).toEqual({ inside: true, oneLine: true });
     const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
     for (const [i, p] of others.entries()) {
       await p.goto(`/r/${code}`);
@@ -110,6 +116,12 @@ test("iPhone SE: long words stay on one line and the swipe screen fits (one phon
   await page.getByRole("button", { name: "Los, Zetteli ziehen" }).click();
   await expect(page.getByTestId("word")).toBeVisible();
   expect(await fits(page)).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });
+  // one skipped: the set-aside Zetteli shows below, and the buttons must stay on screen (feedback: they slid off mid-turn)
+  const first = await page.getByTestId("word").innerText();
+  await page.getByRole("button", { name: /^Passen/ }).click();
+  await expect(page.getByTestId("word")).not.toHaveText(first);
+  await expect(page.getByRole("button", { name: `Zurück zu ${first}` })).toBeVisible();
+  await expect.poll(() => fits(page), { message: "turn screen with a set-aside Zetteli", timeout: 3000 }).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });
 });
 
 test("iPhone SE: no screen scrolls sideways and single-screen views fit, through a whole one-phone game with drawing on paper", async ({ browser }) => {
@@ -162,9 +174,18 @@ test("iPhone SE: no screen scrolls sideways and single-screen views fit, through
     }
   }
   await expect(end).toBeVisible();
+  await check("end stats");
   await page.getByText(/Alle \d+ Zetteli/).click();
-  await page.locator("summary").filter({ hasText: LONG[0] }).last().click();
-  await check("end stats with details open");
+  await check("end stats, every Zetteli listed");
+  await page.getByRole("button", { name: new RegExp(LONG[0]) }).last().click();
+  const story = page.getByRole("dialog");
+  await expect(story).toHaveAccessibleName(LONG[0]);
+  await check("a long Zetteli's story open");
+  expect(await story.evaluate((d) => d.scrollWidth - d.clientWidth), "the story scrolls sideways").toBeLessThanOrEqual(1);
+  await story.getByText(/erklärt von/).first().getByRole("button").click(); // on to the player who described it
+  await expect(story.getByRole("heading", { name: "Erklärte Zetteli" })).toBeVisible();
+  await check("a player's story open");
+  expect(await story.evaluate((d) => d.scrollWidth - d.clientWidth), "the player story scrolls sideways").toBeLessThanOrEqual(1);
 });
 
 /** the main button stays on screen before any scrolling (sticky at the bottom) */
@@ -246,3 +267,25 @@ for (const name of ["iPhone SE", "iPhone 15"] as const) {
     expect(await sideways(page)).toBe(0);
   });
 }
+
+// feedback: after "Raum beitreten" you had to scroll to find where the code goes (it was behind the start button)
+test("iPhone SE: joining a room brings the code field and the scan button into view, ready to type", async ({ browser }) => {
+  const page = await openPhone(browser, { ...devices["iPhone SE"] });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Mehrere Handys/ }).click();
+  await page.getByRole("button", { name: /^Raum beitreten/ }).click();
+  const field = page.getByLabel("Raumcode");
+  await expect(field).toBeFocused();
+  for (const target of [field, page.getByRole("button", { name: "Scannen" })]) {
+    // settled after the smooth scroll: on screen and really what a finger hits (not the fixed start bar)
+    await expect
+      .poll(() =>
+        target.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return r.top >= 0 && r.bottom <= innerHeight && !!hit && (el === hit || el.contains(hit));
+        }),
+      )
+      .toBe(true);
+  }
+});

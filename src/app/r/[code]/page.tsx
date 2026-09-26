@@ -144,7 +144,8 @@ export default function Room() {
         </div>
       )}
       <header className="mb-4 flex min-h-[calc(2.75rem+2px)] items-center justify-between gap-2">
-        <BackButton v={v} onLeave={() => router.push("/")} label={code} />
+        {/* the code only in the lobby: mid-game the header needs its room (score, pause) on small phones */}
+        <BackButton v={v} onLeave={() => router.push("/")} label={!v || v.phase === "lobby" ? code : undefined} />
         {inGame && (
           <div className="flex items-center gap-2">
             {playing && <Score v={v} />}

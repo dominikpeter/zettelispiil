@@ -17,7 +17,11 @@ export function RoundRowView({ r, i, rowRef, handleRef, dragging = false, childr
         <GripVertical className="size-4 shrink-0 text-muted max-xs:hidden" aria-hidden />
         <span className="w-3 shrink-0 text-sm font-bold text-muted tabular-nums">{i + 1}</span>
         <RoundIcon type={r} className="size-5 shrink-0 text-accent" />
-        <span className="min-w-0 flex-1 truncate font-semibold">{t.round[r].name}</span>
+        {/* the name alone ("Ein Wort", "Geräusch") says little before the round: what it means, in a few words */}
+        <span className="flex min-w-0 flex-1 flex-col leading-tight">
+          <span className="truncate font-semibold">{t.round[r].name}</span>
+          <span className="truncate text-sm text-muted">{t.round[r].short}</span>
+        </span>
       </button>
       {children}
     </li>

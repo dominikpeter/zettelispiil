@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon-only.png" width="128" alt="Zettelispiil logo"></p>
+
 # Zettelispiil
 
 The Swiss party game with paper slips, as a mobile web app. Everyone writes words on *Zetteli*, they go into a bowl, and two teams race to guess them over up to five rounds that keep getting harder.

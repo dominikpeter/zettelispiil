@@ -35,9 +35,10 @@ Auf der Startseite wählst du, wie ihr spielt.
 
 ## Spieler und Teams
 
-- Neue Teams bekommen einen zufälligen, lustigen Namen. Tippe auf den Namen, um ihn zu ändern (**Umbenennen**), oder lass dir mit dem Funkel-Knopf einen neuen erfinden.
+- Neue Teams bekommen einen zufälligen, lustigen Namen, aus ein paar hundert Möglichkeiten. Tippe auf den Namen, um ihn zu ändern (**Umbenennen**), oder lass dir mit dem Funkel-Knopf einen neuen erfinden.
 - Spielernamen lassen sich ebenfalls antippen und ändern.
 - Mit **Zu … wechseln** wechselst du das Team. Bei mehr als zwei Teams geht es jeweils zum nächsten Team, mehrmals tippen führt zu jedem Team.
+- Bei einem Handy kannst du Spieler auch am Griff links neben dem Namen in ein anderes Team ziehen. Der Name selbst bleibt antippbar zum Umbenennen.
 - **Mischen** verteilt alle zufällig neu auf die Teams.
 - Jedes Team braucht mindestens 2 Leute, sonst lässt sich das Spiel nicht starten.
 - Bei einem Handy kommen auch in der Lobby noch Spieler dazu (**Spieler hinzufügen**).
@@ -49,7 +50,8 @@ Die Spielleitung legt mit Plus und Minus fest:
 - **Teams**: 2 bis 4, Standard 2. Neue Teams bekommen einen lustigen Namen. Beim Ändern der Anzahl werden die Teams automatisch ausgeglichen: So wenige Spieler wie nötig wechseln, alle anderen bleiben, wo sie sind.
 - **Zetteli pro Person**: 1 bis 10, Standard 4.
 - **Sekunden pro Zug**: 10 bis 120 in 5er-Schritten, Standard 30.
-- **Überspringen pro Zug**: 0 bis 5 oder unbegrenzt (∞), Standard 1.
+  - **Pro Runde festlegen**: Schalter. Ist er an, bekommt jede Runde ihre eigenen Sekunden, zum Beispiel mehr Zeit fürs Zeichnen.
+- **Passen pro Zug**: 0 bis 5 oder unbegrenzt (∞), Standard 1.
   - Übersprungene Zetteli werden beiseitegelegt. Solange etwas beiseiteliegt, kannst du es antippen und gegen das aktuelle Zetteli zurücktauschen («Beiseitegelegt, tippen zum Zurücktauschen»). Das Zurücktauschen kostet kein Überspringen.
   - Mit einer Grenze von 1 kannst du also hin- und hertauschen, aber kein zweites Zetteli überspringen.
   - Bei ∞ darfst du beliebig oft überspringen.
@@ -58,10 +60,10 @@ Die Spielleitung legt mit Plus und Minus fest:
   - **Auto** (Standard) oder **Fix**: Bei «Auto» bekommt ein Team, das zurückliegt, manchmal einen Stör-Bonus (siehe unten). Bei «Fix» darf jede Person der anderen Teams gleich oft stören.
   - **Stören pro Person und Zug** (nur bei «Fix»): 1 bis 5, Standard 2.
 - **Wer schreibt die Zetteli?** (nur mit KI-Hilfe): **Selber schreiben** (Standard) oder **KI schreibt**. Bei «KI schreibt» schreibt die KI alle Zetteli, so kennt niemand ein Wort im Voraus (siehe «KI schreibt die Zetteli» unten).
-  - **Themen**: Standard ist **Alle Themen**. Tippe Themen an, um nur diese zu spielen, zum Beispiel Tiere und Schwiiz. Ein Thema bleibt immer gewählt; tippst du das letzte weg, gelten wieder alle.
+  - **Themen**: Standard ist **Alle Themen**, dann sind alle Themen markiert. Tippe ein Thema an, um es wegzulassen, oder nochmals, um es wieder dazuzunehmen. **Alle Themen** markiert wieder alle. Ein Thema bleibt immer gewählt; tippst du das letzte weg, gelten wieder alle.
 - **Sprache der Zetteli**: Deutsch, English oder Français. Startet mit der Sprache des Handys, das den Raum erstellt. Die KI prüft Rechtschreibung, schreibt Hinweise und schlägt Ideen und lustige Namen in dieser Sprache vor. Jedes Handy zeigt die App trotzdem in seiner eigenen Sprache an.
 
-Unten fasst eine kurze Übersicht die Einstellungen zusammen. Dann tippt die Spielleitung auf **Spiel starten**.
+Über **Spiel starten** steht eine Zeile mit den wichtigsten Einstellungen, zum Beispiel «4 Zetteli · 30 s · 4 Runden · anpassen». Ein Tipp darauf führt zu den Einstellungen. Die Runden in der Liste sagen in ein paar Worten, worum es geht. Dann tippt die Spielleitung auf **Spiel starten**.
 
 ## Die Runden
 
@@ -127,8 +129,8 @@ Fällt dir nichts ein? Gib unter **Ideen** ein Thema ein, zum Beispiel Filme, Ti
 
 Vor jedem Zug siehst du, wer dran ist und für welches Team. Wer erklärt, tippt auf **Los, Zetteli ziehen**. Die Zeit läuft.
 
-- **Nach rechts wischen**: erraten. Oder auf **Erraten** tippen.
-- **Nach links wischen**: überspringen. Oder auf **Weiter** tippen. Darunter steht, wie viele Überspringen noch übrig sind. Sind keine mehr übrig, erscheint «NICHT MEHR».
+- **Nach rechts wischen**: erraten. Oder auf **Erraten** tippen. Das Zetteli fliegt mit dem Stempel «ERRATEN» davon.
+- **Nach links wischen**: passen. Oder auf **Passen** tippen. Darunter steht, wie oft du noch passen darfst. Geht es nicht mehr, erscheint «NICHT MEHR».
 - Der Ring oben zeigt die verbleibende Zeit.
 - Ist die Zeit um, erscheint **Zeit um!** und das Zetteli lässt sich nicht mehr wischen. Das Zetteli in der Hand geht zurück in die Schüssel, dann ist das nächste Team dran.
 - Ist ein Zetteli mit Hinweis geschrieben und die Hinweise sind an, steht der Hinweis klein unter dem Begriff.
@@ -138,7 +140,7 @@ Vor jedem Zug siehst du, wer dran ist und für welches Team. Wer erklärt, tippt
 - Dein Team sieht «Ratet!», die anderen Teams «Zuhören».
 - Wer miträt, kann auf dem eigenen Handy auf **Erraten** tippen. Ein Zetteli zählt immer nur einmal, egal wer zuerst tippt.
 - Jedes erratene Zetteli blitzt kurz auf allen anderen Handys auf.
-- Ist jemand nicht da, kann die Spielleitung diese Person überspringen («… ist nicht da, überspringen»).
+- Ist jemand nicht da, kann die Spielleitung diese Person überspringen («… ist nicht da, überspringen»). Auf dem Handy dieser Person selbst steht das nicht.
 
 ### Stören
 
@@ -163,21 +165,26 @@ Ist die Schüssel leer, ist die Runde durch. Bleiben dabei noch mindestens 5 Sek
 Der Pause-Knopf oben öffnet das Spielmenü:
 
 - **Pause**: Erklärer:in oder Spielleitung (bei einem Handy alle) halten die Zeit an. Die Uhr steht auf allen Handys still, das Zetteli bleibt verdeckt. Mit **Weiterspielen** geht's weiter. Öffnen andere das Menü, läuft die Zeit weiter.
-- **Spiel abbrechen** (Spielleitung): Alle kommen zurück in die Lobby. Spieler, Teams und Einstellungen bleiben, Punkte und Zetteli sind weg.
-- **Zur Startseite**: Du verlässt das Spiel. Bei mehreren Handys kommst du über den Link wieder zurück.
+- **Spiel abbrechen** (Spielleitung): Alle kommen zurück in die Lobby. Spieler, Teams und Einstellungen bleiben, Punkte und Zetteli sind weg. Das Spiel fragt vorher nach.
+- **Zur Startseite**: Du verlässt das Spiel. Bei mehreren Handys kommst du über den Link wieder zurück, bei einem Handy mit **Weiterspielen** auf der Startseite.
+- Der Pfeil oben links fragt ebenfalls nach, bevor du ein laufendes Spiel verlässt.
 - Auch die Einstellungen (siehe unten) lassen sich hier öffnen.
 
 ## Am Schluss
 
-Das Spiel zeigt, wer gewonnen hat (oder «Unentschieden»), dazu eine Übersicht: wie viele Zetteli, Züge und wie oft übersprungen wurde.
+Das Spiel zeigt, wer gewonnen hat (oder «Unentschieden»), mit den Spielern des Siegerteams, dem Endstand und einer Übersicht: wie viele Zetteli, Züge und wie oft übersprungen wurde.
 
+- **Auszeichnungen**: kleine Pokale für die Stars des Spiels. **Meiste Zetteli erklärt**, **Schnellste Erklärer:in** (die wenigsten Sekunden pro Zetteli, ab 2 erratenen), **Bester Zug** (die meisten Zetteli in einem einzigen Zug), **Überspring-Profi** (am meisten übersprungen) und **Kniffligste Zetteli** (wessen Begriffe am längsten gedauert haben; KI-Zetteli zählen nicht). Eine Auszeichnung erscheint nur, wenn sie etwas aussagt.
 - **Spielverlauf**: Punktestand nach jedem Zug. Tippen und ziehen, um einzelne Züge nachzulesen.
 - **Punkte pro Runde** für jedes Team.
 - **Tempo**: durchschnittliche Sekunden, bis ein Zetteli erraten war, pro Runde.
 - **Spieler**: erratene Zetteli beim Erklären und Sekunden pro Zetteli.
 - **Die Zetteli**: am schnellsten erraten, am längsten gedauert, am meisten übersprungen und die schwierigsten Begriffe über alle Runden. Bei den schwierigsten und in der Liste aller Zetteli steht, wer sie geschrieben hat («von KI», wenn es die KI war).
 - **Zeichnungen** (nur mit mehreren Handys und der Runde Zeichnen): alle Zeichnungen des Spiels als kleine Bilder, mit Begriff, wer gezeichnet hat und wie schnell es erraten wurde (oder «nicht erraten»). Tippe auf eine Zeichnung, und sie entsteht nochmal Strich für Strich; **Nochmal abspielen** zeigt es erneut. Hast du mit **Alles löschen** neu angefangen, zeigt die Zeichnung den letzten Versuch. Leere Blätter erscheinen nicht.
-- Tippe auf ein Zetteli oder einen Spieler für Details: beim Zetteli pro Runde, wer es erraten hat, wie lange es gedauert hat und wie oft es übersprungen wurde; beim Spieler die erratenen Zetteli pro Runde, die Zeit pro Zetteli, das Überspringen und das schnellste und langsamste Zetteli.
+- **Die ganze Geschichte**: Tippe auf einen Spieler, eine Auszeichnung oder ein Zetteli (überall, wo eines steht), und ein Blatt geht von unten auf.
+  - **Spieler**: Team und Platz, erratene Zetteli, Sekunden pro Zetteli, wie oft übersprungen, wie viele Züge, der beste Zug und wie oft gestört wurde. Darunter **Erklärte Zetteli**: pro Runde jedes Zetteli, das erraten wurde, mit den Sekunden bis erraten (ein Blitz markiert das schnellste, eine Schnecke das langsamste). Unter **Selbst geschrieben** stehen die eigenen Begriffe und wie lange die anderen daran hatten.
+  - **Zetteli**: wer es geschrieben hat («KI», wenn es die KI war), der Hinweis (falls es einen gab), die Sekunden total, wie oft übersprungen und der wievielt-schwierigste Begriff es war. **Runde für Runde**: wer es erklärt hat, wie lange es gedauert hat und wer es übersprungen hat.
+  - Namen und Zetteli im Blatt lassen sich wieder antippen, so springst du vom Zetteli zum Spieler und weiter. Der Pfeil nach links geht einen Schritt zurück, das X oder ein Tippen daneben schliesst das Blatt.
 
 Mit **Nochmal spielen** startet die Spielleitung eine neue Partie.
 
@@ -187,17 +194,19 @@ Mit **Nochmal spielen** startet die Spielleitung eine neue Partie.
 
 Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 
-- **Hell oder dunkel**: Der Knopf daneben wechselt direkt. Unter **Darstellung** wählst du Auto, Hell oder Dunkel.
-- **Farben**: Post-it (Standard, ruhige App, Zetteli in Stapel-Post-it-Farben), Klassisch (das ursprüngliche knallige Gelb-Pink-Blau), Nacht, Tinte, Gold, Abendrot, Ozean, Arosa (Blau und Sonnengelb) oder Aarau (Schwarz, Rot, Weiss).
 - **Sprache**: Deutsch, English oder Français.
+- **Hell oder dunkel**: Unter **Darstellung** wählst du Auto, Hell oder Dunkel.
+- **Farben**: Post-it (Standard, ruhige App, Zetteli in Stapel-Post-it-Farben), Klassisch (das ursprüngliche knallige Gelb-Pink-Blau), Nacht, Tinte, Gold, Abendrot, Ozean, Arosa (Blau und Sonnengelb) oder Aarau (Schwarz, Rot, Weiss).
 - **KI-Hilfe**: An oder Aus. Prüft Rechtschreibung und Schwierigkeit, schlägt Hinweise und lustige Namen vor.
 - **Hinweise beim Erklären**: An oder Aus. Zeigt den KI-Hinweis klein unter dem Zetteli. Braucht KI-Hilfe.
 - **Konto**: Für die KI-Hilfe meldest du dich mit Google, GitHub oder einem Code per E-Mail an. Spielen geht auch ohne Konto.
-- **Spendier mir einen Kaffee**: Zettelispiil ist gratis und ohne Werbung. Wer mag, spendiert einen kleinen (CHF 1), grossen (CHF 5) oder Deluxe-Kaffee (CHF 10) oder einen eigenen Betrag. Bezahlt wird bei Stripe, danach kommst du zurück ins Spiel. In den Handy-Apps gibt es den Knopf nicht.
+- **Spendier mir einen Kaffee**: Zettelispiil ist gratis und ohne Werbung. Wer mag, spendiert einen kleinen (CHF 1), grossen (CHF 5) oder Deluxe-Kaffee (CHF 10) oder einen eigenen Betrag. Bezahlt wird bei Stripe (Karte, Apple Pay, Google Pay), danach kommst du zurück ins Spiel. In den Handy-Apps gibt es den Knopf nicht.
+- **Teilen**: **WhatsApp** oder **Link kopieren**, um Zettelispiil weiterzuempfehlen.
+- Ganz unten: **Problem mit der App? Hier melden** führt zu den GitHub-Issues, wo du Fehler melden kannst.
 
 ## Aufs Handy holen
 
-Auf der Startseite erscheint dafür meist ein Hinweis mit einem Installieren-Knopf (Android) oder den zwei nötigen Tipps (iPhone) — einmal beantwortet, kommt er nicht wieder. Von Hand geht es auch so:
+Hast du einmal gespielt, erscheint auf der Startseite meist ein Hinweis mit einem Installieren-Knopf (Android) oder den zwei nötigen Tipps (iPhone), einmal beantwortet, kommt er nicht wieder. Beim allerersten Besuch bleibt er weg, damit du gleich siehst, wie du spielst. Von Hand geht es auch so:
 
 - **iPhone**: zettelispiil.ch in Safari öffnen, **Teilen** → **Zum Home-Bildschirm**.
 - **Android**: in Chrome das Menü (⋮) → **App installieren** oder **Zum Startbildschirm hinzufügen**.

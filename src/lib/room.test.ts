@@ -708,3 +708,14 @@ test("default rounds: local (no rounds passed) skips drawing; the online default
   const onlineView = await view(db, online.code, online.pid, online.token);
   assert.deepEqual(onlineView.settings.rounds, ONLINE_DEFAULT_ROUNDS); // deep-equal already pins "draw" second-to-last
 });
+
+test("team names: plenty of variety (not the same two every game), two different ones, each fits the team header", async () => {
+  const { DICT, funnyTeams } = await import("./i18n.ts");
+  for (const lang of ["de", "en", "fr"] as const) {
+    const draws = Array.from({ length: 30 }, () => funnyTeams(lang));
+    for (const [a, b] of draws) assert.notEqual(a, b);
+    assert.ok(new Set(draws.flat()).size >= 30, `${lang}: 60 names drawn, only ${new Set(draws.flat()).size} different`);
+    const d = DICT[lang];
+    for (const n of [...d.funnyTeams, ...d.teamA.flatMap((a) => d.teamB.map((b) => d.teamCombo(a, b)))]) assert.ok(n.length <= 18, `${lang}: "${n}" is too long`);
+  }
+});

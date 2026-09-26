@@ -1,8 +1,9 @@
 "use client";
 
 import { Check, Eraser } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useHints, useT } from "@/lib/prefs";
+import { secondsFor } from "@/lib/settings";
 import { useCountdown } from "@/lib/useCountdown";
 import { Bowl, btn, btn2, buzz, fitLine, press, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
 import { DrawPad, DrawView, INKS } from "../DrawBoard";
@@ -11,9 +12,30 @@ import { HeckleFx, useHeckle } from "./Heckle";
 
 const SWIPE = 90; // px to count as a swipe
 
-function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe, heckle = null }: { text: string; hint: string; locked: boolean; canSkip: boolean; fling: "r" | "l" | null; onSwipe: (d: "r" | "l") => void; heckle?: { ms: number } | null }) {
+/** the slip's face: the word (one line), its hint and the two stamps at the given strength. `live`: the one being played
+ * (a thrown copy is decoration: no test id, no unfolding) */
+function SlipFace({ text, hint, compact, locked = false, got, skip, skipLabel, live = true }: { text: string; hint: string; compact: boolean; locked?: boolean; got: number; skip: number; skipLabel: string; live?: boolean }) {
   const t = useT();
   const showHint = useHints();
+  return (
+    <Slip tilt={-1.5} className={`${live ? "unfold" : ""} relative @container px-5 text-center ${compact ? "pt-6 pb-7" : "pt-10 pb-12 [@media(max-height:640px)]:pt-6 [@media(max-height:640px)]:pb-8"} ${locked ? "opacity-70 grayscale" : ""}`}>
+      <p data-testid={live ? "word" : undefined} className="font-hand leading-tight font-bold" style={fitLine(text)}>
+        {text}
+      </p>
+      {showHint && hint && <p className="mt-3 text-base text-paper-ink/60">{hint}</p>}
+      {/* stamps that fade in while dragging, and show in full on a throw */}
+      <span className="absolute top-3 left-4 -rotate-12 rounded-md border-2 border-stamp px-2 text-sm font-extrabold text-stamp" style={{ opacity: got }}>
+        {t.stampGot}
+      </span>
+      <span className="absolute top-3 right-4 rotate-12 rounded-md border-2 border-paper-ink/60 px-2 text-sm font-extrabold text-paper-ink/60" style={{ opacity: skip }}>
+        {skipLabel}
+      </span>
+    </Slip>
+  );
+}
+
+function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe, heckle = null, compact = false }: { text: string; hint: string; locked: boolean; canSkip: boolean; fling: "r" | "l" | null; onSwipe: (d: "r" | "l", dx: number) => void; heckle?: { ms: number } | null; compact?: boolean }) {
+  const t = useT();
   const [dx, setDx] = useState(0);
   const [shake, setShake] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -23,8 +45,8 @@ function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe, heckle = null 
     if (start.current === null) return;
     start.current = null;
     setDragging(false);
-    if (dx > SWIPE) onSwipe("r");
-    else if (dx < -SWIPE && canSkip) onSwipe("l");
+    if (dx > SWIPE) onSwipe("r", dx);
+    else if (dx < -SWIPE && canSkip) onSwipe("l", dx);
     else if (dx < -SWIPE) setShake((n) => n + 1); // no skips left
     setDx(0);
   };
@@ -48,23 +70,13 @@ function SwipeSlip({ text, hint, locked, canSkip, fling, onSwipe, heckle = null 
     >
       <div
         key={shake}
-        className={fling === "r" ? "fling-r" : fling === "l" ? "fling-l" : shake ? "shake" : ""}
-        style={{ transform: `translateX(${dx}px) rotate(${dx / 14}deg)`, transition: dragging ? "none" : "transform 0.3s var(--ease-spring)" }}
+        // thrown: the flying copy (Turn) takes over, this one waits unseen for the next Zetteli
+        className={`${shake ? "shake" : ""} ${fling ? "opacity-0" : ""}`}
+        // turns about a point below the slip, like a card held at its bottom
+        style={{ transform: `translateX(${dx}px) rotate(${dx / 14}deg)`, transformOrigin: "50% 130%", transition: dragging ? "none" : "transform 0.3s var(--ease-spring)" }}
       >
         <HeckleFx fx={heckle}>
-          <Slip tilt={-1.5} className={`unfold relative @container px-5 pt-10 pb-12 text-center [@media(max-height:640px)]:pt-6 [@media(max-height:640px)]:pb-8 ${locked ? "opacity-70 grayscale" : ""}`}>
-            <p data-testid="word" className="font-hand leading-tight font-bold" style={fitLine(text)}>
-              {text}
-            </p>
-            {showHint && hint && <p className="mt-3 text-base text-paper-ink/60">{hint}</p>}
-            {/* stamps that fade in while dragging */}
-            <span className="absolute top-3 left-4 -rotate-12 rounded-md border-2 border-stamp px-2 text-sm font-extrabold text-stamp" style={{ opacity: Math.max(0, Math.min(1, dx / SWIPE)) }}>
-              {t.stampGot}
-            </span>
-            <span className="absolute top-3 right-4 rotate-12 rounded-md border-2 border-paper-ink/60 px-2 text-sm font-extrabold text-paper-ink/60" style={{ opacity: Math.max(0, Math.min(1, -dx / SWIPE)) }}>
-              {canSkip ? t.stampSkip : t.stampNoSkip}
-            </span>
-          </Slip>
+          <SlipFace text={text} hint={hint} compact={compact} locked={locked} got={Math.max(0, Math.min(1, dx / SWIPE))} skip={Math.max(0, Math.min(1, -dx / SWIPE))} skipLabel={canSkip ? t.stampSkip : t.stampNoSkip} />
         </HeckleFx>
       </div>
       {locked && (
@@ -80,7 +92,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   const d = v.active!;
   const p = v.players[d];
   const me = d === v.me;
-  const total = v.carryMs || v.settings.seconds * 1000;
+  const total = v.carryMs || secondsFor(v.settings, v.settings.rounds[v.round]) * 1000;
   const shownLeft = left === Infinity ? total : left;
   const up = left <= 0;
   const [fling, setFling] = useState<"r" | "l" | null>(null);
@@ -95,8 +107,14 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
     if (up && me) buzz([90, 60, 90]);
   }, [up, me]);
 
-  const act = async (dir: "r" | "l") => {
+  // the thrown Zetteli flies on as a copy while the next one unfolds: the answer (instant on one phone) used to swap it
+  // out before the throw could be seen
+  const [thrown, setThrown] = useState<{ id: number; text: string; hint: string; dir: "r" | "l"; dx: number } | null>(null);
+  const act = async (dir: "r" | "l", dx = 0) => {
     if (!v.word || up || fling) return;
+    const w = v.word;
+    setThrown({ id: w.id, text: w.text, hint: w.hint, dir, dx });
+    setTimeout(() => setThrown((g) => (g?.id === w.id ? null : g)), 450);
     setFling(dir);
     buzz(dir === "r" ? 25 : 10);
     await send({ type: dir === "r" ? "got" : "skip", w: v.word.id }, d);
@@ -272,14 +290,26 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center">
-        {v.word && <SwipeSlip key={v.word.id} text={v.word.text} hint={v.word.hint} locked={up} canSkip={v.canSkip} fling={fling} onSwipe={act} heckle={heckleSlip} />}
-        {!up && <p className="mt-4 text-center text-sm text-muted [@media(max-height:640px)]:hidden">{t.swipeHint}</p>}
+        {/* a set-aside Zetteli adds a row below: the slip gets slimmer and the swipe hint (known by now) goes, so the buttons
+            never slide off the screen mid-turn */}
+        <div className="relative w-full">
+          {/* keys prefixed: the live slip and the flying copy of the same Zetteli are siblings for a moment */}
+          {v.word && <SwipeSlip key={`w${v.word.id}`} text={v.word.text} hint={v.word.hint} locked={up} canSkip={v.canSkip} fling={fling} onSwipe={act} heckle={heckleSlip} compact={v.held.length > 0} />}
+          {thrown && (
+            <div key={`t${thrown.id}`} aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-10">
+              <div className={thrown.dir === "r" ? "fling-r" : "fling-l"} style={{ transformOrigin: "50% 130%", "--dx": `${thrown.dx}px`, "--rot": `${thrown.dx / 14}deg` } as CSSProperties}>
+                <SlipFace text={thrown.text} hint={thrown.hint} compact={v.held.length > 0} got={thrown.dir === "r" ? 1 : 0} skip={thrown.dir === "l" ? 1 : 0} skipLabel={t.stampSkip} live={false} />
+              </div>
+            </div>
+          )}
+        </div>
+        {!up && !v.held.length && <p className="mt-4 text-center text-sm text-muted [@media(max-height:640px)]:hidden">{t.swipeHint}</p>}
       </div>
 
       {v.held.length > 0 && (
         <div className="enter">
-          <p className="mb-2 text-sm text-muted">{t.setAside}</p>
-          <div className="flex flex-wrap gap-3">
+          <p className="mb-1.5 text-xs text-muted">{t.setAside}</p>
+          <div className="flex flex-wrap gap-2">
             {v.held.map((h, i) => (
               <button
                 key={h.id}
@@ -288,8 +318,8 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
                 aria-label={t.swapBack(h.text)}
                 className={`${press} disabled:opacity-50`}
               >
-                <Slip tilt={i % 2 ? 2 : -3} className="unfold px-3 pt-1 pb-1">
-                  <span className="font-hand text-2xl font-bold">{h.text}</span>
+                <Slip tilt={i % 2 ? 2 : -3} className="unfold px-2.5 pt-0.5 pb-0.5">
+                  <span className="font-hand text-xl font-bold">{h.text}</span>
                 </Slip>
               </button>
             ))}

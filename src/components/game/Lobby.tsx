@@ -2,14 +2,14 @@
 
 import {
   ArrowLeftRight, Briefcase, Car, Castle, Check, Clapperboard, Crown, Globe, Infinity as Inf, Minus, Mountain, Music, Palette, PartyPopper,
-  PawPrint, Pencil, PersonStanding, Plus, Share2, Shuffle, Sofa, Sparkles, Star, Trees, Trophy, UserPlus, UtensilsCrossed, X, Megaphone, type LucideIcon } from "lucide-react";
+  PawPrint, Pencil, PersonStanding, Plus, Share2, Shuffle, Sofa, Sparkles, Star, Trees, Trophy, UserPlus, UtensilsCrossed, X, Megaphone, GripVertical, type LucideIcon } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { useAiOn, useAiRoom } from "@/lib/aiAccess";
 import { langPref, useT } from "@/lib/prefs";
 import { LANGS } from "@/lib/i18n";
 import { Segmented } from "../TopControls";
 import { funnyName } from "@/lib/roomClient";
-import { MAX_TEAMS, ROUND_TYPES, type Settings, type Team } from "@/lib/room";
+import { MAX_TEAMS, ROUND_TYPES, secondsFor, type Settings, type Team } from "@/lib/room";
 import { TOPIC_IDS, TOPICS, topicById, type TopicIcon } from "@/lib/topics";
 import { btn, btn2, field, ghost, panel, press, round_btn, RoundIcon, TEAM, WhatsAppIcon, whatsappHref } from "@/lib/ui";
 import { mini, Waiting, Cta, AiNameButton, type P } from "./common";
@@ -79,8 +79,8 @@ function ZetteliSource({ s, set }: { s: Settings; set: (patch: Partial<Settings>
   const t = useT();
   const lang = langPref.use();
   const all = s.topics.length === TOPIC_IDS.length;
+  // every topic is a switch, lit when it's in: "Alle Themen" lights them all, a tap turns one off or on again
   const toggle = (id: string) => {
-    if (all) return set({ topics: [id] }); // from all topics, the first tap picks just this one
     const next = s.topics.includes(id) ? s.topics.filter((x) => x !== id) : [...s.topics, id];
     set({ topics: next.length ? next : [...TOPIC_IDS] }); // never none: the last one off means all again
   };
@@ -100,7 +100,7 @@ function ZetteliSource({ s, set }: { s: Settings; set: (patch: Partial<Settings>
             </button>
             {TOPICS.map((tp) => {
               const Icon = TOPIC_ICON[tp.icon];
-              const on = !all && s.topics.includes(tp.id);
+              const on = s.topics.includes(tp.id);
               return (
                 <button key={tp.id} onClick={() => toggle(tp.id)} aria-pressed={on} className={tile(on)}>
                   <Icon className={`size-5 shrink-0 ${on ? "" : "text-accent"}`} aria-hidden />
@@ -115,11 +115,24 @@ function ZetteliSource({ s, set }: { s: Settings; set: (patch: Partial<Settings>
   );
 }
 
+// without drag and drop (online rooms, or before its code has loaded): the same boxes and rows. Declared out here, not
+// inside Lobby: a component made anew on every render would remount its rows, and a name being edited would reset
+function PlainTeamBox({ className, children }: { team: number; className: string; children: ReactNode }) {
+  return <div className={className}>{children}</div>;
+}
+function PlainPlayerRow({ className, children }: { player: number; className: string; children: (handle: ((el: Element | null) => void) | null) => ReactNode }) {
+  return <li className={className}>{children(null)}</li>;
+}
+
 export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr: string; copied: boolean; onShare: () => void; url: string }; onAdd?: (name: string) => Promise<void> }) {
   const t = useT();
   // only the host edits settings: show their taps at once, and send them one after another so quick taps never race
   const [pending, setPending] = useState<Partial<Settings>>({});
   const s = { ...v.settings, ...pending };
+  const perRound = Object.keys(s.roundSeconds ?? {}).length > 0;
+  const settingsRef = useRef<HTMLElement>(null);
+  const secs = s.rounds.map((r) => secondsFor(s, r));
+  const secondsLabel = Math.min(...secs) === Math.max(...secs) ? `${secs[0]} s` : `${Math.min(...secs)}–${Math.max(...secs)} s`;
   const aiRoom = useAiRoom();
   const aiOn = useAiOn();
   const lang = langPref.use(); // this phone's language, for topic names
@@ -140,6 +153,11 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
   const dnd = useDnd(v.isHost);
   const Row = dnd ? dnd.SortableRow : RoundRowView;
   const wrapRounds = (list: ReactNode) => (dnd ? <dnd.Sortable rounds={s.rounds} onOrder={(rounds) => set({ rounds })}>{list}</dnd.Sortable> : list);
+  // one phone: players can be dragged between the team boxes (by the grip; the name stays tappable to rename them)
+  const tdnd = local ? dnd : null;
+  const TeamBox = tdnd ? tdnd.TeamDrop : PlainTeamBox;
+  const PlayerRow = tdnd ? tdnd.PlayerDrag : PlainPlayerRow;
+  const wrapTeams = (boxes: ReactNode) => (tdnd ? <tdnd.TeamsDnd onMove={(i, team) => team !== v.players[i]?.team && send({ type: "team", team: team as Team }, i)}>{boxes}</tdnd.TeamsDnd> : boxes);
   const [adding, setAdding] = useState("");
   const addPlayer = async () => {
     if (!adding.trim() || !onAdd) return;
@@ -158,11 +176,12 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
         <section className={`${panel} flex items-center gap-4`}>
           {share.qr && (
             // eslint-disable-next-line @next/next/no-img-element -- local data: URL, nothing to optimise
-            <img src={share.qr} alt={`QR ${v.code}`} width={132} height={132} className="pop size-33 shrink-0 rounded-xl" />
+            <img src={share.qr} alt={`QR ${v.code}`} width={132} height={132} className="pop size-33 shrink-0 rounded-xl max-xs:size-26" />
           )}
-          <div className="flex min-w-0 flex-col items-start gap-1">
+          <div className="@container flex min-w-0 flex-1 flex-col items-start gap-1">
             <p className="text-sm text-muted">{t.scanOrCode}</p>
-            <p translate="no" className="text-3xl font-extrabold tracking-[0.18em] text-hi">{v.code}</p>
+            {/* six characters: sized to the column next to the QR (≈4.9em wide), so it fits on every phone and font, never broken */}
+            <p translate="no" className="text-[min(1.875rem,19cqw)] font-extrabold tracking-[0.1em] whitespace-nowrap text-hi">{v.code}</p>
             <div className="-ml-3 flex flex-col items-start">
               <button onClick={share.onShare} className={`${ghost} flex items-center gap-2 text-accent`}>
                 {share.copied ? <Check className="size-4" aria-hidden /> : <Share2 className="size-4" aria-hidden />}
@@ -177,8 +196,8 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
       )}
 
       <section className="flex flex-col gap-3">
-        {teams.map((ti) => (
-          <div key={ti} className={`rounded-3xl px-4 py-3 ${TEAM[ti].soft}`}>
+        {wrapTeams(teams.map((ti) => (
+          <TeamBox key={ti} team={ti} className={`rounded-3xl px-4 py-3 ${TEAM[ti].soft}`}>
             <div className={`flex items-center justify-between gap-2 text-lg font-extrabold ${TEAM[ti].text}`}>
               {local || v.isHost || mine === ti ? (
                 <span className="flex min-w-0 items-center gap-1">
@@ -195,7 +214,13 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
             <ul className="mt-2 flex flex-col gap-1">
               {v.players.map((p, i) =>
                 p.team === ti ? (
-                  <li key={i} className="pop flex min-h-9 items-center gap-1 font-medium">
+                  <PlayerRow key={i} player={i} className="pop flex min-h-9 items-center gap-1 font-medium">
+                    {(handle) => (<>
+                    {handle && (
+                      <button ref={handle} type="button" aria-label={t.movePlayer(p.name)} className={`${mini} -ml-2 cursor-grab touch-none text-muted active:cursor-grabbing`}>
+                        <GripVertical className="size-4" aria-hidden />
+                      </button>
+                    )}
                     {local || i === v.me ? (
                       <EditableName value={p.name} label={t.yourName} onSave={(name) => send({ type: "rename", name }, i)} className="flex-1" />
                     ) : (
@@ -213,12 +238,13 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
                         <X className="size-4" aria-hidden />
                       </button>
                     )}
-                  </li>
+                    </>)}
+                  </PlayerRow>
                 ) : null,
               )}
             </ul>
-          </div>
-        ))}
+          </TeamBox>
+        )))}
       </section>
 
       {onAdd ? (
@@ -255,14 +281,31 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
         )}
       </div>
 
-      <section className={panel}>
+      <section ref={settingsRef} className={`${panel} scroll-mt-4`}>
         <h2 className="text-lg font-bold">{t.settings}</h2>
         {v.isHost ? (
           <>
             <div className="mt-2 divide-y divide-line">
               <Stepper label={t.teamsCount} value={s.teams} set={(n) => set({ teams: n })} min={2} max={MAX_TEAMS} />
               <Stepper label={t.perPlayer} value={s.perPlayer} set={(n) => set({ perPlayer: n })} min={1} max={10} />
-              <Stepper label={t.seconds} value={s.seconds} set={(n) => set({ seconds: s.seconds + (n - s.seconds) * 5 })} min={10} max={120} />
+              {perRound ? (
+                s.rounds.map((r) => (
+                  <Stepper key={r} label={`${t.round[r].name}: ${t.seconds}`} value={secondsFor(s, r)} set={(n) => set({ roundSeconds: { ...s.roundSeconds, [r]: secondsFor(s, r) + (n - secondsFor(s, r)) * 5 } })} min={10} max={120} />
+                ))
+              ) : (
+                <Stepper label={t.seconds} value={s.seconds} set={(n) => set({ seconds: s.seconds + (n - s.seconds) * 5 })} min={10} max={120} />
+              )}
+              {/* drawing or charades may want more time than describing: every round its own seconds */}
+              <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
+                <span className="font-medium">{t.secondsPerRound}</span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={perRound}
+                  onChange={(e) => set({ roundSeconds: e.target.checked ? Object.fromEntries(s.rounds.map((r) => [r, s.seconds])) : {} })}
+                  className="relative h-7 w-12 shrink-0 cursor-pointer appearance-none rounded-full border border-line bg-raised transition-colors before:absolute before:top-0.5 before:left-0.5 before:size-5.5 before:rounded-full before:bg-muted before:transition-transform checked:border-accent checked:bg-accent checked:before:translate-x-5 checked:before:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                />
+              </label>
               <Stepper label={t.skips} value={skipStep} display={s.skips === -1 ? <Inf className="size-6" aria-label="∞" /> : undefined} set={(n) => set({ skips: n >= 6 ? -1 : n })} min={0} max={6} />
               {!local && (
                 <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
@@ -327,7 +370,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
           <ul className="mt-2 flex flex-col gap-1 text-muted">
             <li>{t.sumTeams(s.teams)}</li>
             <li>{t.sumPerPlayer(s.perPlayer)}</li>
-            <li>{t.sumSeconds(s.seconds)}</li>
+            <li>{perRound ? t.sumSecondsRounds(s.rounds.map((r) => `${t.round[r].name} ${secondsFor(s, r)} s`).join(", ")) : t.sumSeconds(s.seconds)}</li>
             <li>{t.sumSkips(s.skips)}</li>
             {s.heckle && <li>{s.heckleMode === "auto" ? t.sumHeckleAuto : t.sumHeckle(s.heckles)}</li>}
             <li>{t.sumLang(LANGS.find((l) => l.id === s.lang)!.label)}</li>
@@ -345,6 +388,11 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
       </section>
 
       <Cta>
+        {v.isHost && (
+          <button onClick={() => settingsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} className={`${ghost} -mt-2 mb-1 min-h-9! w-full text-sm`}>
+            {t.settingsLine(s.perPlayer, secondsLabel, s.rounds.length)}
+          </button>
+        )}
         {v.isHost ? (
           <button onClick={() => send({ type: "start" })} disabled={busy || !canStart} className={btn}>
             {canStart ? t.start : t.needTwo}

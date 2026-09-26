@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
       "shadcn/no-unknown-classes": "error",
       "shadcn/no-raw-colors": "error",
       "shadcn/no-arbitrary-values": "warn",
+      // in-app browsers (a link from WhatsApp), the phone apps' web view and previews answer confirm()/alert()/prompt()
+      // without showing anything: a button behind one silently does nothing. Ask inside the app (game/common.tsx Confirm)
+      "no-alert": "error",
     },
   },
   // Override default ignores of eslint-config-next.
