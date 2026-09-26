@@ -139,6 +139,7 @@ test("the admin page shows nothing to anyone else", async ({ page }) => {
 });
 
 test("sign in with a code by email: wrong code refused, right code signs in, sign out again", async ({ page }) => {
+  test.skip(!!process.env.BASE_URL, "live sends real mail; only the local e2e server has the fixed code");
   // the real server (no mocks): the e2e server sends no mail and uses the fixed code 123456
   await page.goto("/");
   await openSettings(page);
