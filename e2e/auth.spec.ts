@@ -24,7 +24,7 @@ test("signed out: no AI anywhere, sign-in only in the settings sheet", async ({ 
   await expect(page.getByRole("heading", { name: "KI-Hilfe" })).toBeVisible(); // AI help and signing in belong together
   await expect(page.getByRole("button", { name: "Aus", exact: true })).toHaveCount(0); // but no AI switch before signing in
   await expect(page.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/dominikpeter/zettelispiil"); // the credit line
-  await expect(page.getByRole("link", { name: "Zettelispiil per WhatsApp teilen" })).toHaveAttribute("href", /^https:\/\/wa\.me\/\?text=.*zettelispiil\.ch/); // recommend the app
+  await expect(page.getByRole("link", { name: "Per WhatsApp teilen" })).toHaveAttribute("href", /^https:\/\/wa\.me\/\?text=.*zettelispiil\.ch/); // recommend the app
   await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: "Neues Spiel" }).click();
@@ -169,4 +169,11 @@ test("live: a code mail really goes out through Resend", async ({ page }) => {
   await page.getByLabel("E-Mail-Adresse").fill("delivered@resend.dev");
   await page.getByRole("button", { name: "Code per E-Mail" }).click();
   await expect(page.getByText("Code an delivered@resend.dev geschickt")).toBeVisible({ timeout: 15_000 });
+});
+
+test("coming back from a Google/GitHub sign-in (?login=1) reopens the settings sheet, cleaned from the URL", async ({ page }) => {
+  // stands in for the redirect-away-and-back of a real OAuth sign-in: same marker signIn() adds to the callback URL
+  await page.goto("/?login=1");
+  await expect(page.getByRole("heading", { name: "Einstellungen" })).toBeVisible();
+  expect(new URL(page.url()).search).toBe("");
 });

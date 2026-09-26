@@ -48,7 +48,13 @@ export function useAiOn() {
 const auth = () => import("./authClient").then((m) => m.authClient);
 /** start loading the auth client as the finger lands, so the tap itself doesn't wait for it */
 export const warmAuth = () => void auth().catch(() => {});
-export const signIn = async (provider: Exclude<Provider, "email">) => (await auth()).signIn.social({ provider, callbackURL: location.pathname + location.search });
+// the callback URL carries a marker (like Stripe's own ?coffee=thanks) so the settings sheet, closed by the redirect
+// away and back, reopens once the player returns signed in, instead of leaving them wondering where their tap went
+export const signIn = async (provider: Exclude<Provider, "email">) => {
+  const url = new URL(location.pathname + location.search, location.origin);
+  url.searchParams.set("login", "1");
+  return (await auth()).signIn.social({ provider, callbackURL: url.pathname + url.search });
+};
 /** a sign-in code to this address */
 export const sendCode = async (email: string) => (await auth()).emailOtp.sendVerificationOtp({ email, type: "sign-in" }, { headers: { "x-lang": langPref.get() } }); // the mail in the app's language
 /** sign in with the code from the mail; on success the whole app sees the new user */

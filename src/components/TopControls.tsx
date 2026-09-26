@@ -1,10 +1,10 @@
 "use client";
 
-import { Heart, Moon, Settings, Sparkles, Sun, SunMoon, X } from "lucide-react";
+import { Check, Copy, Heart, Moon, Settings, Sparkles, Sun, SunMoon, X } from "lucide-react";
 import { Account } from "./Account";
 import { Coffee, CoffeeThanks } from "./Coffee";
 import { aiAllowed, useAiRoom, useAiStatus } from "@/lib/aiAccess";
-import { useRef, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { LANGS } from "@/lib/i18n";
 import { aiPref, hintPref, langPref, palettePref, PALETTES, themePref, THEMES, useT } from "@/lib/prefs";
 import { pill, pillBtn, press, WhatsAppIcon, whatsappHref } from "@/lib/ui";
@@ -54,6 +54,14 @@ export function SettingsPanel() {
   const aiRoom = useAiRoom();
   const canAi = aiAllowed(status) || (!!aiRoom && !!status?.ai); // the AI switches only once AI can be used: signed in, or in a signed-in host's room
   const icon = { auto: SunMoon, light: Sun, dark: Moon };
+  const [copied, setCopied] = useState(false);
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText("https://zettelispiil.ch");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {}
+  };
   return (
     <>
       {/* AI and the account belong together: signed out, the AI section is just the way in (hidden when no sign-in is set up) */}
@@ -138,14 +146,26 @@ export function SettingsPanel() {
         </div>
       </section>
       <Coffee />
-      <a
-        href={whatsappHref(`${t.shareAppText} https://zettelispiil.ch`)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`flex min-h-12 items-center justify-center gap-2.5 rounded-2xl border border-line bg-surface font-semibold text-ink ${press}`}
-      >
-        <WhatsAppIcon className="size-5 text-whatsapp" /> {t.shareApp}
-      </a>
+      <div className="grid grid-cols-2 gap-2">
+        <a
+          href={whatsappHref(`${t.shareAppText} https://zettelispiil.ch`)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface font-semibold text-ink ${press}`}
+        >
+          <WhatsAppIcon className="size-5 shrink-0 text-whatsapp" /> {t.shareApp}
+        </a>
+        <button
+          type="button"
+          onClick={copyLink}
+          className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface font-semibold text-ink ${press}`}
+        >
+          <span key={String(copied)} className="pop flex items-center gap-2">
+            {copied ? <Check className="size-5 shrink-0 text-accent" aria-hidden /> : <Copy className="size-5 shrink-0" aria-hidden />}
+            {copied ? t.copied : t.copyLink}
+          </span>
+        </button>
+      </div>
       <footer className="flex items-center justify-center gap-1.5 pt-2 text-sm text-muted">
         {t.madeWith} <Heart className="size-4 fill-accent text-accent" aria-label="♥" /> {t.madeBy("Dominik")} ·
         <a href="https://github.com/dominikpeter/zettelispiil" target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline-offset-4 hover:underline">
@@ -165,36 +185,50 @@ export function TopControls() {
   const isDark = theme === "dark" || (theme === "auto" && systemDark);
   const sheet = useRef<HTMLDialogElement>(null);
 
+  // signing in with Google/GitHub/Microsoft leaves the page and comes back (OAuth), which closes the sheet by itself;
+  // the ?login=1 marker (added in signIn, cleaned up here, same idea as Stripe's own ?coffee=thanks) reopens it,
+  // so the player lands back where they tapped instead of wondering where their sign-in went
+  useEffect(() => {
+    if (!location.search.includes("login=1")) return;
+    sheet.current?.showModal();
+    const u = new URL(location.href);
+    u.searchParams.delete("login");
+    history.replaceState(history.state, "", u);
+  }, []);
+
   return (
-    <div className={pill}>
+    <>
+      {/* fixed, but not inside the pill: its backdrop-blur would become the containing block and trap this at pill size */}
       <CoffeeThanks />
-      <button onClick={() => themePref.set(isDark ? "light" : "dark")} aria-label={t.toggleTheme} className={pillBtn}>
-        <span key={String(isDark)} className="pop">
-          {isDark ? <Moon className="size-[1.15rem]" strokeWidth={2.25} aria-hidden /> : <Sun className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />}
-        </span>
-      </button>
-      <button onClick={() => sheet.current?.showModal()} aria-label={t.settings} className={pillBtn}>
-        <Settings className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />
-      </button>
+      <div className={pill}>
+        <button onClick={() => themePref.set(isDark ? "light" : "dark")} aria-label={t.toggleTheme} className={pillBtn}>
+          <span key={String(isDark)} className="pop">
+            {isDark ? <Moon className="size-[1.15rem]" strokeWidth={2.25} aria-hidden /> : <Sun className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />}
+          </span>
+        </button>
+        <button onClick={() => sheet.current?.showModal()} aria-label={t.settings} className={pillBtn}>
+          <Settings className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />
+        </button>
 
-      <dialog
-        ref={sheet}
-        onClick={(e) => e.target === sheet.current && sheet.current.close()} // tap outside closes
-        className="sheet mx-auto mt-auto mb-0 max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
-      >
-        <div className="flex flex-col gap-5 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight">
-              <Settings className="size-6 text-accent" aria-hidden /> {t.settings}
-            </h2>
-            <button onClick={() => sheet.current?.close()} aria-label={t.close} className={round}>
-              <X className="size-5" aria-hidden />
-            </button>
+        <dialog
+          ref={sheet}
+          onClick={(e) => e.target === sheet.current && sheet.current.close()} // tap outside closes
+          className="sheet mx-auto mt-auto mb-0 max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
+        >
+          <div className="flex flex-col gap-5 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight">
+                <Settings className="size-6 text-accent" aria-hidden /> {t.settings}
+              </h2>
+              <button onClick={() => sheet.current?.close()} aria-label={t.close} className={round}>
+                <X className="size-5" aria-hidden />
+              </button>
+            </div>
+
+            <SettingsPanel />
           </div>
-
-          <SettingsPanel />
-        </div>
-      </dialog>
-    </div>
+        </dialog>
+      </div>
+    </>
   );
 }
