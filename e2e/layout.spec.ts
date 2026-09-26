@@ -135,7 +135,10 @@ test("iPhone SE: no screen scrolls sideways and single-screen views fit, through
     if (!i) await fitsTall("pass the phone");
     await page.getByRole("button", { name: /^Ich bin / }).click();
     await page.getByLabel("Zetteli 1", { exact: true }).fill(w);
-    if (!i) (await check("write"), await fitsTall("write"));
+    if (!i) {
+      await check("write");
+      await fitsTall("write");
+    }
     await page.getByRole("button", { name: "In die Schüssel" }).click();
   }
   const end = page.getByText("Gewonnen hat").or(page.getByText("Unentschieden"));
@@ -143,9 +146,15 @@ test("iPhone SE: no screen scrolls sideways and single-screen views fit, through
     const go = page.getByRole("button", { name: "Los, Zetteli ziehen" });
     const next = page.getByRole("button", { name: /^Runde \d starten/ });
     await expect(go.or(next).or(page.getByTestId("word")).or(end).first()).toBeVisible();
-    if (await go.isVisible()) (await check("ready"), await fitsTall("ready"), await go.click());
-    else if (await next.isVisible()) (await check("round end"), await fitsTall("round end"), await next.click());
-    else if (await page.getByTestId("word").isVisible()) {
+    if (await go.isVisible()) {
+      await check("ready");
+      await fitsTall("ready");
+      await go.click();
+    } else if (await next.isVisible()) {
+      await check("round end");
+      await fitsTall("round end");
+      await next.click();
+    } else if (await page.getByTestId("word").isVisible()) {
       // settled, the turn screen fits (drawing on paper too); a moment between two screens may briefly be taller
       await expect.poll(() => fits(page), { message: "turn screen", timeout: 3000 }).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });
       await page.getByRole("button", { name: "Erraten" }).click();

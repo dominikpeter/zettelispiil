@@ -29,8 +29,8 @@ jobs:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       KEY_PATH: ${{ github.workspace }}/.appstoreconnect-key.p8
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 22 }
 
       - run: npm ci
@@ -79,7 +79,7 @@ jobs:
           xcrun altool --upload-app -f "$RUNNER_TEMP/export/App.ipa" -t ios \
             --apiKey "$APPSTORE_KEY_ID" --apiIssuer "$APPSTORE_ISSUER_ID"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ vars.IOS_SIGNING_READY == 'true' }}
         with:
           name: App.ipa

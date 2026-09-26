@@ -101,9 +101,14 @@ for (const teams of [3, 4]) {
       const go = page.getByRole("button", { name: "Los, Zetteli ziehen" });
       const next = page.getByRole("button", { name: /^Runde \d starten/ });
       await expect(go.or(next).or(page.getByTestId("word")).or(end).first()).toBeVisible();
-      if (await go.isVisible()) (await fitsTall("ready"), await go.click());
-      else if (await next.isVisible()) (await fitsTall("round end"), expect(await sideways()).toBe(0), await next.click());
-      else if (await page.getByTestId("word").isVisible()) {
+      if (await go.isVisible()) {
+        await fitsTall("ready");
+        await go.click();
+      } else if (await next.isVisible()) {
+        await fitsTall("round end");
+        expect(await sideways()).toBe(0);
+        await next.click();
+      } else if (await page.getByTestId("word").isVisible()) {
         const before = await word(page);
         await page.getByRole("button", { name: "Erraten" }).click();
         await expect(page.getByTestId("word").filter({ hasText: before })).toHaveCount(0);
