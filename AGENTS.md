@@ -35,7 +35,7 @@ Run `just` to list recipes. Prefer them over raw commands so everyone runs the s
 
 ## Branches and releases
 
-- Work on `dev`, never commit to `main`: it only changes through a pull request (`just pr`). CI runs lint, typecheck, unit and e2e tests on every PR.
+- Work on `dev`, never commit to `main`: it only changes through a pull request (`just pr`). CI runs lint, typecheck, unit and e2e tests on every push to `dev` and every PR; GitHub Copilot reviews the PR (`.github/copilot-instructions.md`) and Vercel posts a preview link for it.
 - Merging a PR into `main` is what ships: if `package.json` carries a new version (`just release` bumps it), CI tags it, writes the GitHub release from the PR description, deploys to Vercel and starts the iOS build. A merge without a version bump only runs the checks.
 
 ## Script standards
