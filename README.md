@@ -29,7 +29,7 @@ At the end: the winner, a score race over every turn, points per round, speed pe
 
 ## Two ways to play
 
-- **Ein Handy:** one phone goes round. Players are listed on the start screen (Lisa, Nora, Tim, Beni by default), the phone asks to be handed to each writer and describer. Runs entirely in the browser, and survives a reload.
+- **Ein Handy:** one phone goes round. Players are listed on the start screen (Lisa, Nora, Nelly, Tim by default), the phone asks to be handed to each writer and describer. Runs entirely in the browser, and survives a reload.
 - **Mehrere Handys:** the host opens a room, everyone joins with the 5-letter code, the QR code or the link. The Zetteli only ever show on the describer's phone. Rooms live in Redis for a day.
 
 ## AI help

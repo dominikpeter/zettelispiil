@@ -19,7 +19,7 @@ const word = (page: Page) => page.getByTestId("word").innerText();
 
 test("one phone: default players, write, swipe through every round, stats at the end", async ({ page }) => {
   await page.goto("/");
-  for (const n of ["Lisa", "Nora", "Tim", "Beni"]) await expect(page.getByLabel(/Spieler \d/).and(page.locator(`[value="${n}"]`))).toBeVisible();
+  for (const n of ["Lisa", "Nora", "Nelly", "Tim"]) await expect(page.getByLabel(/Spieler \d/).and(page.locator(`[value="${n}"]`))).toBeVisible();
   await page.getByRole("button", { name: "Neues Spiel" }).click();
   await page.waitForURL(/\/local$/);
 
