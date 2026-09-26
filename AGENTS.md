@@ -23,6 +23,7 @@ Run `just` to list recipes. Prefer them over raw commands so everyone runs the s
 | `just e2e-prod [args]` | Playwright against https://zettelispiil.ch |
 | `just deploy` | `vercel deploy --prod` |
 | `just release X.Y.Z "notes"` | check, e2e, secret scan, bump, tag, push, GitHub release, deploy |
+| `just secret NAME [local]` | store any key: asks for it hidden, writes `.env.local` and Vercel (or `.env.local` only). The user runs it; agents may start it for them but never see the value |
 | `just auth-setup` | OAuth keys for sign-in; the user runs it, it prompts for secrets |
 | `just email-setup` | Resend key for sign-in with a code by email; the user runs it, it prompts for the key |
 | `just stripe-setup` | Stripe restricted key + webhook secret for "buy me a coffee"; the user runs it, it prompts for both |

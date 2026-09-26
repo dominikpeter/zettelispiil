@@ -58,6 +58,10 @@ release version notes: check e2e secrets
     gh release create v{{version}} --title "v{{version}}" --notes {{quote(notes)}}
     just deploy
 
+# store any secret without it ever showing: `just secret NAME` (.env.local + Vercel), `just secret NAME local` (.env.local only)
+secret name where="":
+    bash scripts/secret.sh {{name}} {{where}}
+
 # OAuth sign-in keys for AI features; prompts for secrets, never echoes them
 auth-setup:
     bash scripts/setup-auth.sh
@@ -65,6 +69,10 @@ auth-setup:
 # sign-in with a code by email: asks for the Resend API key (never shown) and the sender address
 email-setup:
     bash scripts/setup-email.sh
+
+# a real test-mode payment end to end (card + TWINT on Stripe's test pages, webhook to the app); needs `stripe login`
+stripe-e2e *args:
+    bash scripts/stripe-e2e.sh {{args}}
 
 # which payment methods the coffee checkout offers right now, and TWINT's approval (read-only, needs `stripe login`)
 stripe-check:
