@@ -303,33 +303,34 @@
 }
 /* Neon: a stack of neon sticky notes, and in this palette the Zetteli come in those colours too */
 :root[data-palette="neon"] {
-  --d-canvas: #0e100c;
-  --d-surface: #171a13;
-  --d-raised: #22261b;
-  --d-line: #30352a;
-  --d-ink: #f7fbe9;
-  --d-muted: #b3bba1;
-  --d-accent: #b6ec4f;
-  --d-hi: #f0f35a;
+  /* the app stays neutral and modern; the colour lives on the Zetteli, with hot pink, sun yellow and orange as accents */
+  --d-canvas: #0f0f11;
+  --d-surface: #18181b;
+  --d-raised: #222226;
+  --d-line: #2e2e33;
+  --d-ink: #f6f6f4;
+  --d-muted: #a9a9b1;
+  --d-accent: #ff5ca0;
+  --d-hi: #f3f566;
   --d-cta: #ffb02e;
   --d-cta-ink: #1a1206;
   --d-cta-edge: #b86e00;
-  --d-team-a: #ff5c9d;
+  --d-team-a: #ff5ca0;
   --d-team-b: #56b4ec;
   --d-chart-a: #f0508f;
   --d-chart-b: #4aa3dc;
-  --l-canvas: #fafdf0;
+  --l-canvas: #fafaf8;
   --l-surface: #ffffff;
-  --l-raised: #f0f8d9;
-  --l-line: #dfe8c4;
-  --l-ink: #1a1d12;
-  --l-muted: #5d6450;
-  --l-accent: #3f7a0c;
-  --l-hi: #d6246e;
+  --l-raised: #f1f1ee;
+  --l-line: #e2e2dc;
+  --l-ink: #17171a;
+  --l-muted: #5f5f66;
+  --l-accent: #d81b6a;
+  --l-hi: #d81b6a;
   --l-cta: #ffb02e;
   --l-cta-ink: #1a1206;
   --l-cta-edge: #b86e00;
-  --l-team-a: #d6246e;
+  --l-team-a: #d81b6a;
   --l-team-b: #1f7fbf;
   --l-chart-a: #f0508f;
   --l-chart-b: #4aa3dc;
@@ -544,7 +545,7 @@ button { user-select: none; }
 /* animation helpers live in the components layer so utilities like `flex` still win */
 @layer components {
 /* Neon palette: each slip a different sticky note */
-:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 1) { --color-paper: #c3ec63; --color-paper-edge: #9ccf3a; }
+:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 1) { --color-paper: #bdef6b; --color-paper-edge: #9fdc45; }
 :root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 2) { --color-paper: #f3f566; --color-paper-edge: #dfe23a; }
 :root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 3) { --color-paper: #ffc04d; --color-paper-edge: #f2a21e; }
 :root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 4) { --color-paper: #ff9d78; --color-paper-edge: #f47c55; }

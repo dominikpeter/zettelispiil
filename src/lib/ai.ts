@@ -82,7 +82,7 @@ async function askIdeas(topic: string, lang: Lang): Promise<string[]> {
     output: Output.object({ schema: Ideas }),
     system:
       `You suggest words for Zettelispiil, a party guessing game (describe, charades, one word, sounds, drawing), in ${LANG_NAME[lang]}. ` +
-      "Pick things most friends at a party know: people, places, things, films, animals. 1-3 words each, no explanations.",
+      "Pick things most friends at a party know: people, places, things, films, animals. 1-3 words each, short (at most 20 characters), no explanations.",
     prompt: `Topic: ${topic || "anything"}. Give 9 different words.`, // 9: the next players with this topic get theirs from the cache
   });
   await meter("ideas", usage);
@@ -117,7 +117,7 @@ async function askZetteli(topicId: string, lang: Lang, n: number, avoid: string[
       "You write the Zetteli for Zettelispiil, a Swiss salad-bowl party game: teams guess the words from descriptions, charades, a single word, sounds and drawings. " +
       `Write words and hints in ${LANG_NAME[lang]}, the way people there say it (no translations from English; names and titles as they are known there). ` +
       "Every word must be something most adults at a party know and could act out or describe: " +
-      "concrete nouns, well-known names, titles and places; 1-3 words; no explanations, no generic categories, no near-duplicates. " +
+      "concrete nouns, well-known names, titles and places; 1-3 words, short (at most 20 characters); no explanations, no generic categories, no near-duplicates. " +
       "About four in five are classic and easy; about one in five is more original or surprising, yet still known to most people. " +
       "Each hint (max 8 words) helps the describer understand what is meant, and never contains the word itself or part of it.",
     prompt:
@@ -138,10 +138,12 @@ const Names = z.object({ names: z.array(z.string()) });
 // a different nudge every call: the same prompt makes a model give the same favourite name every time
 const THEMES = ["mountains and hiking", "trains and buses", "cheese and chocolate", "the weather", "animals of the Alps", "lakes and rivers", "breakfast", "winter sports", "festivals and music", "grandma's kitchen", "space and stars", "the post office", "cows and farms", "city life", "fairy tales", "sports clubs", "gardening", "board games"];
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
+/** longest name that fits a player row on a small phone without being cut off; a long typed name gets a little room on top */
+const nameMax = (kind: "player" | "team", base: string) => Math.max(kind === "team" ? 20 : 16, base.length + 5);
 
 /** funny names for players or teams, from a pool the model refills six at a time (per typed name: "Beni" gets Beni-names) */
 export async function funnyNames(kind: "player" | "team", lang: Lang, n: number, avoid: string[], base = ""): Promise<string[]> {
-  const [names, pooled] = await fromPool(`ai:names:${kind}:${lang}:${key(base)}`, n, avoid, () => askNames(kind, lang, base));
+  const [names, pooled] = await fromPool(`ai:names2:${kind}:${lang}:${key(base)}`, n, avoid, () => askNames(kind, lang, base));
   if (pooled) await count({ cache_names: pooled });
   return names;
 }
@@ -150,18 +152,18 @@ export async function funnyNames(kind: "player" | "team", lang: Lang, n: number,
 async function askNames(kind: "player" | "team", lang: Lang, base: string): Promise<string[]> {
   // a name typed already: dress it up instead of replacing it ("Beni" → "Alphornbläser-Beni")
   const around = base
-    ? ` Every name must keep "${base}" exactly as written and add something funny around it, like "Alphornbläser-Beni" for "Beni". At most 24 characters.`
+    ? ` Every name must keep "${base}" exactly as written and add something funny around it, like "Alphorn-Beni" for "Beni". Short: at most ${nameMax(kind, base)} characters in total.`
     : "";
   const { output, usage } = await generateText({
     model: model(),
     providerOptions: fast,
     output: Output.object({ schema: Names }),
-    system: `You invent short, funny, friendly ${kind === "team" ? "team names (1-3 words)" : "player nicknames (1-2 words)"} for a Swiss party game, in ${LANG_NAME[lang]}. No offensive words. Be surprising: vary the style, never reuse a word stem twice.`,
+    system: `You invent short, funny, friendly ${kind === "team" ? "team names (1-3 words)" : "player nicknames (1-2 words)"}, at most ${nameMax(kind, base)} characters each, for a Swiss party game, in ${LANG_NAME[lang]}. No offensive words. Be surprising: vary the style, never reuse a word stem twice.`,
     prompt: `Give 6 different names, loosely inspired by ${pick(THEMES)}.${around}`,
   });
   await meter("names", usage);
   const names = output.names
-    .map((s) => s.trim().slice(0, 24))
-    .filter((s) => s && (!base || s.toLowerCase().includes(base.toLowerCase()))); // the typed name must survive; names in play are skipped by the pool
+    .map((s) => s.trim())
+    .filter((s) => s && s.length <= nameMax(kind, base) && (!base || s.toLowerCase().includes(base.toLowerCase()))); // the typed name must survive; names in play are skipped by the pool
   return shuffle(names);
 }
