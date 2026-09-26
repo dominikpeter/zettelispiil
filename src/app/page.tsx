@@ -103,9 +103,11 @@ export default function Home() {
           (mirrors the bottom CTA's own fade below) so scrolled-up content — the install banner, translucent itself —
           fades out before it reaches the pill instead of visually blending into it. -mb-6: the fade overlaps the hero
           instead of pushing it down (main's own pt-3 moved here, in the header's own top padding, so nothing shifts).
+          No safe-area calc here: body already reserves env(safe-area-inset-top) as real padding (layout.tsx), and this
+          header is sticky (in-flow, below that padding), not fixed — adding the inset again would double it.
           pointer-events-none: the fade's transparent reach must not block taps on content scrolled under it; the pill
           and the coffee toast (both real DOM children of TopControls) opt back in with their own pointer-events-auto */}
-      <header className="sticky top-0 z-30 -mx-4 -mb-6 flex justify-end bg-gradient-to-b from-canvas from-60% to-transparent px-4 pt-[calc(env(safe-area-inset-top)+1.75rem)] pb-6 pointer-events-none">
+      <header className="sticky top-0 z-30 -mx-4 -mb-6 flex justify-end bg-gradient-to-b from-canvas from-60% to-transparent px-4 pt-6 pb-6 pointer-events-none">
         <TopControls />
       </header>
       <div className="relative mt-4 h-44" aria-hidden>

@@ -54,7 +54,11 @@ const meter = (kind: "check" | "names" | "ideas" | "zetteli", u: { inputTokens?:
 export async function checkWords(words: string[], lang: Lang): Promise<WordCheck[]> {
   const [known, hits] = await cachedEach<WordCheck>(`ai:check:${lang}`, words, (missing) => askCheck(missing, lang));
   if (hits) await count({ cache_check: hits });
-  return words.map((w, i) => ({ ...(known[i] ?? { corrected: w, tooHard: false, reason: "", hint: "" }), word: w.slice(0, 40) }));
+  // ss() here too, not just in askOne: a result cached before the ß-safety-net existed must not still carry one
+  return words.map((w, i) => {
+    const r = known[i] ?? { corrected: w, tooHard: false, reason: "", hint: "" };
+    return { ...r, corrected: ss(r.corrected), reason: ss(r.reason), hint: ss(r.hint), word: w.slice(0, 40) };
+  });
 }
 
 // one call per word, in parallel: a word can only shape its own cached result, never another word's
@@ -84,7 +88,7 @@ const Ideas = z.object({ words: z.array(z.string()) });
 export async function suggestWords(topic: string, lang: Lang, avoid: string[]): Promise<string[]> {
   const [ideas, cached] = await ideasFor(`ai:ideas:${lang}:${key(topic)}`, avoid, () => askIdeas(topic, lang));
   if (cached) await count({ cache_ideas: 1 });
-  return ideas;
+  return ideas.map(ss); // covers ideas cached before the ß-safety-net existed too
 }
 
 // shared by everyone who picks this topic: only the topic goes in, never what a player wrote (their `avoid` is filtered out afterwards)
@@ -115,7 +119,7 @@ const Zetteli = z.object({
 export async function aiZetteli(n: number, topics: string[], lang: Lang): Promise<Slip[]> {
   const { slips, pooled } = await supplyZetteli({ lang, topics, count: n, write: (topic, _l, k, avoid) => askZetteli(topic, lang, k, avoid) });
   if (pooled) await count({ cache_zetteli: pooled });
-  return slips;
+  return slips.map((s) => ({ word: ss(s.word), hint: ss(s.hint) })); // covers Zetteli pooled before the ß-safety-net existed too
 }
 
 // only a topic from our own list and AI-written words (the ones used lately) go in, never what a player typed
@@ -158,7 +162,7 @@ const nameMax = (kind: "player" | "team", base: string) => Math.max(kind === "te
 export async function funnyNames(kind: "player" | "team", lang: Lang, n: number, avoid: string[], base = ""): Promise<string[]> {
   const [names, pooled] = await fromPool(`ai:names2:${kind}:${lang}:${key(base)}`, n, avoid, () => askNames(kind, lang, base));
   if (pooled) await count({ cache_names: pooled });
-  return names;
+  return names.map(ss); // covers names pooled before the ß-safety-net existed too
 }
 
 // the pool is shared: only the typed name goes in (it keys the pool), never names in play (they're filtered out afterwards)

@@ -5,6 +5,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
 
 concurrency:
@@ -31,15 +32,18 @@ jobs:
         with: { node-version: 22, cache: npm }
       - uses: extractions/setup-just@v3
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       - run: just e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: playwright-report, path: playwright-report/, retention-days: 7 }
 
+  # gated on a version tag (v*), not every main push: `just release` already tags, pushes and deploys itself
+  # (see justfile), so deploying on every main commit here would double-deploy and, once IOS_SIGNING_READY is
+  # set, double-upload to TestFlight for every ordinary commit too.
   deploy:
     needs: e2e
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -59,7 +63,7 @@ jobs:
 
   ios:
     needs: deploy
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       actions: write

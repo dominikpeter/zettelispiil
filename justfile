@@ -53,7 +53,9 @@ version-check:
 deploy:
     vercel deploy --prod
 
-# full release: checks, e2e, tag, push, GitHub release, deploy. `just release 1.3.0 "notes"`
+# full release: checks, e2e, tag, push, GitHub release. `just release 1.3.0 "notes"`
+# the pushed v-tag triggers .github/workflows/ci.yml, which deploys to Vercel and kicks off the iOS build — not done here,
+# so a release only ever deploys once
 release version notes: check e2e secrets
     npm version {{version}} --no-git-tag-version --allow-same-version
     git add package.json package-lock.json && git commit -m "release: v{{version}}" || true
@@ -61,7 +63,6 @@ release version notes: check e2e secrets
     just version-check
     git push && git push --tags
     gh release create v{{version}} --title "v{{version}}" --notes {{quote(notes)}}
-    just deploy
 
 # store any secret without it ever showing: `just secret NAME` (.env.local + Vercel), `just secret NAME local` (.env.local only)
 secret name where="":
