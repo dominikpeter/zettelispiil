@@ -101,10 +101,10 @@ export default function Home() {
   // "Raum beitreten": the code field showed up below the fold, behind the start button. Bring it (and the scan button
   // next to it) into view and put the cursor there, so it's obvious: type the code or scan it
   useEffect(() => {
-    if (mode !== "join") return;
+    if (play !== "online" || mode !== "join") return; // also when coming back to "Mehrere Handys" with join still picked
     codeRef.current?.focus({ preventScroll: true });
     codeRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [mode]);
+  }, [mode, play]);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
