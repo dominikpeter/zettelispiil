@@ -30,6 +30,8 @@ const fast = {
   openai: { reasoningEffort: "none", textVerbosity: "low", serviceTier: "priority" },
 } as const;
 const LANG_NAME: Record<Lang, string> = { de: "Swiss Standard German (always \"ss\", never \"ß\"; Swiss German words are fine)", en: "English", fr: "French" };
+// the model is told "ss, never ß" above but very occasionally slips on any output; guarantee it rather than just ask for it
+const ss = (s: string) => s.replace(/ß/g, "ss");
 
 const Check = z.object({
   results: z.array(
@@ -73,7 +75,7 @@ async function askOne(word: string, lang: Lang): Promise<WordCheck | undefined> 
   const r = output.results[0];
   // the model's answer is untrusted too: every text bounded
   // an empty correction means "leave it"; a reason only goes with a word that's too hard (some models explain every word)
-  return r && { word: word.slice(0, 40), corrected: r.corrected.trim().slice(0, 40) || word.slice(0, 40), tooHard: r.tooHard, reason: r.tooHard ? r.reason.slice(0, 160) : "", hint: r.hint.slice(0, 80) };
+  return r && { word: word.slice(0, 40), corrected: ss(r.corrected.trim().slice(0, 40)) || word.slice(0, 40), tooHard: r.tooHard, reason: r.tooHard ? ss(r.reason.slice(0, 160)) : "", hint: ss(r.hint.slice(0, 80)) };
 }
 
 const Ideas = z.object({ words: z.array(z.string()) });
@@ -97,7 +99,7 @@ async function askIdeas(topic: string, lang: Lang): Promise<string[]> {
     prompt: `Topic: ${topic || "anything"}. Give 9 different words.`, // 9: the next players with this topic get theirs from the cache
   });
   await meter("ideas", usage);
-  return output.words.map((w) => w.trim().slice(0, 40)).filter(Boolean).slice(0, 9);
+  return output.words.map((w) => ss(w.trim().slice(0, 40))).filter(Boolean).slice(0, 9);
 }
 
 const Zetteli = z.object({
@@ -138,8 +140,8 @@ async function askZetteli(topicId: string, lang: Lang, n: number, avoid: string[
   await meter("zetteli", usage);
   // the model's answer is untrusted too: bounded, and a hint that gives the word away is dropped
   return output.words.map((w) => {
-    const word = w.word.trim().slice(0, 40);
-    const hint = w.hint.trim().split(/\s+/).slice(0, 8).join(" ").slice(0, 80);
+    const word = ss(w.word.trim().slice(0, 40));
+    const hint = ss(w.hint.trim().split(/\s+/).slice(0, 8).join(" ").slice(0, 80));
     return { word, hint: norm(word) && norm(hint).includes(norm(word)) ? "" : hint };
   });
 }
@@ -174,7 +176,7 @@ async function askNames(kind: "player" | "team", lang: Lang, base: string): Prom
   });
   await meter("names", usage);
   const names = output.names
-    .map((s) => s.trim())
-    .filter((s) => s && s.length <= nameMax(kind, base) && (!base || s.toLowerCase().includes(base.toLowerCase()))); // the typed name must survive; names in play are skipped by the pool
+    .map((n) => ss(n.trim()))
+    .filter((n) => n && n.length <= nameMax(kind, base) && (!base || n.toLowerCase().includes(base.toLowerCase()))); // the typed name must survive; names in play are skipped by the pool
   return shuffle(names);
 }

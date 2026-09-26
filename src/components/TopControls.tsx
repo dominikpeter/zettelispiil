@@ -166,12 +166,16 @@ export function SettingsPanel() {
           </span>
         </button>
       </div>
-      <footer className="flex items-center justify-center gap-1.5 pt-2 text-sm text-muted">
-        {t.madeWith} <Heart className="size-4 fill-accent text-accent" aria-label="♥" /> {t.madeBy("Dominik")} ·
-        <a href="https://github.com/dominikpeter/zettelispiil" target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline-offset-4 hover:underline">
-          GitHub
-        </a>
-        <span className="tabular-nums">· v{process.env.NEXT_PUBLIC_VERSION}</span>
+      <footer className="flex flex-col items-center gap-1 pt-2 text-center text-sm text-muted">
+        <span className="flex items-center gap-1.5">
+          {t.madeWith} <Heart className="size-4 fill-accent text-accent" aria-label="♥" /> {t.madeBy("Dominik")}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <a href="https://github.com/dominikpeter/zettelispiil" target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline-offset-4 hover:underline">
+            GitHub
+          </a>
+          <span className="tabular-nums">· v{process.env.NEXT_PUBLIC_VERSION}</span>
+        </span>
       </footer>
     </>
   );
@@ -200,7 +204,7 @@ export function TopControls() {
     <>
       {/* fixed, but not inside the pill: its backdrop-blur would become the containing block and trap this at pill size */}
       <CoffeeThanks />
-      <div className={pill}>
+      <div className={`${pill} pointer-events-auto`}>
         <button onClick={() => themePref.set(isDark ? "light" : "dark")} aria-label={t.toggleTheme} className={pillBtn}>
           <span key={String(isDark)} className="pop">
             {isDark ? <Moon className="size-[1.15rem]" strokeWidth={2.25} aria-hidden /> : <Sun className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />}

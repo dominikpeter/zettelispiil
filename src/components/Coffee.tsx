@@ -110,7 +110,7 @@ export function CoffeeThanks() {
         u.searchParams.delete("coffee");
         history.replaceState(history.state, "", u);
       }}
-      className="enter fixed inset-x-4 top-[calc(env(safe-area-inset-top)+4.5rem)] z-40 mx-auto flex max-w-sm items-center gap-3 rounded-2xl bg-accent px-4 py-3 text-left font-semibold text-canvas shadow-lg"
+      className="enter pointer-events-auto fixed inset-x-4 top-[calc(env(safe-area-inset-top)+4.5rem)] z-40 mx-auto flex max-w-sm items-center gap-3 rounded-2xl bg-accent px-4 py-3 text-left font-semibold text-canvas shadow-lg"
     >
       <Cup className="size-6 shrink-0" aria-hidden />
       <span role="status">{t.coffeeThanks}</span>

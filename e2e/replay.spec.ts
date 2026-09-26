@@ -19,7 +19,7 @@ test("drawing replay: the end stats show what was drawn, by whom, and trace it i
   await host.getByRole("button", { name: /Mehrere Handys/ }).click();
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
-  await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
+  await host.waitForURL(/\/r\/[A-Z0-9]{6}$/);
   const code = host.url().split("/").pop()!;
   const others: Page[] = [];
   for (const i of [0, 1, 2]) {
@@ -32,7 +32,7 @@ test("drawing replay: the end stats show what was drawn, by whom, and trace it i
   }
   const phones = [host, ...others];
   const names = ["Lisa", "P0", "P1", "P2"];
-  await host.getByRole("button", { name: "Zeichnen hinzufügen" }).click();
+  // drawing is already on by default with several phones; drop everything else to leave only it
   for (const r of ["Umschreiben", "Pantomime", "Ein Wort", "Geräusch"]) await host.getByRole("button", { name: `${r} weglassen` }).click();
   for (let i = 0; i < 3; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
   await host.getByRole("button", { name: "Spiel starten" }).click();

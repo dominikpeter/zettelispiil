@@ -35,7 +35,7 @@ for (const name of PHONES) {
     await host.getByRole("button", { name: /Mehrere Handys/ }).click();
     await host.getByLabel("Dein Name").fill("Lisa");
     await host.getByRole("button", { name: "Raum erstellen" }).click();
-    await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
+    await host.waitForURL(/\/r\/[A-Z0-9]{6}$/);
     const code = host.url().split("/").pop()!;
     const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
     for (const [i, p] of others.entries()) {
@@ -45,7 +45,7 @@ for (const name of PHONES) {
       await expect(p.getByText("(du)")).toBeVisible();
     }
     const phones = [host, ...others];
-    await host.getByRole("button", { name: "Zeichnen hinzufügen" }).click();
+    // drawing is already on by default with several phones; drop everything else to leave only it
     for (const r of ["Umschreiben", "Pantomime", "Ein Wort", "Geräusch"]) await host.getByRole("button", { name: `${r} weglassen` }).click();
     for (let i = 0; i < 3; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
     await host.getByRole("button", { name: "Spiel starten" }).click();
@@ -231,7 +231,7 @@ for (const name of ["iPhone SE", "iPhone 15"] as const) {
     await page.getByRole("button", { name: /Mehrere Handys/ }).click();
     await page.getByLabel("Dein Name").fill("Lisa");
     await page.getByRole("button", { name: "Raum erstellen" }).click();
-    await page.waitForURL(/\/r\/[A-Z0-9]{5}$/);
+    await page.waitForURL(/\/r\/[A-Z0-9]{6}$/);
     await mainButtonOnScreen(page, "Jedes Team braucht 2 Leute");
     await allReachable(page);
     expect(await sideways(page)).toBe(0);

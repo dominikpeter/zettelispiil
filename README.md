@@ -17,7 +17,7 @@ The Swiss party game with paper slips, as a mobile web app. Everyone writes word
 | Pantomime | No words, no sounds |
 | Ein Wort | Exactly one word as a clue |
 | Geräusch | Only noises |
-| Zeichnen | Draw it: on your phone with everyone watching live (several phones), or on a flip chart or paper (one phone). Opt-in |
+| Zeichnen | Draw it: on your phone with everyone watching live (several phones, on by default), or on a flip chart or paper (one phone, opt-in) |
 
 The host can reorder rounds by dragging (long-press on touch), drop or add rounds, and set Zetteli per person, seconds per turn and how many Zetteli may be skipped per turn. With a limit of 1 you can set one aside and swap back and forth, but not skip a second.
 
@@ -30,7 +30,7 @@ At the end: the winner, a score race over every turn, points per round, speed pe
 ## Two ways to play
 
 - **Ein Handy:** one phone goes round. Players are listed on the start screen (Lisa, Nora, Nelly, Tim by default), the phone asks to be handed to each writer and describer. Runs entirely in the browser, and survives a reload.
-- **Mehrere Handys:** the host opens a room, everyone joins with the 5-letter code, the QR code or the link. The Zetteli only ever show on the describer's phone. Rooms live in Redis for a day.
+- **Mehrere Handys:** the host opens a room, everyone joins with the 6-letter code, the QR code or the link. The Zetteli only ever show on the describer's phone. Rooms live in Redis for a day.
 
 ## AI help
 

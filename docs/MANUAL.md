@@ -28,7 +28,7 @@ Auf der Startseite wählst du, wie ihr spielt.
 
 - Gib **Dein Name** ein (oder lass dir mit dem Funkel-Knopf einen erfinden).
 - **Neuer Raum**: Du leitest das Spiel (Spielleitung), die anderen kommen per Code dazu. Tippe auf **Raum erstellen**.
-- **Raum beitreten**: Gib den **Raumcode** mit 5 Zeichen ein und tippe auf **Beitreten**, oder nutze **QR-Code scannen**.
+- **Raum beitreten**: Gib den **Raumcode** mit 6 Zeichen ein und tippe auf **Beitreten**, oder nutze **QR-Code scannen**.
 - Im Raum stehen QR-Code und Raumcode gross oben («Scannen oder Code eingeben»). Mit **Link teilen** schickst du die Einladung direkt per Nachricht, mit dem WhatsApp-Knopf daneben gleich in einen WhatsApp-Chat. In den Einstellungen kannst du Zettelispiil auch per WhatsApp weiterempfehlen.
 - Pro Raum können bis zu 20 Leute mitspielen. Ein Raum bleibt einen Tag lang bestehen.
 - Wer den Raum verlässt, kommt über den Link wieder zurück.
@@ -71,9 +71,9 @@ Unten fasst eine kurze Übersicht die Einstellungen zusammen. Dann tippt die Spi
 | **Pantomime** | Kein Wort, kein Laut. Nur Hände, Füsse und Mimik. |
 | **Ein Wort** | Genau ein Wort als Hinweis. Dann nur noch zeigen, ob's richtig ist. |
 | **Geräusch** | Nur Töne und Geräusche. Keine Wörter, keine Gesten. |
-| **Zeichnen** (optional) | Zeichne den Begriff. Keine Buchstaben, keine Zahlen. |
+| **Zeichnen** | Zeichne den Begriff. Keine Buchstaben, keine Zahlen. |
 
-Standardmässig sind die ersten vier Runden dabei. **Zeichnen** kannst du zusätzlich hinzufügen:
+**Mit mehreren Handys** sind alle fünf Runden standardmässig dabei, Zeichnen als vorletzte. **Mit einem Handy** sind es die ersten vier; Zeichnen kannst du dort zusätzlich hinzufügen, auf Papier oder Flipchart:
 
 - **Mit mehreren Handys** zeichnest du auf deinem Handy, alle anderen sehen live mit: die Linie entsteht bei ihnen Strich für Strich, ein Punkt zeigt, wo dein Stift gerade ist. Du hast mehrere Stifte zur Auswahl und kannst mit **Alles löschen** neu anfangen.
 - **Mit einem Handy** zeichnest du auf ein Flipchart oder Papier, das Handy zeigt nur den Begriff.

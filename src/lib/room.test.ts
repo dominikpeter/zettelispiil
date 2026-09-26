@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { act, claimAi, cleanSettings, createRoom, joinRoom, pullStrokes, roomAi, pushStrokes, RoomError, sheetStrokes, view, type View } from "./room.ts";
+import { act, claimAi, cleanSettings, createRoom, DEFAULT_ROUNDS, joinRoom, ONLINE_DEFAULT_ROUNDS, pullStrokes, roomAi, pushStrokes, RoomError, sheetStrokes, view, type View } from "./room.ts";
 import { computeStats } from "./stats.ts";
 import { db as envStore, memoryStore, persistent } from "./store.ts";
 
@@ -32,11 +32,11 @@ const describerView = async (see: (i: number) => Promise<View>) => {
   return { i: v.active!, v: await see(v.active!) };
 };
 
-test("room codes have 5 characters without lookalikes", async () => {
+test("room codes have 6 characters without lookalikes", async () => {
   const db = store();
   for (let i = 0; i < 20; i++) {
     const { code } = await createRoom(db, "Lisa");
-    assert.match(code, /^[A-HJ-NP-Z2-9]{5}$/);
+    assert.match(code, /^[A-HJ-NP-Z2-9]{6}$/);
   }
 });
 
@@ -696,4 +696,15 @@ test("AI writes the Zetteli: too few words are refused; the host can switch back
   assert.equal(v.settings.source, "players");
   for (const i of [0, 1, 2, 3]) await as(i, { type: "words", words: [`w${i}`] });
   assert.equal((await see(0)).phase, "ready");
+});
+
+test("default rounds: local (no rounds passed) skips drawing; the online defaults (as route.ts passes them) get it, second-to-last", async () => {
+  const db = store();
+  const local = await createRoom(db, "Lisa");
+  const localView = await view(db, local.code, local.pid, local.token);
+  assert.deepEqual(localView.settings.rounds, DEFAULT_ROUNDS);
+
+  const online = await createRoom(db, "Lisa", "de", "", ONLINE_DEFAULT_ROUNDS);
+  const onlineView = await view(db, online.code, online.pid, online.token);
+  assert.deepEqual(onlineView.settings.rounds, ONLINE_DEFAULT_ROUNDS); // deep-equal already pins "draw" second-to-last
 });

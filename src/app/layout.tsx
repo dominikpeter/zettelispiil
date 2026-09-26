@@ -6,10 +6,17 @@ import "./globals.css";
 const bricolage = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: ["latin"] });
 const caveat = Caveat({ variable: "--font-caveat", subsets: ["latin"], weight: ["600", "700"] });
 
+const description = "Schreiben, falten, erraten – das Partyspiel mit Zetteli. Gratis, kein Konto nötig.";
 export const metadata: Metadata = {
+  metadataBase: new URL("https://zettelispiil.ch"),
   title: "Zettelispiil",
-  description: "Schreiben, falten, erraten – das Partyspiel mit Zetteli.",
+  description,
   appleWebApp: { capable: true, title: "Zettelispiil", statusBarStyle: "black-translucent" },
+  // the WhatsApp/iMessage/Slack link-preview card; the image itself is opengraph-image.tsx (Next wires it in automatically)
+  // no explicit url: it would be inherited by every page (a room link shouldn't advertise itself as the home page);
+  // metadataBase plus the actual request path is enough
+  openGraph: { title: "Zettelispiil", description, siteName: "Zettelispiil", locale: "de_CH", type: "website" },
+  twitter: { card: "summary_large_image", title: "Zettelispiil", description },
 };
 
 export const viewport: Viewport = {

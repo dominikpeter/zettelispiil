@@ -73,7 +73,7 @@ test("a room opened by a signed-in host: a guest without an account gets AI, and
   await host.getByRole("button", { name: /Mehrere Handys/ }).click();
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
-  await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
+  await host.waitForURL(/\/r\/[A-Z0-9]{6}$/);
   const code = host.url().split("/").pop()!;
 
   // the guest's server answers as for a room whose host was signed in when creating it (the test server has no real sign-in)

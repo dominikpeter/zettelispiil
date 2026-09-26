@@ -40,10 +40,13 @@ const SHORT = [
   "Schoggi", "Gipfeli", "Aare", "Rösti", "Fondue", "Velo", "Brötli", "Hörnli", "Zopf", "Zmorge", "Znüni", "Alphorn", "Gondel", "Rivella", "Chuchi", "Müesli", "Lädeli", "Bärli", "Fähre", "Glocke", "Arosa", "Aarau", "Rüebli", "Chalet", "Grüezi", "Skilift", "Schnee",
   // biking, winter sports, partying, cheese and Jass: the same Swiss mix, just a wider pantry
   "Bike", "Trail", "Helm", "Firn", "Skitag", "Chilbi", "Ausgang", "Beiz", "Chäs", "Gruyère", "Jass", "Trumpf", "Weis", "Stöck",
+  // a bit more dialect: none of these need explaining if you grew up here
+  "Mungg", "Güsel", "Gugus", "Stürmi", "Glünggi", "Bise", "Gfrörli", "Gstürm", "Pfnüsel", "Gaggi",
 ];
 const LONG = [
   "Matterhorn", "Jungfrau", "Pilatus", "Gotthard", "Säntis", "Zytglogge", "Raclette", "Bergbahn", "Eiger", "Rheinfall", "Weisshorn", "Bärenland", "Maienzug", "Schlitten", "Rüeblimärt", "Tschuggen",
   "Bikepark", "Skigebiet", "Jugendfest", "Käsefondue", "Emmentaler", "Jasstisch",
+  "Tschäderi", "Chrüsimüsi", "Bäredräck",
 ];
 const CLASSIC = HERO.map((h) => h.w);
 let heroWords: string[] | null = null;
@@ -95,9 +98,14 @@ export default function Home() {
   const choice = (on: boolean) => `flex flex-col items-start gap-1 rounded-2xl border-2 p-3 text-left ${press} ${on ? "border-accent bg-raised" : "border-line"}`;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3">
-      {/* sticky: settings stay a thumb away while the player list scrolls; self-end keeps it pill-sized so it covers nothing beside it */}
-      <header className="sticky top-[calc(env(safe-area-inset-top)+0.75rem)] z-30 self-end">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4">
+      {/* sticky: settings stay a thumb away while the player list scrolls. Full-width with a canvas fade behind the pill
+          (mirrors the bottom CTA's own fade below) so scrolled-up content — the install banner, translucent itself —
+          fades out before it reaches the pill instead of visually blending into it. -mb-6: the fade overlaps the hero
+          instead of pushing it down (main's own pt-3 moved here, in the header's own top padding, so nothing shifts).
+          pointer-events-none: the fade's transparent reach must not block taps on content scrolled under it; the pill
+          and the coffee toast (both real DOM children of TopControls) opt back in with their own pointer-events-auto */}
+      <header className="sticky top-0 z-30 -mx-4 -mb-6 flex justify-end bg-gradient-to-b from-canvas from-60% to-transparent px-4 pt-[calc(env(safe-area-inset-top)+1.75rem)] pb-6 pointer-events-none">
         <TopControls />
       </header>
       <div className="relative mt-4 h-44" aria-hidden>
@@ -199,7 +207,7 @@ export default function Home() {
               <div key="join" className="enter flex items-center gap-2">
                 <input
                   value={code}
-                  maxLength={5}
+                  maxLength={6}
                   autoCapitalize="characters"
                   autoComplete="off"
                   spellCheck={false}

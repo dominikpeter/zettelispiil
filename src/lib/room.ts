@@ -1,13 +1,13 @@
 import { funnyTeams, type Lang } from "./i18n.ts";
 import type { Store } from "./store.ts";
-import { cleanSettings, type Settings } from "./settings.ts";
+import { cleanSettings, type RoundType, type Settings } from "./settings.ts";
 import { heckle, heckleView, startHeckles, type Heckles } from "./heckle.ts";
 
-export { cleanSettings, DEFAULT_ROUNDS, MAX_TEAMS, ROUND_TYPES, type RoundType, type Settings } from "./settings.ts";
+export { cleanSettings, DEFAULT_ROUNDS, MAX_TEAMS, ONLINE_DEFAULT_ROUNDS, ROUND_TYPES, type RoundType, type Settings } from "./settings.ts";
 
 const TTL = 60 * 60 * 24; // rooms vanish a day after the last write
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I lookalikes
-export const CODE_LEN = 5; // 32^5 ≈ 33 million codes: hard to guess a live room; older 4-letter rooms keep working
+export const CODE_LEN = 6; // 32^6 ≈ 1.1 billion codes: harder to guess a live room; older 4- and 5-letter rooms keep working
 const GRACE = 1500; // a "got" tapped at 0:00 still counts while it travels to the server
 const MAX_SHEET = 3000; // strokes per drawing sheet; a wipe or the next Zetteli starts a new one
 const MAX_LOG = 5000; // events kept for the stats; a real game has a few hundred, so only skip-spamming hits this
@@ -127,13 +127,13 @@ async function addMember(db: Store, code: string, name: string, members: Member[
   return m;
 }
 
-export async function createRoom(db: Store, hostName: unknown, lang: unknown = "de", aiBy = "") {
+export async function createRoom(db: Store, hostName: unknown, lang: unknown = "de", aiBy = "", rounds?: RoundType[]) {
   const name = cleanName(hostName);
   if (!name) throw new RoomError("bad_request");
   for (let attempt = 0; attempt < 10; attempt++) {
     const code = Array.from({ length: CODE_LEN }, () => CODE_CHARS[pick(CODE_CHARS.length)]).join("");
     const room: Room = {
-      code, hostId: "", settings: cleanSettings({ lang: lang as Lang }), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de", 2), phase: "lobby", ids: [], teams: [], words: [], hints: [], authors: [],
+      code, hostId: "", settings: cleanSettings({ lang: lang as Lang, rounds }), teamNames: funnyTeams(lang === "en" || lang === "fr" ? (lang as Lang) : "de", 2), phase: "lobby", ids: [], teams: [], words: [], hints: [], authors: [],
       bowl: [], current: null, held: [], shownAt: 0, round: 0, team: 0, next: [0, 0], turnStart: 0, endsAt: 0, pausedAt: 0, drawNo: 0, carryMs: 0,
       turnGot: 0, lastGot: null, scores: [], log: [], turns: [], drawings: [], writeNo: 0, turnNo: 0, aiBy,
     };

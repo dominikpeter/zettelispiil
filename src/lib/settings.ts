@@ -3,7 +3,9 @@ import { TOPIC_IDS } from "./topics.ts";
 
 export const ROUND_TYPES = ["describe", "pantomime", "oneword", "sound", "draw"] as const;
 export type RoundType = (typeof ROUND_TYPES)[number];
-export const DEFAULT_ROUNDS: RoundType[] = ["describe", "pantomime", "oneword", "sound"]; // drawing is opt-in, and needs every phone
+export const DEFAULT_ROUNDS: RoundType[] = ["describe", "pantomime", "oneword", "sound"]; // the safety-net default (e.g. a room from before a setting existed); local games opt into drawing, it needs every phone to have its own screen
+// every phone: drawing needs a screen each, so it's on by default there, second-to-last (a late-game highlight, one round before the finish)
+export const ONLINE_DEFAULT_ROUNDS: RoundType[] = ["describe", "pantomime", "oneword", "draw", "sound"];
 export const MAX_TEAMS = 4; // the app is built for any number; colours exist for four
 export type Settings = { perPlayer: number; seconds: number; rounds: RoundType[]; skips: number; lang: Lang; teams: number; heckle: boolean; heckleMode: "auto" | "fixed"; heckles: number; source: "players" | "ai"; topics: string[] }; // skips: per turn, -1 = unlimited; lang: of the Zetteli (AI check, hints, ideas), each phone keeps its own UI language; heckle: the other teams may disturb the describer, `heckles` times each per turn; source: who writes the Zetteli (ai: nobody knows a word beforehand), about `topics`
 

@@ -1,0 +1,71 @@
+name: CI
+
+# Lint, typecheck, unit tests, e2e; on main (after everything passes) deploy to Vercel, then kick off the iOS build.
+# Mirrors `just check` / `just e2e` / `just deploy` exactly, so CI runs the same thing a laptop does.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: extractions/setup-just@v3
+      - run: npm ci
+      - run: just check
+
+  e2e:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: extractions/setup-just@v3
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: just e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: playwright-report/, retention-days: 7 }
+
+  deploy:
+    needs: e2e
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx vercel build --prod --token="$VERCEL_TOKEN"
+          npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+  ios:
+    needs: deploy
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      # ios-release.yml builds (and, once IOS_SIGNING_READY is set, signs and uploads to TestFlight) on its own macOS
+      # runner; this just fires it after a successful deploy. Add the same step for android-release.yml once its
+      # Play Store side is ready (just android-keystore-setup, then just secret-gh PLAY_SERVICE_ACCOUNT_JSON).
+      - env: { GH_TOKEN: ${{ github.token }} }
+        run: gh workflow run ios-release.yml --repo "$GITHUB_REPOSITORY" --ref main

@@ -123,7 +123,7 @@ test("every phone: only the describer sees the Zetteli, one skip with swap back,
   await expect(host.getByLabel("Dein Name")).toHaveValue(""); // no name pre-filled: you type yours (or tap the sparkle)
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
-  await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
+  await host.waitForURL(/\/r\/[A-Z0-9]{6}$/);
   const code = host.url().split("/").pop()!;
   await expect(host.getByAltText(`QR ${code}`)).toBeVisible();
   // WhatsApp invite: opens the chat picker with the room code and its link ready to send
@@ -199,7 +199,7 @@ test("heckle: the other team disturbs the describer twice, then the button is us
   await host.getByRole("button", { name: /Mehrere Handys/ }).click();
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
-  await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
+  await host.waitForURL(/\/r\/[A-Z0-9]{6}$/);
   const code = host.url().split("/").pop()!;
   const names = ["Lisa", "Nora", "Tim", "Beni"]; // teams alternate on join: Lisa+Tim, Nora+Beni
   const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
@@ -290,7 +290,7 @@ test("drawing round: lines drawn on one phone show up on the others", async ({ b
   await host.getByRole("button", { name: /Mehrere Handys/ }).click();
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
-  await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
+  await host.waitForURL(/\/r\/[A-Z0-9]{6}$/);
   const code = host.url().split("/").pop()!;
   const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
   for (const [i, p] of others.entries()) {
@@ -300,8 +300,7 @@ test("drawing round: lines drawn on one phone show up on the others", async ({ b
   }
   const phones = [host, ...others];
 
-  // only the drawing round, 1 Zetteli each
-  await host.getByRole("button", { name: "Zeichnen hinzufügen" }).click();
+  // only the drawing round, 1 Zetteli each; drawing is already on by default with several phones
   for (const r of ["Umschreiben", "Pantomime", "Ein Wort", "Geräusch"]) await host.getByRole("button", { name: `${r} weglassen` }).click();
   for (let i = 0; i < 3; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
   await host.getByRole("button", { name: "Spiel starten" }).click();
@@ -401,7 +400,7 @@ test("the same word on two phones is cancelled for both, who each write a new on
   await host.getByRole("button", { name: /Mehrere Handys/ }).click();
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
-  await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
+  await host.waitForURL(/\/r\/[A-Z0-9]{6}$/);
   const code = host.url().split("/").pop()!;
   const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
   for (const [i, p] of others.entries()) {
@@ -429,7 +428,7 @@ test("the same word on two phones is cancelled for both, who each write a new on
   await c.getByRole("button", { name: "In die Schüssel" }).click();
   await d.getByLabel("Zetteli 1", { exact: true }).fill("Gipfeli");
   await d.getByRole("button", { name: "In die Schüssel" }).click();
-  await expect(a.getByText(/Runde 1 von 4/)).toBeVisible();
+  await expect(a.getByText(/Runde 1 von 5/)).toBeVisible(); // 5 with several phones: drawing is on by default there
 });
 
 const noSignIn = (page: Page) => page.route("**/api/ai/status", (r) => r.fulfill({ json: { ai: true, login: false, providers: [], user: null } }));
@@ -572,7 +571,7 @@ test("heckle auto: over several turns the team that falls behind gets a bonus; i
   await host.getByRole("button", { name: /Mehrere Handys/ }).click();
   await host.getByLabel("Dein Name").fill("Lisa");
   await host.getByRole("button", { name: "Raum erstellen" }).click();
-  await host.waitForURL(/\/r\/[A-Z0-9]{5}$/);
+  await host.waitForURL(/\/r\/[A-Z0-9]{6}$/);
   const code = host.url().split("/").pop()!;
   const names = ["Lisa", "Nora", "Tim", "Beni"]; // teams alternate on join: Lisa+Tim, Nora+Beni
   const others = await Promise.all([0, 1, 2].map(() => phone(browser)));
@@ -586,7 +585,7 @@ test("heckle auto: over several turns the team that falls behind gets a bonus; i
   await host.getByRole("switch", { name: /Störmodus/ }).check(); // auto is the default
   for (let i = 0; i < 2; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click(); // 2 each: 8 in the bowl
   for (let i = 0; i < 4; i++) await host.getByRole("button", { name: "Sekunden pro Zug weniger" }).click(); // 10 s turns
-  for (const r of ["Pantomime", "Ein Wort", "Geräusch"]) await host.getByRole("button", { name: `${r} weglassen` }).click();
+  for (const r of ["Pantomime", "Ein Wort", "Geräusch", "Zeichnen"]) await host.getByRole("button", { name: `${r} weglassen` }).click(); // one round: drawing is on by default with several phones too
   await host.getByRole("button", { name: "Spiel starten" }).click();
   for (const [i, p] of phones.entries()) {
     for (const z of [1, 2]) await p.getByLabel(`Zetteli ${z}`, { exact: true }).fill(`Wort${i}${z}`);
