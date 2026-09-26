@@ -94,7 +94,7 @@ export default function LocalGamePage() {
   if (!hydrated || !game) return <main className="flex-1" />;
 
   const inGame = !!v && v.phase !== "lobby" && v.phase !== "end";
-  const playing = v &&v.phase !== "lobby" && v.phase !== "write" && v.phase !== "end";
+  const playing = v && v.phase !== "lobby" && v.phase !== "write" && v.phase !== "end";
   const gateKey = v?.phase === "write" && v.settings.source !== "ai" ? `write-${who}-${v.settings.perPlayer}-${v.myWrite?.cancelled.length ?? 0}` : null;
 
   return (

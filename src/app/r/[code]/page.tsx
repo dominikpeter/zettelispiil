@@ -130,7 +130,7 @@ export default function Room() {
   const players = v?.players ?? [];
   const errMsg = err && err !== "forbidden" ? t[errKey(err)] : "";
   const inGame = joined && v.phase !== "lobby" && v.phase !== "end";
-  const playing = v &&v.phase !== "lobby" && v.phase !== "write" && v.phase !== "end";
+  const playing = v && v.phase !== "lobby" && v.phase !== "write" && v.phase !== "end";
   // a signed-in host opened this room: AI is on for everyone who joined
   const aiRoom = joined && v.ai && id ? { code, pid: id.pid, token: id.token } : null;
 
