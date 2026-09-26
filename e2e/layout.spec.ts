@@ -162,9 +162,18 @@ test("iPhone SE: no screen scrolls sideways and single-screen views fit, through
     }
   }
   await expect(end).toBeVisible();
+  await check("end stats");
   await page.getByText(/Alle \d+ Zetteli/).click();
-  await page.locator("summary").filter({ hasText: LONG[0] }).last().click();
-  await check("end stats with details open");
+  await check("end stats, every Zetteli listed");
+  await page.getByRole("button", { name: new RegExp(LONG[0]) }).last().click();
+  const story = page.getByRole("dialog");
+  await expect(story).toHaveAccessibleName(LONG[0]);
+  await check("a long Zetteli's story open");
+  expect(await story.evaluate((d) => d.scrollWidth - d.clientWidth), "the story scrolls sideways").toBeLessThanOrEqual(1);
+  await story.getByText(/erklärt von/).first().getByRole("button").click(); // on to the player who described it
+  await expect(story.getByRole("heading", { name: "Erklärte Zetteli" })).toBeVisible();
+  await check("a player's story open");
+  expect(await story.evaluate((d) => d.scrollWidth - d.clientWidth), "the player story scrolls sideways").toBeLessThanOrEqual(1);
 });
 
 /** the main button stays on screen before any scrolling (sticky at the bottom) */

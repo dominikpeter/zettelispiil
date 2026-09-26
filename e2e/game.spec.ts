@@ -76,12 +76,49 @@ test("one phone: default players, write, swipe through every round, stats at the
   for (const h of ["Spielverlauf", "Punkte pro Runde", "Tempo", "Spieler", "Die Zetteli"]) await expect(page.getByRole("heading", { name: h, exact: true })).toBeVisible();
   for (const w of words) await expect(page.getByText(w, { exact: true }).first()).toBeAttached();
 
-  // details on tap: a Zetteli round by round, a player's rounds and tempo
+  await expect(page.getByRole("heading", { name: "Auszeichnungen" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Meiste Zetteli erklärt/ })).toBeVisible();
+
+  // drill down: a Zetteli's story round by round, on to the player who described it, and back
+  const story = page.getByRole("dialog");
   await page.getByText("Alle 4 Zetteli").click();
-  await page.locator("summary").filter({ hasText: "Schoggi" }).last().click();
-  await expect(page.locator("details[open]").filter({ hasText: "Schoggi" }).last().getByText(/erklärt von/)).toHaveCount(2); // guessed in both rounds
+  await page.getByRole("button", { name: /Schoggi/ }).last().click();
+  await expect(story).toHaveAccessibleName("Schoggi");
+  await expect(story.getByRole("heading", { name: "Runde für Runde" })).toBeVisible();
+  await expect(story.getByText("Sekunden total")).toBeVisible();
+  await expect(story.getByText(/erklärt von/)).toHaveCount(2); // guessed in both rounds
+  const describer = story.getByText(/erklärt von/).first().getByRole("button");
+  const who = await describer.innerText();
+  await describer.click();
+  await expect(story).toHaveAccessibleName(who);
+  await expect(story.getByRole("heading", { name: "Erklärte Zetteli" })).toBeVisible();
+  await expect(story.getByRole("button", { name: /Schoggi/ }).first()).toBeVisible(); // they got it guessed, and it links back
+  await story.getByRole("button", { name: "Zurück" }).click();
+  await expect(story).toHaveAccessibleName("Schoggi");
+  await page.keyboard.press("Escape");
+  await expect(story).toBeHidden();
+
+  // a player's story: tiles, rounds, and the Zetteli they wrote
   await page.getByLabel(/^Lisa: \d+ Zetteli$/).click();
-  await expect(page.locator("details[open]").filter({ has: page.getByLabel(/^Lisa: /) }).getByText(/× übersprungen/)).toBeVisible();
+  await expect(story).toHaveAccessibleName("Lisa");
+  await expect(story.getByText("übersprungen", { exact: true })).toBeVisible();
+  await expect(story.getByRole("heading", { name: "Selbst geschrieben" })).toBeVisible();
+  await story.getByRole("button", { name: "Schliessen" }).click();
+  await expect(story).toBeHidden();
+
+  // the same in English and French
+  for (const [lang, awards, explained, close] of [
+    ["English", "Awards", "Slips explained", "Close"],
+    ["Français", "Distinctions", "Papiers expliqués", "Fermer"],
+  ]) {
+    await page.getByRole("button", { name: /^(Einstellungen|Settings|Réglages)$/ }).first().click();
+    await page.getByRole("button", { name: lang }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("heading", { name: awards })).toBeVisible();
+    await page.getByLabel(/^Lisa: /).click();
+    await expect(story.getByRole("heading", { name: explained })).toBeVisible();
+    await story.getByRole("button", { name: close }).click();
+  }
 });
 
 for (const teams of [3, 4]) {

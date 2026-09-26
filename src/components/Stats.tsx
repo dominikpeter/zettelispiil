@@ -4,31 +4,14 @@ import { useState } from "react";
 import type { RoundType, View } from "@/lib/room";
 import type { Dict } from "@/lib/i18n";
 import { useT } from "@/lib/prefs";
-import { ChevronDown } from "lucide-react";
-import { computeStats, playerDetail, wordDetail } from "@/lib/stats";
+import { ChevronDown, ChevronRight, Trophy } from "lucide-react";
+import { computeStats } from "@/lib/stats";
 import { Confetti, RoundIcon, Slip, TEAM, press } from "@/lib/ui";
 import { Drawings } from "./Drawings";
+import { Awards, CHART, PlayerChip, StorySheet, authorName, fmt, type Ctx, type Focus } from "./StatsDetail";
 
-const fmt = (ms: number) => (ms / 1000).toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: ms < 10_000 ? 1 : 0 });
-const CHART = ["var(--color-chart-a)", "var(--color-chart-b)", "var(--color-chart-c)", "var(--color-chart-d)"]; // one per team
 const W = 340;
-// tappable row that expands in place; the chevron flips when open
-const expand = "group [&[open]>summary>svg]:rotate-180";
-const summary = `cursor-pointer list-none items-center gap-2 rounded-xl [&::-webkit-details-marker]:hidden ${press}`;
-const chevron = <ChevronDown className="size-4 shrink-0 text-muted transition-transform" aria-hidden />;
-
-/** a row that expands in place; its details are only worked out once someone opens it */
-function More({ className = "", head, headClass, label, body }: { className?: string; head: React.ReactNode; headClass: string; label?: string; body: () => React.ReactNode }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <details className={`${expand} ${className}`} onToggle={(e) => setOpen(e.currentTarget.open)}>
-      <summary className={`${summary} ${headClass}`} aria-label={label}>
-        {head}
-      </summary>
-      {open && body()}
-    </details>
-  );
-}
+const chevron = <ChevronRight className="size-4 shrink-0 text-muted" aria-hidden />;
 
 function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (
@@ -217,17 +200,30 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
   const teams = v.players.map((p) => p.team);
   const s = computeStats(st.log, st.turns, st.words, teams, v.scores);
   const names = v.settings.rounds.map((r) => t.round[r].name);
-  const author = (i: number) => (i < 0 ? t.aiAuthor : (v.players[i]?.name ?? "?")); // -1: the AI wrote it
+  // the drill-down: a stack of stories, so going from a player to a word and back works like pages
+  const [stack, setStack] = useState<Focus[]>([]);
+  const c: Ctx = { v, st, s, names, t, showMe, open: (f) => setStack((x) => [...x, f]) };
   const maxGot = Math.max(1, ...s.players.map((p) => p.got));
   const maxHard = Math.max(1, ...s.hardest.map((h) => h.ms));
   const w = s.winner;
+  const openWord = (w: number) => () => c.open({ kind: "word", w });
 
   return (
     <div className="flex flex-col gap-4">
       <Confetti />
-      <header className="pop pt-4 pb-2 text-center">
+      <header className="pt-4 pb-2 text-center">
+        {w !== null && (
+          <span className={`pop mb-1 ${TEAM[w].text}`}>
+            <Trophy className="size-10" aria-hidden />
+          </span>
+        )}
         <p className="text-lg text-muted">{w === null ? t.noWinner : t.winnerIs}</p>
         <h1 className={`mt-1 text-5xl font-extrabold tracking-tight text-balance break-words ${w === null ? "text-ink" : TEAM[w].text}`}>{w === null ? t.tie : v.teamNames[w]}</h1>
+        {w !== null && (
+          <p data-testid="winners" className="mt-3 flex flex-wrap justify-center gap-1.5">
+            {v.players.map((p, i) => (p.team === w ? <PlayerChip key={i} c={c} p={i} /> : null))}
+          </p>
+        )}
         <p data-testid="totals" className={`mt-4 flex flex-wrap items-baseline justify-center font-extrabold tabular-nums ${s.totals.length > 2 ? "gap-2 text-4xl" : "gap-3 text-6xl"}`} aria-label={v.teamNames.map((n, i) => `${n} ${s.totals[i]}`).join(", ")}>
           {s.totals.map((n, i) => (
             <span key={i} className="contents">
@@ -238,6 +234,8 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
         </p>
         <p className="mt-3 text-muted">{t.summary(v.total, s.turnsTotal, s.skipsTotal)}</p>
       </header>
+
+      <Awards c={c} />
 
       <Section title={t.race} note={t.raceNote}>
         <Race race={s.race} turns={st.turns} players={v.players} names={names} teams={v.teamNames} t={t} />
@@ -251,92 +249,77 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
         <Tempo rounds={s.rounds} names={names} label={t.tempoNote} />
       </Section>
 
-      <Section title={t.players} note={t.playersNote}>
+      <Section title={t.players} note={`${t.playersNote} ${t.tapForDetails}`}>
         <ol className="flex flex-col gap-3">
           {s.players.map((p, i) => (
             <li key={p.p}>
-              <More
-                headClass="flex py-0.5"
-                label={`${v.players[p.p].name}: ${t.slipsN(p.got)}`}
-                body={() => <PlayerDetail d={playerDetail(st.log, st.turns, p.p, names.length)} names={names} types={v.settings.rounds} words={st.words} t={t} />}
-                head={<>
-                  <span className="w-5 shrink-0 text-sm font-bold text-muted tabular-nums">{i + 1}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="truncate font-semibold">
-                        {v.players[p.p].name}
-                        {showMe && p.p === v.me && <span className="text-muted"> ({t.you})</span>}
-                      </span>
-                      <span className="shrink-0 text-sm text-muted tabular-nums">{p.perZetteli ? t.perSlip(fmt(p.perZetteli)) : "–"}</span>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="h-2.5 flex-1 rounded-full bg-raised">
-                        <div className="growx h-full rounded-full" style={{ width: `${(p.got / maxGot) * 100}%`, background: CHART[p.team], animationDelay: `${i * 0.05}s` }} />
-                      </div>
-                      <span className="w-6 text-right font-bold tabular-nums">{p.got}</span>
-                    </div>
-                  </div>
-                  {chevron}
-                </>}
-              />
+              <button onClick={() => c.open({ kind: "player", p: p.p })} aria-label={`${v.players[p.p].name}: ${t.slipsN(p.got)}`} className={`flex w-full items-center gap-2 rounded-xl py-0.5 text-left ${press}`}>
+                <span className="w-5 shrink-0 text-sm font-bold text-muted tabular-nums">{i + 1}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="truncate font-semibold">
+                      {v.players[p.p].name}
+                      {showMe && p.p === v.me && <span className="text-muted"> ({t.you})</span>}
+                    </span>
+                    <span className="shrink-0 text-sm text-muted tabular-nums">{p.perZetteli ? t.perSlip(fmt(p.perZetteli)) : "–"}</span>
+                  </span>
+                  <span className="mt-1 flex items-center gap-2">
+                    <span className="block h-2.5 flex-1 rounded-full bg-raised">
+                      <span className="growx block h-full rounded-full" style={{ width: `${(p.got / maxGot) * 100}%`, background: CHART[p.team], animationDelay: `${i * 0.05}s` }} />
+                    </span>
+                    <span className="w-6 text-right font-bold tabular-nums">{p.got}</span>
+                  </span>
+                </span>
+                {chevron}
+              </button>
             </li>
           ))}
         </ol>
       </Section>
 
-      <Section title={t.theSlips}>
+      <Section title={t.theSlips} note={t.tapForDetails}>
         <div className="grid gap-4">
-          {s.fastest && <Highlight label={t.fastest} word={st.words[s.fastest.w]} detail={`${fmt(s.fastest.ms)} s, ${names[s.fastest.r]}`} tilt={-2} type={v.settings.rounds[s.fastest.r]} />}
+          {s.fastest && <Highlight label={t.fastest} word={st.words[s.fastest.w]} detail={`${fmt(s.fastest.ms)} s, ${names[s.fastest.r]}`} tilt={-2} type={v.settings.rounds[s.fastest.r]} onOpen={openWord(s.fastest.w)} />}
           {s.slowest && s.slowest !== s.fastest && (
-            <Highlight label={t.slowest} word={st.words[s.slowest.w]} detail={`${fmt(s.slowest.ms)} s, ${names[s.slowest.r]}`} tilt={1.5} type={v.settings.rounds[s.slowest.r]} />
+            <Highlight label={t.slowest} word={st.words[s.slowest.w]} detail={`${fmt(s.slowest.ms)} s, ${names[s.slowest.r]}`} tilt={1.5} type={v.settings.rounds[s.slowest.r]} onOpen={openWord(s.slowest.w)} />
           )}
-          {s.mostSkipped && <Highlight label={t.mostSkipped} word={st.words[s.mostSkipped.w]} detail={t.backInBowl(s.mostSkipped.count)} tilt={-1} />}
+          {s.mostSkipped && <Highlight label={t.mostSkipped} word={st.words[s.mostSkipped.w]} detail={t.backInBowl(s.mostSkipped.count)} tilt={-1} onOpen={openWord(s.mostSkipped.w)} />}
         </div>
         <h3 className="mt-6 font-semibold">{t.hardest}</h3>
-        <p className="text-sm text-muted">
-          {t.hardestNote} {t.tapForDetails}
-        </p>
+        <p className="text-sm text-muted">{t.hardestNote}</p>
         <ul className="mt-3 flex flex-col gap-2.5">
           {s.hardest.map((h, i) => (
             <li key={h.w}>
-              <More
-                headClass="flex flex-col items-stretch"
-                body={() => <WordDetail d={wordDetail(st.log, h.w, names.length)} names={names} types={v.settings.rounds} players={v.players} t={t} />}
-                head={<>
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="font-hand min-w-0 truncate pr-1.5 text-2xl leading-tight font-bold">{h.text}</span>
-                    <span className="flex shrink-0 items-center gap-1 text-sm text-muted tabular-nums">
-                      {fmt(h.ms)} s, {t.by(author(st.authors[h.w]))}
-                      {chevron}
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-raised">
-                    <div className="growx h-full rounded-full bg-chart-b" style={{ width: `${(h.ms / maxHard) * 100}%`, animationDelay: `${i * 0.05}s` }} />
-                  </div>
-                </>}
-              />
+              <button onClick={openWord(h.w)} className={`flex w-full flex-col items-stretch gap-1 rounded-xl text-left ${press}`}>
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="font-hand min-w-0 truncate pr-1.5 text-2xl leading-tight font-bold">{h.text}</span>
+                  <span className="flex shrink-0 items-center gap-1 self-center text-sm text-muted tabular-nums">
+                    {fmt(h.ms)} s, {t.by(authorName(c, st.authors[h.w]))}
+                    {chevron}
+                  </span>
+                </span>
+                <span className="block h-1.5 rounded-full bg-raised">
+                  <span className="growx block h-full rounded-full bg-chart-b" style={{ width: `${(h.ms / maxHard) * 100}%`, animationDelay: `${i * 0.05}s` }} />
+                </span>
+              </button>
             </li>
           ))}
         </ul>
-        <details className={`${expand} mt-5`}>
-          <summary className={`${summary} flex justify-between py-2 font-semibold`}>
+        <details className="group mt-5">
+          <summary className={`flex cursor-pointer list-none items-center justify-between gap-2 rounded-xl py-2 font-semibold [&::-webkit-details-marker]:hidden ${press}`}>
             {t.allSlips(st.words.length)}
-            {chevron}
+            <ChevronDown className="size-4 shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden />
           </summary>
           <ul className="mt-2 flex flex-col divide-y divide-line">
             {st.words.map((text, w) => (
-              <li key={w} className="py-1.5">
-                <More
-                  headClass="flex justify-between"
-                  body={() => <WordDetail d={wordDetail(st.log, w, names.length)} names={names} types={v.settings.rounds} players={v.players} t={t} />}
-                  head={<>
-                    <span className="font-hand min-w-0 truncate text-xl font-bold">{text}</span>
-                    <span className="flex shrink-0 items-center gap-1 text-sm text-muted">
-                      {t.by(author(st.authors[w]))}
-                      {chevron}
-                    </span>
-                  </>}
-                />
+              <li key={w}>
+                <button onClick={openWord(w)} className={`flex w-full items-center justify-between gap-2 rounded-xl py-1.5 text-left ${press}`}>
+                  <span className="font-hand min-w-0 truncate pr-1.5 text-xl font-bold">{text}</span>
+                  <span className="flex shrink-0 items-center gap-1 text-sm text-muted">
+                    {t.by(authorName(c, st.authors[w]))}
+                    {chevron}
+                  </span>
+                </button>
               </li>
             ))}
           </ul>
@@ -345,13 +328,15 @@ export function Stats({ v, showMe }: { v: View; showMe: boolean }) {
 
       {/* several phones only: one phone draws on paper, nothing to replay */}
       {showMe && <Drawings code={v.code} drawings={st.drawings ?? []} words={st.words} players={v.players} t={t} />}
-      <HeckleStats v={v} t={t} />
+      <HeckleStats c={c} />
+      <StorySheet c={c} stack={stack} onBack={() => setStack((x) => x.slice(0, -1))} onClose={() => setStack([])} />
     </div>
   );
 }
 
 /** who heckled how often, and which teams got a heckle bonus (only when anybody heckled or got one) */
-function HeckleStats({ v, t }: { v: View; t: Dict }) {
+function HeckleStats({ c }: { c: Ctx }) {
+  const { v, t } = c;
   const heckles = v.stats?.heckles ?? [];
   const bonus = v.stats?.bonusGot ?? [];
   if (!heckles.length && !bonus.some(Boolean)) return null;
@@ -371,8 +356,8 @@ function HeckleStats({ v, t }: { v: View; t: Dict }) {
       )}
       <ul className="flex flex-col gap-1.5">
         {by.map(([p, n]) => (
-          <li key={p} className="flex items-baseline justify-between gap-3">
-            <span className={`truncate font-semibold ${TEAM[v.players[p]?.team ?? 0].text}`}>{v.players[p]?.name ?? "?"}</span>
+          <li key={p} className="flex items-center justify-between gap-3">
+            <PlayerChip c={c} p={p} />
             <span className="shrink-0 text-sm text-muted tabular-nums">{t.heckledN(n)}</span>
           </li>
         ))}
@@ -381,70 +366,20 @@ function HeckleStats({ v, t }: { v: View; t: Dict }) {
   );
 }
 
-function Highlight({ label, word, detail, tilt, type }: { label: string; word: string; detail: string; tilt: number; type?: RoundType }) {
+function Highlight({ label, word, detail, tilt, type, onOpen }: { label: string; word: string; detail: string; tilt: number; type?: RoundType; onOpen: () => void }) {
   return (
     <div>
       <p className="text-sm text-muted">{label}</p>
-      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+      <button onClick={onOpen} className={`mt-1 flex max-w-full flex-wrap items-center gap-x-4 gap-y-1 rounded-xl text-left ${press}`}>
         <Slip tilt={tilt} className="inline-block max-w-full px-4 pt-2">
           <span className="font-hand text-3xl font-bold break-words">{word}</span>
         </Slip>
         <span className="flex items-center gap-1.5 text-sm text-muted tabular-nums">
           {type && <RoundIcon type={type} className="size-4 shrink-0 text-accent" />}
           {detail}
+          {chevron}
         </span>
-      </div>
-    </div>
-  );
-}
-
-/** a Zetteli round by round: who got it guessed, how long it took, how often it went back into the bowl */
-function WordDetail({ d, names, types, players, t }: { d: ReturnType<typeof wordDetail>; names: string[]; types: RoundType[]; players: View["players"]; t: Dict }) {
-  return (
-    <ul className="mt-2 flex flex-col gap-1.5 rounded-2xl bg-raised p-3 text-sm">
-      {d.map((r) => (
-        <li key={r.r} className="flex items-start gap-2">
-          <RoundIcon type={types[r.r]} className="mt-0.5 size-4 shrink-0 text-accent" />
-          <div className="min-w-0">
-            <span className="font-semibold">{names[r.r]}</span>
-            <span className="text-muted tabular-nums">
-              {": "}
-              {[r.by === null ? t.notGuessed : t.describedBy(players[r.by]?.name ?? "?"), r.ms ? `${fmt(r.ms)} s` : null, r.skips ? t.skippedN(r.skips) : null].filter(Boolean).join(", ")}
-            </span>
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** a player: guessed Zetteli per round, tempo, skips, quickest and slowest word */
-function PlayerDetail({ d, names, types, words, t }: { d: ReturnType<typeof playerDetail>; names: string[]; types: RoundType[]; words: string[]; t: Dict }) {
-  const word = (e: NonNullable<typeof d.fastest>) => `${words[e.w]}, ${fmt(e.ms)} s, ${names[e.r]}`;
-  return (
-    <div className="mt-2 ml-7 flex flex-col gap-1.5 rounded-2xl bg-raised p-3 text-sm">
-      <ul className="flex flex-wrap gap-x-4 gap-y-1">
-        {d.perRound.map((n, r) => (
-          <li key={r} className="flex items-center gap-1.5 tabular-nums">
-            <RoundIcon type={types[r]} className="size-4 shrink-0 text-accent" />
-            <span className="sr-only">{names[r]}:</span>
-            {t.slipsN(n)}
-          </li>
-        ))}
-      </ul>
-      <p className="text-muted tabular-nums">{[d.avgMs ? t.perSlip(fmt(d.avgMs)) : null, t.skippedN(d.skips)].filter(Boolean).join(", ")}</p>
-      {d.fastest && (
-        <p>
-          <span className="text-muted">{t.fastest}: </span>
-          {word(d.fastest)}
-        </p>
-      )}
-      {d.slowest && (
-        <p>
-          <span className="text-muted">{t.slowest}: </span>
-          {word(d.slowest)}
-        </p>
-      )}
+      </button>
     </div>
   );
 }
