@@ -4,7 +4,7 @@ import { count } from "@/lib/usage";
 
 // Stripe tells us a coffee was paid: counted for the admin page. Only events signed with our webhook secret count.
 // Nothing else happens on payment (a donation unlocks nothing), so the success page never has to.
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "sk_unused"); // verifying a signature needs no API key
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_unused"); // verifying a signature needs no API key
 const PAID = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded"]);
 
 export async function POST(req: Request) {
