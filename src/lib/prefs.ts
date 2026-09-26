@@ -37,6 +37,7 @@ export const PALETTES = [
   { id: "gold", swatch: ["#332b00", "#ffd500", "#8907cf"] },
   { id: "sunset", swatch: ["#003049", "#f77f00", "#fcbf49"] },
   { id: "ocean", swatch: ["#00131d", "#50c2ff", "#d62828"] },
+  { id: "neon", swatch: ["#c3ec63", "#ff77aa", "#ffc04d"] },
   { id: "arosa", swatch: ["#0a1fd6", "#ffe000", "#ffffff"] },
   { id: "aarau", swatch: ["#111111", "#e30613", "#ffffff"] },
 ] as const;

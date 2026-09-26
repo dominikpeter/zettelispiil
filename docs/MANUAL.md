@@ -188,7 +188,7 @@ Mit **Nochmal spielen** startet die Spielleitung eine neue Partie.
 Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 
 - **Hell oder dunkel**: Der Knopf daneben wechselt direkt. Unter **Darstellung** wählst du Auto, Hell oder Dunkel.
-- **Farben**: Post-it (Standard), Nacht, Tinte, Gold, Abendrot, Ozean, Arosa (Blau und Sonnengelb) oder Aarau (Schwarz, Rot, Weiss).
+- **Farben**: Post-it (Standard), Nacht, Tinte, Gold, Abendrot, Ozean, Neon (Zetteli in Neonfarben wie ein Stapel Post-its), Arosa (Blau und Sonnengelb) oder Aarau (Schwarz, Rot, Weiss).
 - **Sprache**: Deutsch, English oder Français.
 - **KI-Hilfe**: An oder Aus. Prüft Rechtschreibung und Schwierigkeit, schlägt Hinweise und lustige Namen vor.
 - **Hinweise beim Erklären**: An oder Aus. Zeigt den KI-Hinweis klein unter dem Zetteli. Braucht KI-Hilfe.

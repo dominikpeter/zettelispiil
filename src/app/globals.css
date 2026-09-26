@@ -301,6 +301,39 @@
   --l-chart-a: #ae26f7;
   --l-chart-b: #cca000;
 }
+/* Neon: a stack of neon sticky notes, and in this palette the Zetteli come in those colours too */
+:root[data-palette="neon"] {
+  --d-canvas: #0e100c;
+  --d-surface: #171a13;
+  --d-raised: #22261b;
+  --d-line: #30352a;
+  --d-ink: #f7fbe9;
+  --d-muted: #b3bba1;
+  --d-accent: #b6ec4f;
+  --d-hi: #f0f35a;
+  --d-cta: #ffb02e;
+  --d-cta-ink: #1a1206;
+  --d-cta-edge: #b86e00;
+  --d-team-a: #ff5c9d;
+  --d-team-b: #56b4ec;
+  --d-chart-a: #f0508f;
+  --d-chart-b: #4aa3dc;
+  --l-canvas: #fafdf0;
+  --l-surface: #ffffff;
+  --l-raised: #f0f8d9;
+  --l-line: #dfe8c4;
+  --l-ink: #1a1d12;
+  --l-muted: #5d6450;
+  --l-accent: #3f7a0c;
+  --l-hi: #d6246e;
+  --l-cta: #ffb02e;
+  --l-cta-ink: #1a1206;
+  --l-cta-edge: #b86e00;
+  --l-team-a: #d6246e;
+  --l-team-b: #1f7fbf;
+  --l-chart-a: #f0508f;
+  --l-chart-b: #4aa3dc;
+}
 /* Arosa: the crest's deep blue, its sun yellow and the snow */
 :root[data-palette="arosa"] {
   --d-canvas: #030626;
@@ -510,6 +543,13 @@ button { user-select: none; }
 
 /* animation helpers live in the components layer so utilities like `flex` still win */
 @layer components {
+/* Neon palette: each slip a different sticky note */
+:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 1) { --color-paper: #c3ec63; --color-paper-edge: #9ccf3a; }
+:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 2) { --color-paper: #f3f566; --color-paper-edge: #dfe23a; }
+:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 3) { --color-paper: #ffc04d; --color-paper-edge: #f2a21e; }
+:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 4) { --color-paper: #ff9d78; --color-paper-edge: #f47c55; }
+:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n + 5) { --color-paper: #ff77aa; --color-paper-edge: #ec4f8a; }
+:root[data-palette="neon"] :is(.slip, .mini-slip):nth-child(6n) { --color-paper: #7cc3ec; --color-paper-edge: #4ea8dc; }
 /* slip unfolding out of the bowl */
 @keyframes unfold {
   0% { opacity: 0; transform: translateY(40px) rotate(var(--tilt, -2deg)) scaleY(0.05); }

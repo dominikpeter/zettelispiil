@@ -100,6 +100,7 @@ const de = {
   palette_gold: "Gold",
   palette_sunset: "Abendrot",
   palette_ocean: "Ozean",
+  palette_neon: "Neon",
   palette_arosa: "Arosa",
   palette_aarau: "Aarau",
   // room
@@ -358,6 +359,7 @@ const en: Dict = {
   palette_gold: "Gold",
   palette_sunset: "Sunset",
   palette_ocean: "Ocean",
+  palette_neon: "Neon",
   palette_arosa: "Arosa",
   palette_aarau: "Aarau",
   leaveConfirm: "Leave the game? You can come back with the link.",
@@ -609,6 +611,7 @@ const fr: Dict = {
   palette_gold: "Or",
   palette_sunset: "Crépuscule",
   palette_ocean: "Océan",
+  palette_neon: "Neon",
   palette_arosa: "Arosa",
   palette_aarau: "Aarau",
   leaveConfirm: "Quitter la partie ? Tu peux revenir avec le lien.",
