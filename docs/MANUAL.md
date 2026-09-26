@@ -54,7 +54,7 @@ Die Spielleitung legt mit Plus und Minus fest:
   - Mit einer Grenze von 1 kannst du also hin- und hertauschen, aber kein zweites Zetteli überspringen.
   - Bei ∞ darfst du beliebig oft überspringen.
   - Am Ende des Zugs kommen beiseitegelegte Zetteli zurück in die Schüssel.
-- **Stören erlaubt** (nur mit mehreren Handys): Schalter, standardmässig aus. Ist er an, dürfen die anderen Teams die erklärende Person ablenken (siehe «Stören» unten).
+- **Störmodus** (nur mit mehreren Handys): Schalter, standardmässig aus. Ist er an, dürfen die anderen Teams die erklärende Person ablenken (siehe «Stören» unten).
   - **Auto** (Standard) oder **Fix**: Bei «Auto» bekommt ein Team, das zurückliegt, manchmal einen Stör-Bonus (siehe unten). Bei «Fix» darf jede Person der anderen Teams gleich oft stören.
   - **Stören pro Person und Zug** (nur bei «Fix»): 1 bis 5, Standard 2.
 - **Wer schreibt die Zetteli?** (nur mit KI-Hilfe): **Selber schreiben** (Standard) oder **KI schreibt**. Bei «KI schreibt» schreibt die KI alle Zetteli, so kennt niemand ein Wort im Voraus (siehe «KI schreibt die Zetteli» unten).
@@ -142,7 +142,7 @@ Vor jedem Zug siehst du, wer dran ist und für welches Team. Wer erklärt, tippt
 
 ### Stören
 
-Hat die Spielleitung **Stören erlaubt** eingeschaltet, dürfen die anderen Teams («Zuhören») die erklärende Person ablenken. Unter dem Knopf steht, wie oft ihr in diesem Zug noch stören dürft («noch 2×»).
+Hat die Spielleitung **Störmodus** eingeschaltet, dürfen die anderen Teams («Zuhören») die erklärende Person ablenken. Unter dem Knopf steht, wie oft ihr in diesem Zug noch stören dürft («noch 2×»).
 
 - **Auto** (Standard): Zu Beginn jedes Zugs kann ein Team, das hinten liegt, einen **Stör-Bonus** bekommen: 30 % Chance, pro Punkt Rückstand 10 % mehr, höchstens 80 %. Der Bonus gilt fürs ganze Team: 1× stören, bei 5 oder mehr Punkten Rückstand 2×. Wer vorne liegt oder gleichauf ist, bekommt nie einen. Der Knopf **Stör-Bonus!** erscheint nur, wenn euer Team einen hat. Drückt jemand aus deinem Team, siehst du «<Name> hat gestört».
 - **Fix**: Jede Person der anderen Teams darf pro Zug so oft stören, wie eingestellt. Im nächsten Zug geht es wieder von vorne los.

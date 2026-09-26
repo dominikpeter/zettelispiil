@@ -213,12 +213,12 @@ test("heckle: the other team disturbs the describer twice, then the button is us
 
   // host turns heckling on (2 per player and turn is the default); the others see it in the summary
   await expect(host.getByRole("button", { name: "Stören pro Person und Zug mehr" })).toHaveCount(0);
-  await host.getByRole("switch", { name: /Stören erlaubt/ }).check();
-  await expect(others[0].getByText("Stören: Stör-Bonus fürs Team, das zurückliegt")).toBeVisible(); // auto by default
+  await host.getByRole("switch", { name: /Störmodus/ }).check();
+  await expect(others[0].getByText("Störmodus: Stör-Bonus fürs Team, das zurückliegt")).toBeVisible(); // auto by default
   await expect(host.getByRole("button", { name: "Stören pro Person und Zug mehr" })).toHaveCount(0);
   await host.getByRole("button", { name: "Fix", exact: true }).click(); // a fixed number per player instead
   await expect(host.getByRole("button", { name: "Stören pro Person und Zug mehr" })).toBeVisible();
-  await expect(others[0].getByText("Stören erlaubt, 2× pro Person und Zug")).toBeVisible();
+  await expect(others[0].getByText("Störmodus: 2× pro Person und Zug")).toBeVisible();
   for (let i = 0; i < 3; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
   await host.getByRole("button", { name: "Spiel starten" }).click();
   for (const [i, p] of phones.entries()) {
@@ -583,7 +583,7 @@ test("heckle auto: over several turns the team that falls behind gets a bonus; i
     await expect(others[i].getByText("(du)")).toBeVisible();
   }
   const phones = [host, ...others];
-  await host.getByRole("switch", { name: /Stören erlaubt/ }).check(); // auto is the default
+  await host.getByRole("switch", { name: /Störmodus/ }).check(); // auto is the default
   for (let i = 0; i < 2; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click(); // 2 each: 8 in the bowl
   for (let i = 0; i < 4; i++) await host.getByRole("button", { name: "Sekunden pro Zug weniger" }).click(); // 10 s turns
   for (const r of ["Pantomime", "Ein Wort", "Geräusch"]) await host.getByRole("button", { name: `${r} weglassen` }).click();

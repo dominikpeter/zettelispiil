@@ -2,8 +2,7 @@
 
 import {
   ArrowLeftRight, Briefcase, Car, Castle, Check, Clapperboard, Crown, Globe, Infinity as Inf, Minus, Mountain, Music, Palette, PartyPopper,
-  PawPrint, Pencil, PersonStanding, Plus, Share2, Shuffle, Sofa, Sparkles, Star, Trees, Trophy, UserPlus, UtensilsCrossed, X, type LucideIcon,
-} from "lucide-react";
+  PawPrint, Pencil, PersonStanding, Plus, Share2, Shuffle, Sofa, Sparkles, Star, Trees, Trophy, UserPlus, UtensilsCrossed, X, Megaphone, type LucideIcon } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { useAiOn, useAiRoom } from "@/lib/aiAccess";
 import { langPref, useT } from "@/lib/prefs";
@@ -267,11 +266,20 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
               <Stepper label={t.skips} value={skipStep} display={s.skips === -1 ? <Inf className="size-6" aria-label="∞" /> : undefined} set={(n) => set({ skips: n >= 6 ? -1 : n })} min={0} max={6} />
               {!local && (
                 <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
-                  <span>
-                    <span className="block font-medium">{t.heckleOn}</span>
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-2 font-medium">
+                      <Megaphone className="size-4 shrink-0 text-accent" aria-hidden /> {t.heckleOn}
+                    </span>
                     <span className="block text-sm text-muted">{t.heckleHelp}</span>
                   </span>
-                  <input type="checkbox" role="switch" checked={s.heckle} onChange={(e) => set({ heckle: e.target.checked })} className="size-6 shrink-0 accent-accent" />
+                  {/* a toggle in the theme's colours (a bare checkbox renders black on dark backgrounds) */}
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    checked={s.heckle}
+                    onChange={(e) => set({ heckle: e.target.checked })}
+                    className="relative h-7 w-12 shrink-0 cursor-pointer appearance-none rounded-full border border-line bg-raised transition-colors before:absolute before:top-0.5 before:left-0.5 before:size-5.5 before:rounded-full before:bg-muted before:transition-transform checked:border-accent checked:bg-accent checked:before:translate-x-5 checked:before:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  />
                 </label>
               )}
               {!local && s.heckle && (
