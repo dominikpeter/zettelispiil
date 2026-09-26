@@ -33,18 +33,20 @@ export type Counter =
   | "coffees" // "buy me a coffee" payments (Stripe webhook)
   | "coffee_rappen"; // and what they brought in, in Rappen
 
-/** add to today's counters; never throws */
-export async function count(add: Partial<Record<Counter, number>>, now = new Date(), r = client()) {
+/** add to today's counters; never throws. false when the write failed (the caller may want to retry) */
+export async function count(add: Partial<Record<Counter, number>>, now = new Date(), r = client()): Promise<boolean> {
   const entries = Object.entries(add).filter(([, n]) => n);
-  if (!r || !entries.length) return;
+  if (!r || !entries.length) return true;
   try {
     const key = dayKey(now);
     const p = r.pipeline();
     for (const [f, n] of entries) p.hincrby(key, f, n!);
     p.expire(key, KEEP);
     await p.exec();
+    return true;
   } catch (e) {
     console.error("usage count failed", e);
+    return false;
   }
 }
 

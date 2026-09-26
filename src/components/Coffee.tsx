@@ -1,7 +1,7 @@
 "use client";
 
 import { Coffee as Cup } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { COFFEES, MAX_CHF } from "@/lib/coffee";
 import { isNative } from "@/lib/native";
 import { langPref, useT } from "@/lib/prefs";
@@ -20,6 +20,13 @@ export function Coffee() {
   const [custom, setCustom] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  // back from Stripe with the back button, the browser shows this page as it was left (buttons still busy): free them again,
+  // so another coffee can always be bought
+  useEffect(() => {
+    const again = () => setBusy(false);
+    addEventListener("pageshow", again);
+    return () => removeEventListener("pageshow", again);
+  }, []);
   if (!process.env.NEXT_PUBLIC_COFFEE || inApp) return null;
 
   const buy = async (chf: number) => {

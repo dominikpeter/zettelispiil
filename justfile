@@ -66,6 +66,10 @@ auth-setup:
 email-setup:
     bash scripts/setup-email.sh
 
+# which payment methods the coffee checkout offers right now, and TWINT's approval (read-only, needs `stripe login`)
+stripe-check:
+    bash scripts/stripe-check.sh
+
 # "buy me a coffee": asks for the Stripe restricted key and webhook secret (never shown); `just stripe-setup local` for .env.local only
 stripe-setup *where:
     bash scripts/setup-stripe.sh {{where}}
