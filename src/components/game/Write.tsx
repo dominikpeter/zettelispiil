@@ -5,7 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import { useAiOn, useAiRoom } from "@/lib/aiAccess";
 import { useT } from "@/lib/prefs";
 import { norm, type Slip as SlipT } from "@/lib/room";
-import { Bowl, btn, btn2, fitLine, press, Slip } from "@/lib/ui";
+import { Bowl, btn, btn2, FillingBowl, fitLine, press, Slip } from "@/lib/ui";
 import { Cta, type P } from "./common";
 
 type Check = { corrected: string; tooHard: boolean; reason: string; hint: string };
@@ -86,16 +86,7 @@ export function Write({ v, send, busy }: P) {
   if (v.iDone)
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
-        <div className="relative h-40 w-48">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="fall mini-slip absolute top-6 h-8 w-12"
-              style={{ left: `${30 + i * 18}%`, animationDelay: `${i * 0.5}s`, "--r0": `${-20 + i * 15}deg`, "--r1": `${10 - i * 12}deg` } as CSSProperties}
-            />
-          ))}
-          <Bowl className="absolute bottom-0 left-1/2 w-40 -translate-x-1/2" />
-        </div>
+        <FillingBowl />
         <h2 className="text-3xl font-extrabold tracking-tight">{t.wordsIn}</h2>
         <p className="text-muted">
           <span key={v.done} className="bump font-bold text-ink tabular-nums">

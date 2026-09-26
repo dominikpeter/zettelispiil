@@ -136,8 +136,12 @@ export function SettingsPanel() {
               className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border-2 font-semibold ${press} ${palette === p.id ? "border-accent bg-raised" : "border-line"}`}
             >
               <span className="flex -space-x-2" aria-hidden>
-                {p.swatch.map((c) => (
-                  <span key={c} className="size-7 rounded-full ring-2 ring-surface" style={{ background: c }} />
+                {p.swatch.map((c, j) => (
+                  <span
+                    key={`${c}${palette === p.id}`}
+                    className={`size-7 rounded-full ring-2 ring-surface ${palette === p.id ? "hop" : ""}`}
+                    style={{ background: c, animationDelay: `${j * 70}ms` }}
+                  />
                 ))}
               </span>
               {t[`palette_${p.id}`]}

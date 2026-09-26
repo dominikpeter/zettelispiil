@@ -17,6 +17,23 @@ async function swipe(page: Page, dir: "right" | "left") {
 
 const word = (page: Page) => page.getByTestId("word").innerText();
 
+// feedback: a renamed player ("Beni auf Kufen", an AI name from an earlier game) kept coming back. The list lived in page
+// state only, and the page kept an old copy for the whole visit
+test("home: a renamed player stays renamed, after a reload and back from a game", async ({ page }) => {
+  await page.goto("/");
+  const first = () => page.getByLabel("Spieler 1", { exact: true });
+  await first().fill("Beni");
+  await page.reload();
+  await expect(first()).toHaveValue("Beni");
+  await page.getByRole("button", { name: "Neues Spiel" }).click();
+  await page.waitForURL(/\/local$/);
+  await page.goBack(); // back inside the app: no older copy of the list
+  await expect(first()).toHaveValue("Beni");
+  await first().fill("Nina");
+  await page.goto("/"); // and a fresh load of the page
+  await expect(first()).toHaveValue("Nina");
+});
+
 test("one phone: default players, write, swipe through every round, stats at the end", async ({ page }) => {
   await page.goto("/");
   for (const n of ["Lisa", "Nora", "Nelly", "Tim"]) await expect(page.getByLabel(/Spieler \d/).and(page.locator(`[value="${n}"]`))).toBeVisible();
@@ -365,7 +382,7 @@ test("drawing round: lines drawn on one phone show up on the others", async ({ b
 
 /** one-phone game with 1 Zetteli each, written by `write(i)`, up to the first "Los" */
 async function localGame(page: Page, write = (i: number) => `Wort${i}`) {
-  page.on("dialog", (d) => d.accept()); // confirm() for leaving / cancelling
+  page.on("dialog", (d) => expect.soft(`${d.type()}: ${d.message()}`, "a native browser dialog: in-app browsers never show it, the button would do nothing").toBe(""));
   await page.goto("/");
   await page.getByRole("button", { name: "Neues Spiel" }).click();
   await page.waitForURL(/\/local$/);
@@ -393,6 +410,7 @@ test("pause hides the Zetteli and stops the clock; cancel goes back to the lobby
 
   await page.getByRole("button", { name: "Pause" }).click();
   await page.getByRole("button", { name: "Spiel abbrechen" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Spiel abbrechen" }).click(); // asked in the app
   await expect(page.getByRole("button", { name: "Spiel starten" })).toBeVisible(); // lobby, same players
   await expect(page.getByText("Tim", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Zurück" }).click();
@@ -445,7 +463,7 @@ test("AI help: spelling suggestion, hint filled in and shown to the describer (A
     const fix: Record<string, string> = { Matterhon: "Matterhorn" };
     await route.fulfill({ json: { ai: true, results: words.map((w) => ({ word: w, corrected: fix[w] ?? w, tooHard: w === "Quark", reason: "", hint: `Tipp zu ${fix[w] ?? w}` })) } });
   });
-  page.on("dialog", (d) => d.accept());
+  page.on("dialog", (d) => expect.soft(`${d.type()}: ${d.message()}`, "a native browser dialog: in-app browsers never show it, the button would do nothing").toBe(""));
   await page.goto("/");
   await page.getByRole("button", { name: "Neues Spiel" }).click();
   await page.waitForURL(/\/local$/);
@@ -645,4 +663,74 @@ test("heckle auto: over several turns the team that falls behind gets a bonus; i
   await expect(host.getByRole("heading", { name: "Stören" })).toBeVisible();
   await expect(host.getByText(/1× Stör-Bonus/)).toBeVisible();
   await expect(host.getByText("1× gestört")).toBeVisible();
+});
+
+// feedback: "Zurück" and "Spiel abbrechen" did nothing. They asked with the browser's confirm(), which in-app browsers
+// (a link from WhatsApp), the phone apps and previews answer "no" without showing it. Every way out of a game, in every
+// phase, is pressed here and must do what it says; a native dialog fails the test (see localGame)
+test("every phase: back and each pause-menu button work (asked in the app, never a browser dialog)", async ({ page }) => {
+  test.setTimeout(120_000);
+  const ask = page.getByRole("alertdialog");
+  const home = async () => {
+    await expect(page).toHaveURL("/");
+    await page.getByRole("button", { name: "Weiterspielen" }).click(); // the game is still there
+    await page.waitForURL(/\/local$/);
+    // left from the pause menu mid-turn: the turn is still paused, clock frozen, so it resumes from there
+    const paused = page.getByRole("dialog", { name: "Pause" });
+    if (await paused.isVisible()) await paused.getByRole("button", { name: "Weiterspielen" }).click();
+  };
+  const escapes = async (phase: string, here: () => Promise<void>) => {
+    // back: "no" keeps you in the game, "yes" goes home, and the game waits there
+    await page.getByRole("button", { name: "Zurück" }).click();
+    await expect(ask, `${phase}: back asks`).toBeVisible();
+    await ask.getByRole("button", { name: "Weiterspielen" }).click();
+    await expect(ask).toHaveCount(0);
+    await here();
+    await page.getByRole("button", { name: "Zurück" }).click();
+    await ask.getByRole("button", { name: "Zur Startseite" }).click();
+    await home();
+    await here();
+    // pause menu: resume, and to the start page
+    await page.getByRole("button", { name: "Pause" }).click();
+    const menu = page.getByRole("dialog", { name: "Pause" });
+    await menu.getByRole("button", { name: "Weiterspielen" }).click();
+    await expect(menu, `${phase}: resume closes the menu`).toHaveCount(0);
+    await here();
+    await page.getByRole("button", { name: "Pause" }).click();
+    await menu.getByRole("button", { name: "Zur Startseite" }).click();
+    await home();
+    await here();
+    // cancelling asks too: "no" keeps the game
+    await page.getByRole("button", { name: "Pause" }).click();
+    await menu.getByRole("button", { name: "Spiel abbrechen" }).click();
+    await ask.getByRole("button", { name: "Weiterspielen" }).click();
+    await expect(ask).toHaveCount(0);
+    await menu.getByRole("button", { name: "Weiterspielen" }).click();
+    await here();
+  };
+
+  await localGame(page, (i) => `Wort${i}`); // everyone has written: the first team is up
+  await escapes("before a turn", () => expect(page.getByRole("button", { name: "Los, Zetteli ziehen" })).toBeVisible());
+  await page.getByRole("button", { name: "Los, Zetteli ziehen" }).click();
+  await escapes("during a turn", () => expect(page.getByTestId("word")).toBeVisible());
+
+  // and while writing: a new game, straight to the first writer
+  await page.getByRole("button", { name: "Pause" }).click();
+  await page.getByRole("dialog", { name: "Pause" }).getByRole("button", { name: "Spiel abbrechen" }).click();
+  await ask.getByRole("button", { name: "Spiel abbrechen" }).click();
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  await page.getByRole("button", { name: /^Ich bin / }).click();
+  await escapes("writing", async () => {
+    // back in a one-phone game while writing, the phone is handed over again first: nobody sees the others' Zetteli
+    const iAm = page.getByRole("button", { name: /^Ich bin / });
+    if (await iAm.isVisible()) await iAm.click();
+    await expect(page.getByRole("button", { name: "In die Schüssel" })).toBeVisible();
+  });
+  // finally cancel for real: back in the lobby, where back needs no asking
+  await page.getByRole("button", { name: "Pause" }).click();
+  await page.getByRole("dialog", { name: "Pause" }).getByRole("button", { name: "Spiel abbrechen" }).click();
+  await ask.getByRole("button", { name: "Spiel abbrechen" }).click();
+  await expect(page.getByRole("button", { name: "Spiel starten" })).toBeVisible();
+  await page.getByRole("button", { name: "Zurück" }).click();
+  await expect(page).toHaveURL("/");
 });

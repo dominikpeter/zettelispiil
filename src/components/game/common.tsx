@@ -1,11 +1,11 @@
 "use client";
 
-import { Loader2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAiOn } from "@/lib/aiAccess";
 import { useT } from "@/lib/prefs";
 import { type Action, type RoundType, type Stroke, type View } from "@/lib/room";
-import { panel, press, RoundIcon } from "@/lib/ui";
+import { btn, btn2, panel, press, RoundIcon } from "@/lib/ui";
 
 export type Mode = "online" | "local";
 /** `as`: in one-phone games, act as that player; online always acts as this phone's player */
@@ -69,7 +69,37 @@ export function AiNameButton({ label, make, onName, disabled, className = mini }
       aria-busy={loading}
       className={className}
     >
-      {loading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Sparkles className="size-4" aria-hidden />}
+      <Sparkles className={`size-4 ${loading ? "twinkle" : ""}`} aria-hidden />
     </button>
+  );
+}
+
+/**
+ * "Really?" asked inside the app. Not the browser's confirm(): in-app browsers (a link opened from WhatsApp), the phone
+ * apps' web view and embedded previews answer it "no" without showing anything, so the button just did nothing.
+ * The safe choice is the big button; tapping outside or Escape is "no" too.
+ */
+export function Confirm({ text, yes, no, onYes, onNo }: { text: string; yes: string; no: string; onYes: () => void; onNo: () => void }) {
+  return (
+    <div
+      role="alertdialog"
+      aria-modal="true"
+      aria-label={text}
+      onClick={onNo}
+      onKeyDown={(e) => e.key === "Escape" && onNo()}
+      className="enter fixed inset-0 z-[60] flex items-end justify-center bg-canvas/70 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm"
+    >
+      <div onClick={(e) => e.stopPropagation()} className="mb-2 w-full max-w-md rounded-3xl bg-surface p-5 shadow-lg">
+        <p className="text-lg leading-snug font-semibold">{text}</p>
+        <div className="mt-4 flex flex-col gap-2">
+          <button autoFocus onClick={onNo} className={btn}>
+            {no}
+          </button>
+          <button onClick={onYes} className={btn2}>
+            {yes}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

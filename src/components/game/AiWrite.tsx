@@ -1,12 +1,12 @@
 "use client";
 
 import { AlertTriangle, PenLine, RotateCw } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAiRoom } from "@/lib/aiAccess";
 import { useT } from "@/lib/prefs";
 import { aiWordCount } from "@/lib/room";
 import { aiZetteli } from "@/lib/roomClient";
-import { Bowl, btn, btn2 } from "@/lib/ui";
+import { btn, btn2, FillingBowl } from "@/lib/ui";
 import { Cta, Waiting, type P } from "./common";
 
 /** "KI schreibt": the host's phone fetches every Zetteli and puts them in the bowl; nobody sees them. If the AI can't, the host switches to writing. */
@@ -32,17 +32,7 @@ export function AiWrite({ v, send, busy }: P) {
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
-        <div className="relative h-40 w-48">
-          {!failed &&
-            [0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className="fall mini-slip absolute top-6 h-8 w-12"
-                style={{ left: `${30 + i * 18}%`, animationDelay: `${i * 0.5}s`, "--r0": `${-20 + i * 15}deg`, "--r1": `${10 - i * 12}deg` } as CSSProperties}
-              />
-            ))}
-          <Bowl className="absolute bottom-0 left-1/2 w-40 -translate-x-1/2" />
-        </div>
+        {!failed && <FillingBowl />}
         {failed ? (
           <p role="alert" className="pop flex items-start gap-2 rounded-2xl bg-raised px-4 py-3 text-left font-medium">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-hi" aria-hidden /> {t.aiFailed}

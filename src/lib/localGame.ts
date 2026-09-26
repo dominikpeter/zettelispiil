@@ -24,20 +24,47 @@ export function saveLocalGame(g: LocalGame) {
 const PLAYERS_KEY = "zettelispiil:players";
 export const DEFAULT_PLAYERS = ["Lisa", "Nora", "Nelly", "Tim"];
 
-export function loadPlayers(): string[] {
+// The home page's player list: saved on every edit, so a rename survives a reload or a visit elsewhere (it used to live
+// in page state only and was written just when a game started, so old names came back). One copy in memory, the same
+// array until it changes (useSyncExternalStore needs that), kept in step with localStorage and with other tabs.
+let players: string[] | undefined;
+const listeners = new Set<() => void>();
+const readPlayers = (): string[] => {
   try {
     const p = JSON.parse(localStorage.getItem(PLAYERS_KEY) ?? "null");
-    return Array.isArray(p) && p.length ? p : DEFAULT_PLAYERS;
+    return Array.isArray(p) ? p : DEFAULT_PLAYERS; // an empty list is a choice too; nothing saved yet: the defaults
   } catch {
     return DEFAULT_PLAYERS;
   }
+};
+
+export const loadPlayers = (): string[] => (players ??= readPlayers());
+
+export function savePlayers(next: string[]) {
+  players = next;
+  try {
+    localStorage.setItem(PLAYERS_KEY, JSON.stringify(next));
+  } catch {} // private mode: still kept in memory for this visit
+  for (const l of listeners) l();
+}
+
+export function subscribePlayers(onChange: () => void) {
+  const otherTab = (e: StorageEvent) => {
+    if (e.key !== PLAYERS_KEY) return;
+    players = readPlayers();
+    onChange();
+  };
+  listeners.add(onChange);
+  addEventListener("storage", otherTab);
+  return () => {
+    listeners.delete(onChange);
+    removeEventListener("storage", otherTab);
+  };
 }
 
 /** fresh one-phone game, first player hosts; teams fill alternately; replaces any earlier game */
 export async function newLocalGame(players: string[], lang: Lang) {
-  try {
-    localStorage.setItem(PLAYERS_KEY, JSON.stringify(players));
-  } catch {}
+  savePlayers(players);
   clearLocal();
   const r = await createRoom(localStore, players[0], lang);
   const ids = [{ pid: r.pid, token: r.token }];
