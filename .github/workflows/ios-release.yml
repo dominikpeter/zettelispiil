@@ -1,0 +1,93 @@
+name: iOS release
+
+# Builds, signs and uploads to TestFlight on Apple's own macOS runner — Xcode included, nothing to install locally.
+# Signing is Xcode-managed (android/app already uses CODE_SIGN_STYLE = Automatic): give Xcode an App Store Connect API
+# key and it provisions and signs on its own, no .p12/.mobileprovision files to manage.
+#
+# One-time setup, once you have an Apple Developer Program membership:
+#   1. App Store Connect → Users and Access → Integrations → App Store Connect API → generate a key with the
+#      "App Manager" role. Note the Key ID and Issuer ID, download the .p8 file (Apple only lets you download it once).
+#   2. just secret-gh APPSTORE_KEY_ID          (paste the Key ID)
+#      just secret-gh APPSTORE_ISSUER_ID       (paste the Issuer ID)
+#      just secret-gh APPSTORE_PRIVATE_KEY     (paste the .p8 file's contents)
+#      just secret-gh APPLE_TEAM_ID            (Developer Portal → Membership → Team ID)
+#   3. In App Store Connect, create the app once by hand (bundle id ch.zettelispiil.app) — the very first app record
+#      can't be created by CI, only builds after that.
+#   4. Set the repository variable IOS_SIGNING_READY = true (Settings → Secrets and variables → Actions → Variables),
+#      so this workflow's TestFlight upload step stops skipping itself.
+# Until then, this workflow still runs and builds (proving the native project itself is sound), it just skips signing
+# and upload — safe to merge and run early.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    env:
+      APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+      APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      KEY_PATH: ${{ github.workspace }}/.appstoreconnect-key.p8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      - run: npm ci
+      - run: npx cap sync ios
+      - run: pod install
+        working-directory: ios/App
+
+      - name: Install the App Store Connect API key
+        if: ${{ vars.IOS_SIGNING_READY == 'true' }}
+        env:
+          PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: printf '%s' "$PRIVATE_KEY" > "$KEY_PATH"
+
+      - name: Archive (signed, auto-provisioned via the API key)
+        if: ${{ vars.IOS_SIGNING_READY == 'true' }}
+        working-directory: ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" -destination "generic/platform=iOS" \
+            -allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$APPSTORE_KEY_ID" -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            archive
+
+      - name: Export the .ipa
+        if: ${{ vars.IOS_SIGNING_READY == 'true' }}
+        working-directory: ios/App
+        run: |
+          cat > "$RUNNER_TEMP/export.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
+            -allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$APPSTORE_KEY_ID" -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID"
+
+      - name: Upload to TestFlight
+        if: ${{ vars.IOS_SIGNING_READY == 'true' }}
+        run: |
+          xcrun altool --upload-app -f "$RUNNER_TEMP/export/App.ipa" -t ios \
+            --apiKey "$APPSTORE_KEY_ID" --apiIssuer "$APPSTORE_ISSUER_ID"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ vars.IOS_SIGNING_READY == 'true' }}
+        with:
+          name: App.ipa
+          path: ${{ runner.temp }}/export/App.ipa
+
+      - name: Build only, unsigned (no API key secret yet — proves the native project builds)
+        if: ${{ vars.IOS_SIGNING_READY != 'true' }}
+        working-directory: ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
+            -destination "generic/platform=iOS" CODE_SIGNING_ALLOWED=NO build

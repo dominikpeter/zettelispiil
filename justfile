@@ -45,6 +45,10 @@ check: lint typecheck test
 secrets:
     ! git log -p -1 | grep -qE "sk-(proj-)?[A-Za-z0-9_-]{20,}|(sk|rk)_(live|test)_[A-Za-z0-9]{20,}|whsec_[A-Za-z0-9]{20,}|re_[A-Za-z0-9]{8}_[A-Za-z0-9]{20,}"
 
+# the version the settings sheet shows (package.json) matches the release tag and GitHub's latest release
+version-check:
+    bash scripts/check-version.sh
+
 # deploy the current tree to production
 deploy:
     vercel deploy --prod
@@ -54,6 +58,7 @@ release version notes: check e2e secrets
     npm version {{version}} --no-git-tag-version --allow-same-version
     git add package.json package-lock.json && git commit -m "release: v{{version}}" || true
     git tag v{{version}}
+    just version-check
     git push && git push --tags
     gh release create v{{version}} --title "v{{version}}" --notes {{quote(notes)}}
     just deploy
@@ -102,6 +107,14 @@ android-run: android
 ios:
     npx cap sync ios
     npx cap open ios
+
+# one-time: generate an Android release keystore and store it (and its passwords) as GitHub secrets, for android-release.yml
+android-keystore-setup:
+    bash scripts/setup-android-keystore.sh
+
+# store any GitHub Actions secret without it ever showing (e.g. PLAY_SERVICE_ACCOUNT_JSON, APPSTORE_PRIVATE_KEY)
+secret-gh name:
+    bash scripts/secret-gh.sh {{name}}
 
 # app icons and splash screens for Android and iOS from assets/*.png
 app-icons:

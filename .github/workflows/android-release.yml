@@ -1,0 +1,63 @@
+name: Android release
+
+# Builds a signed release AAB and uploads it to the Play Store. Runs on a plain Ubuntu runner — Android needs no Mac.
+# One-time setup: `just android-keystore-setup` (release keystore), then Play Console → API access → service account,
+# and `just secret-gh PLAY_SERVICE_ACCOUNT_JSON`. Until those secrets exist, this workflow builds but skips the upload
+# (see the `if:` guards below), so it's safe to merge and run before the Play Console side is ready.
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: "Play Store track"
+        type: choice
+        default: internal
+        options: [internal, alpha, beta, production]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+
+      - run: npm ci
+      # the app is a thin shell around zettelispiil.ch (see capacitor.config.ts); native-shell/ only needs its own assets,
+      # no full Next.js build
+      - run: npx cap sync android
+
+      - name: Decode the release keystore
+        if: ${{ vars.ANDROID_SIGNING_READY == 'true' }}
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android-release.keystore
+
+      - name: Build the signed release bundle
+        if: ${{ vars.ANDROID_SIGNING_READY == 'true' }}
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ../android-release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease
+
+      - name: Build an unsigned bundle (no keystore secret yet — nothing to upload, just proves the build works)
+        if: ${{ vars.ANDROID_SIGNING_READY != 'true' }}
+        working-directory: android
+        run: ./gradlew bundleRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release.aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Upload to the Play Store
+        if: ${{ vars.ANDROID_SIGNING_READY == 'true' && vars.PLAY_PUBLISHING_READY == 'true' }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ch.zettelispiil.app
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ inputs.track }}
+          status: completed
