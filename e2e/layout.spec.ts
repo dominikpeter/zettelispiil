@@ -157,3 +157,56 @@ test("iPhone SE: no screen scrolls sideways and single-screen views fit, through
   await page.locator("summary").filter({ hasText: LONG[0] }).last().click();
   await check("end stats with details open");
 });
+
+/** the main button stays on screen before any scrolling (sticky at the bottom) */
+async function mainButtonOnScreen(page: Page, name: string | RegExp) {
+  await page.evaluate(() => scrollTo(0, 0));
+  const box = (await page.getByRole("button", { name }).boundingBox())!;
+  const h = page.viewportSize()!.height;
+  expect(box.y, "main button top").toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height, "main button bottom").toBeLessThanOrEqual(h + 0.5);
+}
+
+/** every field and button, scrolled into view the way focus does it, is the thing a finger hits: the sticky bars never cover it */
+async function allReachable(page: Page) {
+  const covered = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>("main input, main button, main select, main textarea")]
+      .filter((el) => el.offsetParent && el.getBoundingClientRect().width > 0)
+      .flatMap((el) => {
+        el.scrollIntoView({ block: "nearest" });
+        const r = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return hit && (el === hit || el.contains(hit) || hit.contains(el)) ? [] : [`${el.tagName} "${el.getAttribute("aria-label") ?? el.textContent?.trim()}" under ${hit?.tagName}.${hit?.className}`];
+      }),
+  );
+  expect(covered).toEqual([]);
+}
+
+for (const name of ["iPhone SE", "iPhone 15"] as const) {
+  test(`${name}: main buttons stay sticky and every field stays reachable (home with many players, lobby)`, async ({ browser }) => {
+    const page = await openPhone(browser, { ...devices[name] });
+    await page.goto("/");
+    await page.getByRole("button", { name: /Ein Handy/ }).click();
+    for (let i = 0; i < 4; i++) await page.getByRole("button", { name: "Spieler hinzufügen" }).click();
+    // the last, freshly added row: type into it, then everything is still reachable and the button still on screen
+    const last = page.getByLabel("Spieler 8", { exact: true });
+    await last.fill("Zuletzt");
+    await expect(last).toHaveValue("Zuletzt");
+    await allReachable(page);
+    await mainButtonOnScreen(page, "Neues Spiel");
+    // one-phone lobby with eight players: the longest settings page
+    await page.getByRole("button", { name: "Neues Spiel" }).click();
+    await page.waitForURL(/\/local$/);
+    await mainButtonOnScreen(page, "Spiel starten");
+    await allReachable(page);
+
+    await page.goto("/");
+    await page.getByRole("button", { name: /Mehrere Handys/ }).click();
+    await page.getByLabel("Dein Name").fill("Lisa");
+    await page.getByRole("button", { name: "Raum erstellen" }).click();
+    await page.waitForURL(/\/r\/[A-Z0-9]{5}$/);
+    await mainButtonOnScreen(page, "Jedes Team braucht 2 Leute");
+    await allReachable(page);
+    expect(await sideways(page)).toBe(0);
+  });
+}

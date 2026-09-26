@@ -468,6 +468,7 @@
 
 html {
   font-size: 112.5%; /* 18px base */
+  scroll-padding-bottom: 7rem; /* a focused field never hides behind the sticky main button */
 }
 
 body {

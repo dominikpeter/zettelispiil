@@ -4,7 +4,7 @@ import { Plus, Smartphone, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { ScanCode } from "@/components/ScanCode";
-import { AiNameButton } from "@/components/game/common"; // not the Game barrel: that pulls every game screen into the home page
+import { AiNameButton, Cta } from "@/components/game/common"; // not the Game barrel: that pulls every game screen into the home page
 import { loadDnd } from "@/components/game/RoundRow";
 import { TopControls } from "@/components/TopControls";
 import { loadLocalGame, loadPlayers, newLocalGame } from "@/lib/localGame";
@@ -84,7 +84,7 @@ export default function Home() {
   const choice = (on: boolean) => `flex flex-col items-start gap-1 rounded-2xl border-2 p-3 text-left ${press} ${on ? "border-accent bg-raised" : "border-line"}`;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3">
       <header className="flex justify-end">
         <TopControls />
       </header>
@@ -101,7 +101,7 @@ export default function Home() {
       <p className="mt-2 max-w-[36ch] text-muted">{t.tagline}</p>
 
       <form
-        className="mt-5 flex flex-col gap-4"
+        className="mt-5 flex flex-1 flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (!ready) return;
@@ -205,19 +205,23 @@ export default function Home() {
           </div>
         )}
 
-        <button className={btn} disabled={!ready}>
-          {busy ? t.wait : play === "local" ? (players.length >= 4 ? t.newGame : t.needFour) : mode === "create" ? t.createRoom : t.join}
-        </button>
-        {play === "local" && resumable && (
-          <button type="button" onClick={() => router.push("/local")} className={btn2}>
-            {t.resume}
-          </button>
-        )}
-        {err && (
-          <p role="alert" className="enter text-center font-medium text-hi">
-            {err}
-          </p>
-        )}
+        <Cta>
+          <div className="flex flex-col gap-2">
+            <button className={btn} disabled={!ready}>
+              {busy ? t.wait : play === "local" ? (players.length >= 4 ? t.newGame : t.needFour) : mode === "create" ? t.createRoom : t.join}
+            </button>
+            {play === "local" && resumable && (
+              <button type="button" onClick={() => router.push("/local")} className={btn2}>
+                {t.resume}
+              </button>
+            )}
+            {err && (
+              <p role="alert" className="enter text-center font-medium text-hi">
+                {err}
+              </p>
+            )}
+          </div>
+        </Cta>
       </form>
     </main>
   );
