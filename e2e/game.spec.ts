@@ -771,3 +771,31 @@ test("every phase: back and each pause-menu button work (asked in the app, never
   await page.getByRole("button", { name: "Zurück" }).click();
   await expect(page).toHaveURL("/");
 });
+
+// one phone: players are dragged between teams by their grip; the name next to it still renames
+test("one-phone lobby: drag a player into the other team by the grip, then rename them", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Neues Spiel" }).click();
+  await page.waitForURL(/\/local$/);
+  const box = (name: string) => page.locator("section > div").filter({ has: page.getByText(name, { exact: true }) });
+  await expect(box("Lisa")).not.toContainText("Nora"); // they start in different teams
+  const grip = page.getByRole("button", { name: "Lisa in ein anderes Team ziehen" });
+  await expect(grip).toBeVisible(); // the drag code loads on its own
+  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished))); // rows settled (they pop in anew once it's there)
+  const from = (await grip.boundingBox())!;
+  const to = (await box("Nora").boundingBox())!;
+  // like a finger: press, a short pause, a steady move, a pause over the target, let go (the drag code measures as it goes)
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(150);
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2 + 12, { steps: 6 });
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 30 });
+  await page.waitForTimeout(150);
+  await page.mouse.up();
+  await expect(box("Nora")).toContainText("Lisa");
+  // renaming still works on the moved row
+  await box("Nora").locator("li").filter({ hasText: "Lisa" }).getByRole("button", { name: /Umbenennen/ }).click();
+  await page.getByRole("textbox", { name: "Dein Name" }).fill("Lisi");
+  await page.keyboard.press("Enter");
+  await expect(box("Nora")).toContainText("Lisi");
+});

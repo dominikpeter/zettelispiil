@@ -736,10 +736,20 @@ dialog.sheet[open]::backdrop { animation: fade-in 0.3s ease-out both; }
 }
 
 /* slip flung off screen after a swipe or button */
-@keyframes fling-r { to { transform: translate(130vw, -10vh) rotate(35deg); opacity: 0.6; } }
-@keyframes fling-l { to { transform: translate(-130vw, 6vh) rotate(-30deg); opacity: 0.6; } }
-.fling-r { animation: fling-r 0.32s var(--ease-out) forwards; }
-.fling-l { animation: fling-l 0.32s var(--ease-out) forwards; }
+/* a Zetteli thrown off the table: from where the finger let go (--dx, its tilt), a short lift and grow, then away:
+   guessed flies up and right, spinning; passed drops away down-left, towards the set-aside row */
+@keyframes fling-r {
+  0% { transform: translateX(var(--dx, 0px)) rotate(var(--rot, 0deg)); }
+  18% { transform: translate(calc(var(--dx, 0px) + 18px), -14px) rotate(calc(var(--rot, 0deg) + 5deg)) scale(1.06); }
+  100% { transform: translate(125vw, -22vh) rotate(42deg) scale(0.9); opacity: 0.4; }
+}
+@keyframes fling-l {
+  0% { transform: translateX(var(--dx, 0px)) rotate(var(--rot, 0deg)); }
+  18% { transform: translate(calc(var(--dx, 0px) - 16px), -8px) rotate(calc(var(--rot, 0deg) - 4deg)) scale(1.03); }
+  100% { transform: translate(-120vw, 18vh) rotate(-32deg) scale(0.85); opacity: 0.4; }
+}
+.fling-r { animation: fling-r 0.42s cubic-bezier(0.3, 0.6, 0.4, 1) forwards; }
+.fling-l { animation: fling-l 0.42s cubic-bezier(0.3, 0.6, 0.4, 1) forwards; }
 }
 
 @media (prefers-reduced-motion: reduce) {

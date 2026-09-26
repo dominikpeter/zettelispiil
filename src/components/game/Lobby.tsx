@@ -2,7 +2,7 @@
 
 import {
   ArrowLeftRight, Briefcase, Car, Castle, Check, Clapperboard, Crown, Globe, Infinity as Inf, Minus, Mountain, Music, Palette, PartyPopper,
-  PawPrint, Pencil, PersonStanding, Plus, Share2, Shuffle, Sofa, Sparkles, Star, Trees, Trophy, UserPlus, UtensilsCrossed, X, Megaphone, type LucideIcon } from "lucide-react";
+  PawPrint, Pencil, PersonStanding, Plus, Share2, Shuffle, Sofa, Sparkles, Star, Trees, Trophy, UserPlus, UtensilsCrossed, X, Megaphone, GripVertical, type LucideIcon } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { useAiOn, useAiRoom } from "@/lib/aiAccess";
 import { langPref, useT } from "@/lib/prefs";
@@ -115,6 +115,15 @@ function ZetteliSource({ s, set }: { s: Settings; set: (patch: Partial<Settings>
   );
 }
 
+// without drag and drop (online rooms, or before its code has loaded): the same boxes and rows. Declared out here, not
+// inside Lobby: a component made anew on every render would remount its rows, and a name being edited would reset
+function PlainTeamBox({ className, children }: { team: number; className: string; children: ReactNode }) {
+  return <div className={className}>{children}</div>;
+}
+function PlainPlayerRow({ className, children }: { player: number; className: string; children: (handle: ((el: Element | null) => void) | null) => ReactNode }) {
+  return <li className={className}>{children(null)}</li>;
+}
+
 export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr: string; copied: boolean; onShare: () => void; url: string }; onAdd?: (name: string) => Promise<void> }) {
   const t = useT();
   // only the host edits settings: show their taps at once, and send them one after another so quick taps never race
@@ -144,6 +153,11 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
   const dnd = useDnd(v.isHost);
   const Row = dnd ? dnd.SortableRow : RoundRowView;
   const wrapRounds = (list: ReactNode) => (dnd ? <dnd.Sortable rounds={s.rounds} onOrder={(rounds) => set({ rounds })}>{list}</dnd.Sortable> : list);
+  // one phone: players can be dragged between the team boxes (by the grip; the name stays tappable to rename them)
+  const tdnd = local ? dnd : null;
+  const TeamBox = tdnd ? tdnd.TeamDrop : PlainTeamBox;
+  const PlayerRow = tdnd ? tdnd.PlayerDrag : PlainPlayerRow;
+  const wrapTeams = (boxes: ReactNode) => (tdnd ? <tdnd.TeamsDnd onMove={(i, team) => team !== v.players[i]?.team && send({ type: "team", team: team as Team }, i)}>{boxes}</tdnd.TeamsDnd> : boxes);
   const [adding, setAdding] = useState("");
   const addPlayer = async () => {
     if (!adding.trim() || !onAdd) return;
@@ -182,8 +196,8 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
       )}
 
       <section className="flex flex-col gap-3">
-        {teams.map((ti) => (
-          <div key={ti} className={`rounded-3xl px-4 py-3 ${TEAM[ti].soft}`}>
+        {wrapTeams(teams.map((ti) => (
+          <TeamBox key={ti} team={ti} className={`rounded-3xl px-4 py-3 ${TEAM[ti].soft}`}>
             <div className={`flex items-center justify-between gap-2 text-lg font-extrabold ${TEAM[ti].text}`}>
               {local || v.isHost || mine === ti ? (
                 <span className="flex min-w-0 items-center gap-1">
@@ -200,7 +214,13 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
             <ul className="mt-2 flex flex-col gap-1">
               {v.players.map((p, i) =>
                 p.team === ti ? (
-                  <li key={i} className="pop flex min-h-9 items-center gap-1 font-medium">
+                  <PlayerRow key={i} player={i} className="pop flex min-h-9 items-center gap-1 font-medium">
+                    {(handle) => (<>
+                    {handle && (
+                      <button ref={handle} type="button" aria-label={t.movePlayer(p.name)} className={`${mini} -ml-2 cursor-grab touch-none text-muted active:cursor-grabbing`}>
+                        <GripVertical className="size-4" aria-hidden />
+                      </button>
+                    )}
                     {local || i === v.me ? (
                       <EditableName value={p.name} label={t.yourName} onSave={(name) => send({ type: "rename", name }, i)} className="flex-1" />
                     ) : (
@@ -218,12 +238,13 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
                         <X className="size-4" aria-hidden />
                       </button>
                     )}
-                  </li>
+                    </>)}
+                  </PlayerRow>
                 ) : null,
               )}
             </ul>
-          </div>
-        ))}
+          </TeamBox>
+        )))}
       </section>
 
       {onAdd ? (
