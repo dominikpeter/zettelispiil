@@ -389,7 +389,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
 
       <Cta>
         {v.isHost && (
-          <button onClick={() => settingsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} className={`${ghost} -mt-1 mb-1 w-full text-sm`}>
+          <button onClick={() => settingsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} className={`${ghost} -mt-2 mb-1 min-h-9! w-full text-sm`}>
             {t.settingsLine(s.perPlayer, secondsLabel, s.rounds.length)}
           </button>
         )}
