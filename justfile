@@ -53,6 +53,10 @@ version-check:
 deploy:
     vercel deploy --prod
 
+# one-time: give ci.yml's deploy job a Vercel token (asks for it hidden, never echoed) so CI can deploy on its own
+vercel-ci-setup:
+    bash scripts/setup-vercel-ci.sh
+
 # full release: checks, e2e, tag, push, GitHub release. `just release 1.3.0 "notes"`
 # the pushed v-tag triggers .github/workflows/ci.yml, which deploys to Vercel and kicks off the iOS build — not done here,
 # so a release only ever deploys once
