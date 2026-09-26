@@ -5,6 +5,7 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { emailOTP } from "better-auth/plugins/email-otp";
 import { Ratelimit } from "@upstash/ratelimit";
 import { redis } from "./store";
+import { DICT, type Lang } from "./i18n";
 import { signedIn } from "./usage";
 
 const env = process.env;
@@ -44,20 +45,30 @@ const make = () => betterAuth({
   plugins: email
     ? [
         emailOTP({
-          expiresIn: 600,
+          expiresIn: 300,
           allowedAttempts: 3,
+          storeOTP: "hashed", // Redis never holds a usable code
           ...(fixedOtp && { generateOTP: () => fixedOtp }),
-          sendVerificationOTP: async ({ email, otp }) => {
+          sendVerificationOTP: async ({ email, otp }, ctx) => {
             if (!mail) return; // e2e: the code is fixed
-            // every address can be typed in: at most 5 codes per address and hour, so nobody floods an inbox (or our Resend quota)
-            if (redis && !(await mailLimit().limit(email.toLowerCase())).success) throw new APIError("TOO_MANY_REQUESTS");
+            // every address can be typed in: at most 5 codes per address and hour, so nobody floods an inbox,
+            // and DAILY_MAILS in total, so nobody uses up the Resend quota and locks everyone else out
+            if (redis) {
+              const [one, all] = await Promise.all([mailLimit().limit(email.toLowerCase()), dayLimit().limit("all")]);
+              if (!one.success || !all.success) throw new APIError("TOO_MANY_REQUESTS");
+            }
+            const h = ctx?.request?.headers ?? ctx?.headers;
+            const lang = (["de", "en", "fr"] as const).find((l) => l === h?.get("x-lang")) ?? "de"; // the app's language, sent along by the phone
             const r = await fetch("https://api.resend.com/emails", {
               method: "POST",
               headers: { Authorization: `Bearer ${mail.key}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ from: mail.from, to: [email], subject: `Zettelispiil: ${otp}`, text: codeMail(otp) }),
+              body: JSON.stringify({ from: mail.from, to: [email], subject: `Zettelispiil: ${otp}`, text: DICT[lang as Lang].mailCode(otp) }),
               signal: AbortSignal.timeout(8000), // a hanging mail service must not hold the request
             });
-            if (!r.ok) throw new APIError("BAD_GATEWAY", { message: "mail not sent" });
+            if (!r.ok) {
+              console.error("resend", r.status); // the status only: the body would contain the address
+              throw new APIError("BAD_GATEWAY", { message: "mail not sent" });
+            }
           },
         }),
       ]
@@ -67,8 +78,8 @@ const make = () => betterAuth({
   // sign-in may only send people back to these; localhost only outside production
   trustedOrigins: ["https://zettelispiil.ch", "https://www.zettelispiil.ch", ...(env.NODE_ENV === "production" ? [] : ["http://localhost:3000", "http://localhost:3001"])],
   socialProviders: { google, github, microsoft },
-  // no database: sessions and the OAuth handshake live in encrypted cookies; they can't be revoked, so they last a week, not a month
-  session: { cookieCache: { enabled: true, maxAge: 60 * 60 * 24 * 7, strategy: "jwe", refreshCache: true } },
+  // sessions live in Redis (revocable) and last 30 days after the last visit; an encrypted cookie spares the Redis lookup for a day
+  session: { expiresIn: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24, cookieCache: { enabled: true, maxAge: 60 * 60 * 24, strategy: "jwe", refreshCache: true } },
   account: { storeStateStrategy: "cookie", storeAccountCookie: false },
   // serverless instances don't share memory: count auth requests in Redis, keyed by Vercel's own client IP header (clients can't spoof it)
   rateLimit: {
@@ -104,8 +115,9 @@ const make = () => betterAuth({
 const str = (v: unknown) => (v == null ? null : typeof v === "string" ? v : JSON.stringify(v));
 let mailLimiter: Ratelimit | null = null;
 const mailLimit = () => (mailLimiter ??= new Ratelimit({ redis: redis!, limiter: Ratelimit.slidingWindow(5, "1 h"), prefix: "ratelimit:mail" }));
-const codeMail = (otp: string) =>
-  `Dein Code für Zettelispiil: ${otp}\nYour Zettelispiil code: ${otp}\nTon code Zettelispiil : ${otp}\n\nEr gilt 10 Minuten. Valid for 10 minutes. Valable 10 minutes.\n\nNicht angefragt? Einfach ignorieren. Didn't ask for it? Just ignore this mail.`;
+const DAILY_MAILS = 90; // Resend's free plan sends 100 a day; raise this with the plan
+let dayLimiter: Ratelimit | null = null;
+const dayLimit = () => (dayLimiter ??= new Ratelimit({ redis: redis!, limiter: Ratelimit.fixedWindow(DAILY_MAILS, "1 d"), prefix: "ratelimit:mail-day" }));
 
 let instance: ReturnType<typeof make> | null = null;
 export const getAuth = () => (authEnabled() ? (instance ??= make()) : null);

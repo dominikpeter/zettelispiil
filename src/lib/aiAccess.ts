@@ -1,7 +1,7 @@
 "use client";
 // who may use AI on this phone: fetched once from /api/ai/status, refreshed after signing out
 import { createContext, useContext, useSyncExternalStore } from "react";
-import { aiPref } from "./prefs";
+import { aiPref, langPref } from "./prefs";
 
 export type Provider = "google" | "github" | "microsoft" | "email";
 export type AiStatus = { ai: boolean; login: boolean; providers: Provider[]; user: { name: string; email: string; image?: string | null } | null };
@@ -50,7 +50,7 @@ const auth = () => import("./authClient").then((m) => m.authClient);
 export const warmAuth = () => void auth().catch(() => {});
 export const signIn = async (provider: Exclude<Provider, "email">) => (await auth()).signIn.social({ provider, callbackURL: location.pathname + location.search });
 /** a sign-in code to this address */
-export const sendCode = async (email: string) => (await auth()).emailOtp.sendVerificationOtp({ email, type: "sign-in" });
+export const sendCode = async (email: string) => (await auth()).emailOtp.sendVerificationOtp({ email, type: "sign-in" }, { headers: { "x-lang": langPref.get() } }); // the mail in the app's language
 /** sign in with the code from the mail; on success the whole app sees the new user */
 export async function signInWithCode(email: string, otp: string) {
   const r = await (await auth()).signIn.emailOtp({ email, otp });
