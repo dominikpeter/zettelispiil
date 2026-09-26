@@ -37,11 +37,8 @@ const make = () => betterAuth({
       getAndDelete: async (k: string) => str(await redis!.getdel(`auth:${k}`)),
       set: async (k: string, v: string, ttl?: number) => void (ttl ? await redis!.set(`auth:${k}`, v, { ex: ttl }) : await redis!.set(`auth:${k}`, v)),
       delete: async (k: string) => void (await redis!.del(`auth:${k}`)),
-      increment: async (k: string, ttl: number) => {
-        const n = await redis!.incr(`auth:${k}`);
-        if (n === 1) await redis!.expire(`auth:${k}`, ttl); // ponytail: two calls, not one script; a lost expire only makes a counter linger
-        return n;
-      },
+      // one transaction: the TTL is set only when the counter is new, and never lost
+      increment: async (k: string, ttl: number) => (await redis!.multi().incr(`auth:${k}`).expire(`auth:${k}`, ttl, "NX").exec<[number, number]>())[0],
     },
   }),
   plugins: email
@@ -58,6 +55,7 @@ const make = () => betterAuth({
               method: "POST",
               headers: { Authorization: `Bearer ${mail.key}`, "Content-Type": "application/json" },
               body: JSON.stringify({ from: mail.from, to: [email], subject: `Zettelispiil: ${otp}`, text: codeMail(otp) }),
+              signal: AbortSignal.timeout(8000), // a hanging mail service must not hold the request
             });
             if (!r.ok) throw new APIError("BAD_GATEWAY", { message: "mail not sent" });
           },
@@ -97,8 +95,9 @@ const make = () => betterAuth({
     after: createAuthMiddleware(async (ctx) => {
       const s = ctx.context.newSession;
       if (!s) return;
-      if (ctx.path.startsWith("/callback/")) await signedIn(s.user, ctx.path.slice("/callback/".length));
-      else if (ctx.path === "/sign-in/email-otp") await signedIn(s.user, "email");
+      const user = { ...s.user, id: accountOf(s.user) };
+      if (ctx.path.startsWith("/callback/")) await signedIn(user, ctx.path.slice("/callback/".length));
+      else if (ctx.path === "/sign-in/email-otp") await signedIn(user, "email");
     }),
   },
 });
@@ -111,11 +110,18 @@ const codeMail = (otp: string) =>
 let instance: ReturnType<typeof make> | null = null;
 export const getAuth = () => (authEnabled() ? (instance ??= make()) : null);
 
-/** the signed-in user of a request, or null */
+/**
+ * the account behind a user: its email. Without a database Better Auth makes up a fresh user id at each sign-in,
+ * so an id would give every sign-in new AI limits; the (provider-verified) email stays the same.
+ */
+export const accountOf = (u: { id: string; email?: string | null }) => (u.email ? u.email.trim().toLowerCase() : u.id);
+
+/** the signed-in user of a request (its id is the account, see accountOf), or null */
 export async function currentUser(req: Request) {
   if (!authEnabled()) return null;
   try {
-    return (await getAuth()!.api.getSession({ headers: req.headers }))?.user ?? null;
+    const u = (await getAuth()!.api.getSession({ headers: req.headers }))?.user;
+    return u ? { ...u, id: accountOf(u) } : null;
   } catch {
     return null;
   }

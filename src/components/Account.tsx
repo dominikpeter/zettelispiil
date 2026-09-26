@@ -108,7 +108,7 @@ function EmailCode() {
     setErr("");
     const r = await signInWithCode(email.trim(), code).catch(() => ({ error: { status: 0 } }));
     setBusy(false);
-    if (r.error) fail(r.error.status === 429 ? 429 : 400);
+    if (r.error) fail(r.error.status === 429 || r.error.status === 0 ? r.error.status : 400); // anything else: the code was refused
   };
   return (
     <form
