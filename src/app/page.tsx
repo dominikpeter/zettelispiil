@@ -252,7 +252,9 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div aria-hidden className="h-24" /> {/* the fixed bar's own height, so it never covers the form's last field */}
+        {/* the fixed bar's own height, so it never covers the form's last field; taller when the resume button also shows
+            (it was a fixed h-24 guess sized for one button, so a resumable local game's extra row got cut off) */}
+        <div aria-hidden className={play === "local" && resumable ? "h-40" : "h-24"} />
       </form>
     </main>
   );
