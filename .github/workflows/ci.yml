@@ -71,5 +71,5 @@ jobs:
       # ios-release.yml builds (and, once IOS_SIGNING_READY is set, signs and uploads to TestFlight) on its own macOS
       # runner; this just fires it after a successful deploy. Add the same step for android-release.yml once its
       # Play Store side is ready (just android-keystore-setup, then just secret-gh PLAY_SERVICE_ACCOUNT_JSON).
-      - env: { GH_TOKEN: ${{ github.token }} }
+      - env: { GH_TOKEN: "${{ github.token }}" }
         run: gh workflow run ios-release.yml --repo "$GITHUB_REPOSITORY" --ref main
