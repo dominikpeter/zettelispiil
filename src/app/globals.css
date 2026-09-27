@@ -564,6 +564,13 @@ button { user-select: none; }
 :root:not([data-palette]) :is(.slip, .mini-slip):nth-child(6n + 4), :root[data-palette="postit"] :is(.slip, .mini-slip):nth-child(6n + 4) { --color-paper: #ff9d78; --color-paper-edge: #f47c55; }
 :root:not([data-palette]) :is(.slip, .mini-slip):nth-child(6n + 5), :root[data-palette="postit"] :is(.slip, .mini-slip):nth-child(6n + 5) { --color-paper: #ff77aa; --color-paper-edge: #ec4f8a; }
 :root:not([data-palette]) :is(.slip, .mini-slip):nth-child(6n), :root[data-palette="postit"] :is(.slip, .mini-slip):nth-child(6n) { --color-paper: #7cc3ec; --color-paper-edge: #4ea8dc; }
+/* the slips lying in the bowl keep their sticky-note colours too */
+:root:not([data-palette]) .pile-slip:nth-child(6n + 1), :root[data-palette="postit"] .pile-slip:nth-child(6n + 1) { fill: #bdef6b; }
+:root:not([data-palette]) .pile-slip:nth-child(6n + 2), :root[data-palette="postit"] .pile-slip:nth-child(6n + 2) { fill: #f3f566; }
+:root:not([data-palette]) .pile-slip:nth-child(6n + 3), :root[data-palette="postit"] .pile-slip:nth-child(6n + 3) { fill: #ffc04d; }
+:root:not([data-palette]) .pile-slip:nth-child(6n + 4), :root[data-palette="postit"] .pile-slip:nth-child(6n + 4) { fill: #ff9d78; }
+:root:not([data-palette]) .pile-slip:nth-child(6n + 5), :root[data-palette="postit"] .pile-slip:nth-child(6n + 5) { fill: #ff77aa; }
+:root:not([data-palette]) .pile-slip:nth-child(6n), :root[data-palette="postit"] .pile-slip:nth-child(6n) { fill: #7cc3ec; }
 /* slip unfolding out of the bowl */
 @keyframes unfold {
   0% { opacity: 0; transform: translateY(40px) rotate(var(--tilt, -2deg)) scaleY(0.05); }
@@ -767,9 +774,9 @@ dialog.sheet[open]::backdrop { animation: fade-in 0.3s ease-out both; }
 /* ---- "So geht's" (/anleitung): the scene's little loops ---- */
 /* writing: a slip pops up in its spot above the bowl, holds, then drops in and is gone */
 @keyframes guide-write {
-  0% { opacity: 0; translate: calc(-50% + var(--x)) calc(-50% - 12cqh); scale: 0.4; }
-  18% { opacity: 1; translate: calc(-50% + var(--x)) calc(-50% - 6cqh); scale: 1; }
-  55% { opacity: 1; translate: calc(-50% + var(--x)) calc(-50% - 6cqh); scale: 1; }
+  0% { opacity: 0; translate: calc(-50% + var(--x)) calc(-50% - 6cqh); scale: 0.4; }
+  18% { opacity: 1; translate: calc(-50% + var(--x)) -50%; scale: 1; }
+  55% { opacity: 1; translate: calc(-50% + var(--x)) -50%; scale: 1; }
   100% { opacity: 0; translate: -50% calc(-50% + 26cqh); scale: 0.3; }
 }
 .guide-write { opacity: 0; animation: guide-write 2.2s var(--ease-out) both; }
@@ -797,7 +804,7 @@ dialog.sheet[open]::backdrop { animation: fade-in 0.3s ease-out both; }
   .heckle-fx { animation-name: heckle-calm; animation-timing-function: ease-out; } /* no jitter, the blur just fades; duration stays inline */
   .animate-pulse, .animate-spin, dialog.sheet[open]::backdrop { animation: none; }
   /* the guide still shows every scene, just without the motion: slips sit in place, nothing flies off */
-  .guide-write { animation: none; opacity: 1; translate: calc(-50% + var(--x)) calc(-50% - 6cqh); }
+  .guide-write { animation: none; opacity: 1; translate: calc(-50% + var(--x)) -50%; }
   .guide-swipe-right, .guide-swipe-left, .guide-label, .guide-pop { animation: none; }
   .guide-swipe-right, .guide-swipe-left { translate: -50% 0; }
   *, *::before, *::after { transition-duration: 0.01ms !important; }

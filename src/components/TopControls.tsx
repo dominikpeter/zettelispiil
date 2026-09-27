@@ -168,15 +168,6 @@ export function SettingsPanel() {
         </button>
       </div>
       <footer className="flex flex-col items-center gap-1 pt-2 text-center text-sm text-muted">
-        <span className="flex items-center gap-1.5">
-          {t.madeWith} <Heart className="size-4 fill-accent text-accent" aria-hidden /> {t.madeBy("Dominik")}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <a href="https://github.com/dominikpeter/zettelispiil" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">
-            GitHub
-          </a>
-          <span className="tabular-nums">· v{process.env.NEXT_PUBLIC_VERSION}</span>
-        </span>
         <a href="https://github.com/dominikpeter/zettelispiil/issues" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">
           {t.reportProblem}
         </a>
@@ -186,6 +177,15 @@ export function SettingsPanel() {
         <Link href="/datenschutz" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">
           {t.privacy}
         </Link>
+        <span className="mt-3 flex items-center gap-1.5">
+          {t.madeWith} <Heart className="size-4 fill-accent text-accent" aria-hidden /> {t.madeBy("Dominik")}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <a href="https://github.com/dominikpeter/zettelispiil" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">
+            GitHub
+          </a>
+          <span className="tabular-nums">· v{process.env.NEXT_PUBLIC_VERSION}</span>
+        </span>
       </footer>
     </>
   );

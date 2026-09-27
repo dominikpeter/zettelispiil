@@ -289,3 +289,65 @@ test("iPhone SE: joining a room brings the code field and the scan button into v
       .toBe(true);
   }
 });
+
+/** the tour's state: which step is on, where each chapter's top sits, and the line just under the pinned scene */
+const tour = (page: Page) =>
+  page.evaluate(() => {
+    const pin = document.querySelector<HTMLElement>("main .sticky")!.getBoundingClientRect().bottom;
+    const tops = [...document.querySelectorAll("main section")].map((s) => s.getBoundingClientRect().top);
+    const current = document.querySelector("[aria-current=step]")?.getAttribute("aria-label");
+    // snapping on, and no tap still on its way (chapters snap-stop again once it has arrived)
+    const snapping = document.documentElement.style.scrollSnapType === "y mandatory" && !document.querySelector("main section.snap-normal");
+    return { under: pin + 8, tops, current, snapping };
+  });
+
+for (const name of ["iPhone SE", "iPhone 15"] as const) {
+  test(`${name}: the tour lands every chapter just under the scene, by tap and by swipe, and stops at the end`, async ({ browser }) => {
+    const page = await openPhone(browser, { ...devices[name] });
+    await page.goto("/anleitung");
+    const steps = page.getByRole("navigation", { name: "So geht's" }).getByRole("button");
+    const names = await steps.evaluateAll((bs) => bs.map((b) => b.getAttribute("aria-label")!));
+    expect(names).toHaveLength(10);
+
+    // a tap goes to that chapter, not a neighbour: its heading right under the scene; the players stay inside the scene
+    for (const [i, n] of names.entries()) {
+      await steps.nth(i).click();
+      await expect.poll(async () => (await tour(page)).current).toBe(n);
+      await expect.poll(async () => (await tour(page)).snapping).toBe(true);
+      const t = await tour(page);
+      expect(Math.abs(t.tops[i] - t.under), `${n} under the scene`).toBeLessThan(2);
+      await page.waitForTimeout(800); // the players' spring into place
+      const out = await page.evaluate(() => {
+        const stage = document.querySelector("main .sticky [aria-hidden] > div")!.getBoundingClientRect();
+        return [...document.querySelectorAll("main .sticky span")]
+          .filter((s) => ["Lisa", "Nora", "Tim", "Nelly"].includes(s.textContent ?? ""))
+          .filter((s) => {
+            const r = s.getBoundingClientRect();
+            return r.left < stage.left - 1 || r.right > stage.right + 1 || r.top < stage.top - 1 || r.bottom > stage.bottom + 1;
+          })
+          .map((s) => s.textContent);
+      });
+      expect(out, `${n}: players cut off at the scene's edge`).toEqual([]);
+    }
+
+    // a swipe moves on exactly one chapter and snaps it under the scene
+    await steps.first().click();
+    await expect.poll(async () => (await tour(page)).snapping).toBe(true);
+    for (let i = 0; i < names.length - 1; i++) {
+      const t = await tour(page);
+      await page.evaluate((d) => scrollBy(0, d), (t.tops[i + 1] - t.tops[i]) * 0.6);
+      await expect.poll(async () => Math.abs((await tour(page)).tops[i + 1] - t.under), { message: `${names[i + 1]}: snapped under the scene` }).toBeLessThan(2);
+      await expect.poll(async () => (await tour(page)).current).toBe(names[i + 1]);
+    }
+
+    // the end: the last chapter on, "Los geht's" fully on screen, and no empty page below it to scroll into
+    await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(500);
+    const end = await tour(page);
+    expect(end.current).toBe(names.at(-1));
+    expect(end.tops.at(-1)!).toBeLessThan(end.under + 2);
+    await expect(page.getByRole("link", { name: "Los geht's" })).toBeInViewport({ ratio: 1 });
+    const below = await page.evaluate(() => innerHeight - [...document.querySelectorAll("main a")].pop()!.getBoundingClientRect().bottom);
+    expect(below, "space under the button").toBeLessThan(160);
+  });
+}

@@ -371,14 +371,20 @@ test("language and theme live in the settings sheet", async ({ page }) => {
   await expect(page.getByText(/Chacun écrit des mots/)).toBeVisible(); // remembered
 });
 
-test("the tour: from the home page, seven chapters, the scene follows the scroll, and back to play", async ({ page }) => {
+test("the tour: from the home page, ten chapters, each step lands on its own, and back to play", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("link", { name: "So geht's: kurze Tour" }).click();
   await expect(page).toHaveURL("/anleitung");
   await expect(page.getByRole("heading", { name: "So geht's" })).toBeVisible();
   const current = page.locator("[aria-current=step]");
   await expect(current).toHaveAttribute("aria-label", "Alle zusammen");
-  // a dot jumps to its chapter; the scene follows
+  // every dot jumps to its own chapter, not a neighbour; the scene follows
+  const dots = page.getByRole("navigation", { name: "So geht's" }).getByRole("button");
+  await expect(dots).toHaveCount(10);
+  for (const name of await dots.evaluateAll((bs) => bs.map((b) => b.getAttribute("aria-label")))) {
+    await page.getByRole("button", { name: name!, exact: true }).click();
+    await expect(current).toHaveAttribute("aria-label", name!);
+  }
   await page.getByRole("button", { name: "Passen" }).click();
   await expect(current).toHaveAttribute("aria-label", "Passen");
   await expect(page.locator("[class*=guide-swipe]")).toHaveCount(1); // exactly one slip in play, none left over
