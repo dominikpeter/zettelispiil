@@ -57,7 +57,7 @@ install sheet. `just store-shots` makes both sets again (with `just dev` running
 
 > Zettelispiil is a party game (salad bowl / fishbowl) for a group in one room. To try it alone: tap "Neues Spiel" (one phone), then "Spiel starten", write a word for each player ("Ich bin …" → type → "In die Schüssel"), then "Los, Zetteli ziehen" and swipe the word right (guessed) or left (skip). The game runs through up to five rounds and ends with statistics.
 > "Mehrere Handys" lets several phones play together in a room (6-character code, QR code or link).
-> AI help is optional and needs a sign-in (Sign in with Apple, or a code sent by e-mail); playing never needs an account. There are no in-app purchases and no ads.
+> AI help is optional and needs a sign-in (Sign in with Apple, or a code sent by e-mail); playing never needs an account. Optional tips ("Spendier mir einen Kaffee" in the settings) are consumable In-App Purchases; they unlock nothing. No ads.
 
 - **Contact**: Dominik Peter, info@zettelispiil.ch
 
@@ -110,3 +110,22 @@ At developer.apple.com → Certificates, Identifiers & Profiles:
    `ch.zettelispiil.app` → Register → download `AuthKey_<KEYID>.p8` (only once possible).
 4. `just apple-signin-setup ~/Downloads/AuthKey_<KEYID>.p8`: stores it in `.env.local` and Vercel. The server makes the
    client secret from it at start, so nothing expires after Apple's six months.
+
+## Coffee as In-App Purchase (one-time setup)
+
+In the iPhone app the coffee is an In-App Purchase (App Review 3.1.1: tips inside apps go through Apple). The website
+keeps Stripe. `ios/App/App/Coffee.swift` sells them; the settings show them once Apple has approved the products.
+
+1. App Store Connect → **Business**: sign the **Paid Apps Agreement**, add bank account and tax forms. Optionally join
+   the **Small Business Program** (Apple keeps 15% instead of 30%).
+2. App → **Monetization → In-App Purchases** → **+**, type **Consumable**, three times:
+
+   | Reference name | Product ID | Price | Display name (DE) | Description (DE) |
+   | --- | --- | --- | --- | --- |
+   | Kleiner Kaffee | `ch.zettelispiil.coffee.small` | CHF 1.00 | Kleiner Kaffee | Ein kleiner Kaffee für Zettelispiil |
+   | Grosser Kaffee | `ch.zettelispiil.coffee.big` | CHF 5.00 | Grosser Kaffee | Ein grosser Kaffee für Zettelispiil |
+   | Deluxe-Kaffee | `ch.zettelispiil.coffee.deluxe` | CHF 10.00 | Deluxe-Kaffee | Ein Deluxe-Kaffee für Zettelispiil |
+
+   Each needs a review screenshot (the coffee section in the app's settings) and availability in all countries.
+3. The first In-App Purchases go to review together with an app version: on the version page, under
+   **In-App Purchases and Subscriptions**, add all three before **Add for Review**.

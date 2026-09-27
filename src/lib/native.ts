@@ -78,3 +78,12 @@ export async function appleIdToken(nonce: string) {
   const { registerPlugin } = await import("@capacitor/core");
   return registerPlugin<AppleSignIn>("AppleSignIn").authorize({ nonce });
 }
+
+type CoffeeIap = {
+  products(o: { ids: string[] }): Promise<{ products: { id: string; price: string }[] }>;
+  buy(o: { id: string }): Promise<{ status: "purchased" | "pending" | "cancelled" }>;
+};
+/** whether this app build can take a coffee through In-App Purchase (ios/App/App/Coffee.swift); older builds can't */
+export const hasCoffeeIap = () =>
+  isNative() && !!(window as { Capacitor?: { isPluginAvailable?: (n: string) => boolean } }).Capacitor?.isPluginAvailable?.("Coffee");
+export const coffeeIap = async () => (await import("@capacitor/core")).registerPlugin<CoffeeIap>("Coffee");
