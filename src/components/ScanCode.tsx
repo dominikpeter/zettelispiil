@@ -2,7 +2,7 @@
 
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { fieldBtn, press } from "@/lib/ui";
+import { fieldBtn, openSheet, press } from "@/lib/ui";
 
 /** Pulls a room code out of a scanned QR: our join link (…/r/AB3KX) or a bare 4–6 character code. */
 export function codeFromQr(text: string): string | null {
@@ -77,7 +77,7 @@ export function ScanCode({ onCode, labels }: { onCode: (code: string) => void; l
         onClick={() => {
           setError(false);
           setOpen(true);
-          sheet.current?.showModal();
+          openSheet(sheet.current);
         }}
         aria-label={labels.scan}
         className={`${fieldBtn} text-ink`}
@@ -86,6 +86,7 @@ export function ScanCode({ onCode, labels }: { onCode: (code: string) => void; l
       </button>
       <dialog
         ref={sheet}
+        tabIndex={-1}
         aria-label={labels.scan}
         onClose={() => setOpen(false)}
         className="sheet m-auto h-dvh max-h-none w-full max-w-none bg-black p-0 text-white backdrop:bg-black"
