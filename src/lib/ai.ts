@@ -155,6 +155,10 @@ async function askZetteli(topicId: string, lang: Lang, n: number, avoid: string[
       "Each hint (max 8 words) helps the describer understand what is meant, and never contains the word itself or part of it.",
     prompt:
       `Topic: ${topic.name.en}. Write ${n} different Zetteli with hints.` +
+      // the same prompt gets a model's same favourites every time: a random pair of angles per call spreads them out
+      ` Every Zetteli must itself be a clear example of the topic (for "Animals" an animal, never a dish, place or thing merely related to it),` +
+      ` real and well known. Mix it up: about half of them ones that come to mind with ${angles()}, the rest from anywhere in the topic.` +
+      " Skip the first, most obvious ideas everyone would write; spread the words across the alphabet." +
       (avoid.length ? `\nAlready used lately, do not repeat: ${avoid.join(", ")}` : ""),
   });
   await meter("zetteli", usage);
@@ -171,6 +175,12 @@ const Names = z.object({ names: z.array(z.string()) });
 // a different nudge every call: the same prompt makes a model give the same favourite name every time
 const THEMES = ["mountains and hiking", "trains and buses", "cheese and chocolate", "the weather", "animals of the Alps", "lakes and rivers", "breakfast", "winter sports", "festivals and music", "grandma's kitchen", "space and stars", "the post office", "cows and farms", "city life", "fairy tales", "sports clubs", "gardening", "board games"];
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
+// angles for the AI's Zetteli: two at random per call, so the same topic doesn't bring the same words
+const ANGLES = ["everyday life", "Switzerland", "childhood", "the kitchen", "holidays and travel", "winter", "summer", "outdoors", "the city", "famous names", "sounds", "things you can hold", "the past", "today", "sports", "school", "work", "festivals", "nature", "films and TV", "music", "the farm", "the mountains", "water", "at night", "tiny things", "huge things", "colours", "a party"];
+const angles = () => {
+  const a = pick(ANGLES);
+  return `${a} or ${pick(ANGLES.filter((x) => x !== a))}`;
+};
 /** longest name that fits a player row on a small phone without being cut off; a long typed name gets a little room on top */
 const nameMax = (kind: "player" | "team", base: string) => Math.max(kind === "team" ? 20 : 16, base.length + 5);
 
