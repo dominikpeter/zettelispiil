@@ -57,7 +57,7 @@ jobs:
           # Sign it ad hoc with them (nested frameworks first, plain); the export keeps them when it signs for real
           app="$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
           if [ -d "$app/Frameworks" ]; then
-            find "$app/Frameworks" -maxdepth 1 \( -name "*.framework" -o -name "*.dylib" \) -exec codesign --force --sign - {} \;
+            find "$app/Frameworks" -maxdepth 1 \( -name "*.framework" -o -name "*.dylib" \) -exec codesign --force --sign - {} + # "+": a codesign failure fails the step ("\;" would hide it)
           fi
           codesign --force --sign - --entitlements App/App.entitlements "$app"
           # in the log, and a hard stop when it's missing: an app without it can't open Apple's sign-in sheet
