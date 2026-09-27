@@ -2,8 +2,9 @@
 // who may use AI on this phone: fetched once from /api/ai/status, refreshed after signing out
 import { createContext, useContext, useSyncExternalStore } from "react";
 import { aiPref, langPref } from "./prefs";
+import { appleIdToken, hasAppleSignIn } from "./native";
 
-export type Provider = "google" | "github" | "microsoft" | "email";
+export type Provider = "apple" | "google" | "github" | "microsoft" | "email";
 export type AiStatus = { ai: boolean; login: boolean; providers: Provider[]; user: { name: string; email: string; image?: string | null } | null };
 
 // the last answer is kept on the phone: a reload (or coming back from Google/GitHub) starts signed in as it was, instead
@@ -64,10 +65,25 @@ export const warmAuth = () => void auth().catch(() => {});
 // the callback URL carries a marker (like Stripe's own ?coffee=thanks) so the settings sheet, closed by the redirect
 // away and back, reopens once the player returns signed in, instead of leaving them wondering where their tap went
 export const signIn = async (provider: Exclude<Provider, "email">) => {
+  if (provider === "apple" && hasAppleSignIn()) return signInWithAppleNatively();
   const url = new URL(location.pathname + location.search, location.origin);
   url.searchParams.set("login", "1");
   return (await auth()).signIn.social({ provider, callbackURL: url.pathname + url.search });
 };
+/** in the iPhone app: Apple's own sheet gives a signed token, the server checks it and signs in; no web page opens */
+async function signInWithAppleNatively() {
+  const nonce = crypto.randomUUID();
+  let t;
+  try {
+    t = await appleIdToken(nonce);
+  } catch {
+    return; // cancelled: nothing to report
+  }
+  const name = { firstName: t.givenName, lastName: t.familyName }; // Apple sends the name only the very first time
+  const r = await (await auth()).signIn.social({ provider: "apple", idToken: { token: t.identityToken, nonce, user: { name } } });
+  if (!r.error) await load();
+  return r;
+}
 /** a sign-in code to this address */
 export const sendCode = async (email: string) => (await auth()).emailOtp.sendVerificationOtp({ email, type: "sign-in" }, { headers: { "x-lang": langPref.get() } }); // the mail in the app's language
 /** sign in with the code from the mail; on success the whole app sees the new user */

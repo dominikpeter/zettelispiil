@@ -67,3 +67,14 @@ export function syncStatusBar(): () => void {
     media.removeEventListener("change", apply);
   };
 }
+
+type AppleSignIn = { authorize(o: { nonce: string }): Promise<{ identityToken: string; givenName?: string; familyName?: string }> };
+/** whether this app build has the native Sign in with Apple (ios/App/App/AppleSignIn.swift); older builds don't */
+export const hasAppleSignIn = () =>
+  isNative() && !!(window as { Capacitor?: { isPluginAvailable?: (n: string) => boolean } }).Capacitor?.isPluginAvailable?.("AppleSignIn");
+
+/** Apple's own sign-in sheet (Face ID), no web page: resolves with Apple's signed token, rejects when cancelled */
+export async function appleIdToken(nonce: string) {
+  const { registerPlugin } = await import("@capacitor/core");
+  return registerPlugin<AppleSignIn>("AppleSignIn").authorize({ nonce });
+}

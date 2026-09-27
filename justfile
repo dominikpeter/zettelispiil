@@ -61,6 +61,10 @@ vercel-ci-setup:
 ios-ci-setup *key:
     bash scripts/setup-ios-ci.sh {{key}}
 
+# one-time: Sign in with Apple (website + iPhone app); reads the key file itself, prompts for the Services ID
+apple-signin-setup *key:
+    bash scripts/setup-apple-signin.sh {{key}}
+
 # push the current branch (dev) and open its pull request into main, or show the one that's open
 pr:
     #!/usr/bin/env bash

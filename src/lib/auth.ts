@@ -1,5 +1,6 @@
-// server only: sign-in with Google, GitHub, Microsoft or a code by email (Better Auth, no database).
+// server only: sign-in with Apple, Google, GitHub, Microsoft or a code by email (Better Auth, no database).
 // The session lives in an encrypted cookie; it only unlocks the AI features, playing needs no account.
+import { createPrivateKey, sign } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { emailOTP } from "better-auth/plugins/email-otp";
@@ -18,12 +19,29 @@ const github = pair(env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET);
 const microsoftKeys = pair(env.MICROSOFT_CLIENT_ID, env.MICROSOFT_CLIENT_SECRET);
 const microsoft = microsoftKeys && { ...microsoftKeys, tenantId: "common", prompt: "select_account" as const }; // personal and work accounts
 
+// Sign in with Apple: the website signs in through the Services ID (APPLE_CLIENT_ID), the iPhone app natively with the
+// app's bundle id, so tokens for either are accepted. Apple wants a client secret that is itself a JWT signed with the
+// Sign in with Apple key and valid at most six months: made here at start, so it never needs renewing by hand
+export const APP_BUNDLE_ID = "ch.zettelispiil.app";
+const appleOn = !!(env.APPLE_CLIENT_ID && env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY);
+const apple = appleOn
+  ? { clientId: env.APPLE_CLIENT_ID!, clientSecret: appleSecret(), appBundleIdentifier: APP_BUNDLE_ID, audience: [env.APPLE_CLIENT_ID!, APP_BUNDLE_ID] }
+  : undefined;
+function appleSecret() {
+  const b64 = (x: string | Buffer) => Buffer.from(x).toString("base64url");
+  const now = Math.floor(Date.now() / 1000);
+  const head = b64(JSON.stringify({ alg: "ES256", kid: env.APPLE_KEY_ID }));
+  const body = b64(JSON.stringify({ iss: env.APPLE_TEAM_ID, iat: now, exp: now + 150 * 86400, aud: "https://appleid.apple.com", sub: env.APPLE_CLIENT_ID }));
+  const key = createPrivateKey(env.APPLE_PRIVATE_KEY!.replace(/\\n/g, "\n")); // a pasted key may carry its line breaks as \n
+  return `${head}.${body}.${b64(sign("sha256", Buffer.from(`${head}.${body}`), { key, dsaEncoding: "ieee-p1363" }))}`;
+}
+
 // a code by email (Resend). The e2e server has no mail: it uses a fixed code, never on Vercel
 const mail = env.RESEND_API_KEY && env.EMAIL_FROM ? { key: env.RESEND_API_KEY, from: env.EMAIL_FROM } : undefined;
 const fixedOtp = !env.VERCEL && !mail ? env.E2E_FIXED_OTP : undefined;
 const email = !!(mail || fixedOtp);
 
-export const PROVIDERS = (["google", "github", "microsoft", "email"] as const).filter((p) => ({ google, github, microsoft, email })[p]);
+export const PROVIDERS = (["apple", "google", "github", "microsoft", "email"] as const).filter((p) => ({ apple, google, github, microsoft, email })[p]);
 export type Provider = (typeof PROVIDERS)[number];
 /** sign-in is required for AI only when it's actually set up */
 export const authEnabled = () => !!env.BETTER_AUTH_SECRET && PROVIDERS.length > 0;
@@ -76,8 +94,9 @@ const make = () => betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL, // unset in dev: taken from the request
   // sign-in may only send people back to these; localhost only outside production
-  trustedOrigins: ["https://zettelispiil.ch", "https://www.zettelispiil.ch", ...(env.NODE_ENV === "production" ? [] : ["http://localhost:3000", "http://localhost:3001"])],
-  socialProviders: { google, github, microsoft },
+  // Apple posts its answer back from its own site (form_post)
+  trustedOrigins: ["https://zettelispiil.ch", "https://www.zettelispiil.ch", "https://appleid.apple.com", ...(env.NODE_ENV === "production" ? [] : ["http://localhost:3000", "http://localhost:3001"])],
+  socialProviders: { apple, google, github, microsoft },
   // sessions live in Redis (revocable) and last 30 days after the last visit; an encrypted cookie spares the Redis lookup for a day
   session: { expiresIn: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24, cookieCache: { enabled: true, maxAge: 60 * 60 * 24, strategy: "jwe", refreshCache: true } },
   account: { storeStateStrategy: "cookie", storeAccountCookie: false },
@@ -109,6 +128,7 @@ const make = () => betterAuth({
       const user = { ...s.user, id: accountOf(s.user) };
       if (ctx.path.startsWith("/callback/")) await signedIn(user, ctx.path.slice("/callback/".length));
       else if (ctx.path === "/sign-in/email-otp") await signedIn(user, "email");
+      else if (ctx.path === "/sign-in/social") await signedIn(user, String(ctx.body?.provider)); // the app's native Apple sign-in
     }),
   },
 });

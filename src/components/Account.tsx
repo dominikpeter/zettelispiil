@@ -4,12 +4,18 @@ import { LogOut, Mail } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { useT } from "@/lib/prefs";
 import { sendCode, signIn, signInWithCode, signOut, useAiStatus, warmAuth, type Provider } from "@/lib/aiAccess";
-import { isNative } from "@/lib/native";
+import { hasAppleSignIn, isNative } from "@/lib/native";
 import { field, press } from "@/lib/ui";
 
 // provider marks, drawn small and in their own colors as the providers ask for
 /* eslint-disable shadcn/no-raw-colors -- brand colors are fixed by Google and Microsoft, not part of our theme */
 function Mark({ p }: { p: Social }) {
+  if (p === "apple")
+    return (
+      <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden>
+        <path d="M16.4 12.7c0-2.7 2.2-4 2.3-4a5 5 0 0 0-3.9-2.1c-1.7-.2-3.2 1-4.1 1-.9 0-2.2-1-3.6-.9a5.3 5.3 0 0 0-4.5 2.7c-1.9 3.3-.5 8.3 1.4 11 .9 1.3 2 2.8 3.4 2.8 1.4-.1 1.9-.9 3.5-.9 1.7 0 2.1.9 3.6.9 1.5 0 2.4-1.3 3.3-2.7a11 11 0 0 0 1.5-3.1 4.8 4.8 0 0 1-2.9-4.7zM13.6 4.6A4.8 4.8 0 0 0 14.7 1a4.9 4.9 0 0 0-3.2 1.7 4.6 4.6 0 0 0-1.2 3.4c1.2.1 2.4-.6 3.3-1.5z" />
+      </svg>
+    );
   if (p === "google")
     return (
       <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
@@ -36,7 +42,7 @@ function Mark({ p }: { p: Social }) {
 }
 
 type Social = Exclude<Provider, "email">;
-const NAME: Record<Social, string> = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
+const NAME: Record<Social, string> = { apple: "Apple", google: "Google", github: "GitHub", microsoft: "Microsoft" };
 
 /** sign-in buttons, or who is signed in; renders nothing when sign-in isn't set up */
 const noop = () => () => {};
@@ -44,9 +50,10 @@ const noop = () => () => {};
 export function Account() {
   const t = useT();
   const s = useAiStatus();
-  // in the phone apps only the e-mail code: Apple asks apps that offer Google/GitHub/Microsoft sign-in to also offer
-  // Sign in with Apple (App Review 4.8); an app's own sign-in is exempt. The website keeps every option
+  // in the phone apps: Sign in with Apple (natively, when the app build has it) and the e-mail code. Google & co. would
+  // open a web page Google refuses inside apps, and would need Apple next to them anyway (App Review 4.8)
   const inApp = useSyncExternalStore(noop, isNative, () => false);
+  const appleHere = useSyncExternalStore(noop, hasAppleSignIn, () => false);
   const [err, setErr] = useState("");
   const go = async (p: Social) => {
     setErr("");
@@ -70,7 +77,7 @@ export function Account() {
     <div className="flex flex-col gap-2">
       <p className="text-sm text-muted">{t.signInNote}</p>
       <div className="grid gap-2">
-        {s.providers.filter((p): p is Social => p !== "email" && !inApp).map((p) => (
+        {s.providers.filter((p): p is Social => p !== "email" && (!inApp || (p === "apple" && appleHere))).map((p) => (
           <button
             key={p}
             type="button"

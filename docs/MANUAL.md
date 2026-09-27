@@ -111,7 +111,7 @@ Schreibt jemand anderes denselben Begriff wie du, sind beide Zetteli raus. Ihr b
 
 ### KI-Hilfe beim Schreiben
 
-Die KI-Hilfe braucht ein Konto (Google, GitHub oder deine E-Mail-Adresse, in den Einstellungen unter **KI-Hilfe**). Mit E-Mail bekommst du einen sechsstelligen Code, den tippst du ein, fertig: kein Passwort. Ohne Anmeldung siehst du keine KI-Funktionen, spielen geht trotzdem.
+Die KI-Hilfe braucht ein Konto (Apple, Google, GitHub oder deine E-Mail-Adresse, in den Einstellungen unter **KI-Hilfe**). Mit E-Mail bekommst du einen sechsstelligen Code, den tippst du ein, fertig: kein Passwort. Ohne Anmeldung siehst du keine KI-Funktionen, spielen geht trotzdem.
 
 Erstellt eine angemeldete Person einen Raum (oder meldet sich die Spielleitung im Raum an), gilt die KI-Hilfe für alle darin, auch ohne eigenes Konto. In der Lobby steht dann «KI-Hilfe für alle».
 
@@ -199,7 +199,7 @@ Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 - **Farben**: Post-it (Standard, ruhige App, Zetteli in Stapel-Post-it-Farben), Klassisch (das ursprüngliche knallige Gelb-Pink-Blau), Nacht, Tinte, Gold, Abendrot, Ozean, Arosa (Blau und Sonnengelb) oder Aarau (Schwarz, Rot, Weiss).
 - **KI-Hilfe**: An oder Aus. Prüft Rechtschreibung und Schwierigkeit, schlägt Hinweise und lustige Namen vor.
 - **Hinweise beim Erklären**: An oder Aus. Zeigt den KI-Hinweis klein unter dem Zetteli. Braucht KI-Hilfe.
-- **Konto**: Für die KI-Hilfe meldest du dich mit Google, GitHub oder einem Code per E-Mail an (in den Handy-Apps mit dem Code per E-Mail). Spielen geht auch ohne Konto.
+- **Konto**: Für die KI-Hilfe meldest du dich mit Apple, Google, GitHub oder einem Code per E-Mail an (in der iPhone-App mit Apple oder dem Code per E-Mail). Spielen geht auch ohne Konto.
 - **Spendier mir einen Kaffee**: Zettelispiil ist gratis und ohne Werbung. Wer mag, spendiert einen kleinen (CHF 1), grossen (CHF 5) oder Deluxe-Kaffee (CHF 10) oder einen eigenen Betrag. Bezahlt wird bei Stripe (Karte, Apple Pay, Google Pay), danach kommst du zurück ins Spiel. In den Handy-Apps gibt es den Knopf nicht.
 - **Teilen**: **WhatsApp** oder **Link kopieren**, um Zettelispiil weiterzuempfehlen.
 - Ganz unten: **Problem mit der App? Hier melden** führt zu den GitHub-Issues, wo du Fehler melden kannst. **Datenschutz** zeigt, welche Daten wo und wie lange gespeichert werden.

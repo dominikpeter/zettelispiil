@@ -57,7 +57,7 @@ install sheet. `just store-shots` makes both sets again (with `just dev` running
 
 > Zettelispiil is a party game (salad bowl / fishbowl) for a group in one room. To try it alone: tap "Neues Spiel" (one phone), then "Spiel starten", write a word for each player ("Ich bin …" → type → "In die Schüssel"), then "Los, Zetteli ziehen" and swipe the word right (guessed) or left (skip). The game runs through up to five rounds and ends with statistics.
 > "Mehrere Handys" lets several phones play together in a room (6-character code, QR code or link).
-> AI help is optional and needs a sign-in with a code sent by e-mail; playing never needs an account. There are no in-app purchases and no ads.
+> AI help is optional and needs a sign-in (Sign in with Apple, or a code sent by e-mail); playing never needs an account. There are no in-app purchases and no ads.
 
 - **Contact**: Dominik Peter, info@zettelispiil.ch
 
@@ -83,8 +83,8 @@ install sheet. `just store-shots` makes both sets again (with `just dev` running
     - **Contact Info → Email Address** and **Name**: App Functionality (sign-in), linked to the user, not used for
       tracking.
     - **User Content → Photos or Videos**: the profile picture a Google, GitHub or Microsoft sign-in brings along, shown
-      in the account menu. App Functionality, linked, not used for tracking. (The iOS app offers only the e-mail code,
-      so there it never comes up, but the declaration covers the website sign-in to the same account too.)
+      in the account menu. App Functionality, linked, not used for tracking. (The iOS app offers only Sign in with Apple and the e-mail code, so there it never comes up, but the declaration covers
+      the website sign-in to the same account too.)
     - **Identifiers → User ID**: App Functionality, linked, not used for tracking.
     - **Usage Data → Product Interaction**: counts of sign-ins and AI requests per account, App Functionality / Analytics,
       linked, not used for tracking.
@@ -96,3 +96,17 @@ install sheet. `just store-shots` makes both sets again (with `just dev` running
 ## Pricing and Availability
 
 Free, all countries (or Switzerland, Germany, Austria, France, … if you prefer to start small).
+
+## Sign in with Apple (one-time setup)
+
+At developer.apple.com → Certificates, Identifiers & Profiles:
+
+1. **Identifiers** → `ch.zettelispiil.app` → tick **Sign In with Apple** (Enable as a primary App ID) → Save. The iPhone
+   app signs in natively with it (`ios/App/App/AppleSignIn.swift`, entitlement in `App.entitlements`).
+2. **Identifiers** → **+** → **Services IDs** → Identifier `ch.zettelispiil.signin`, description "Zettelispiil Web" →
+   Register. Open it, tick **Sign In with Apple** → Configure: primary App ID `ch.zettelispiil.app`, Domains
+   `zettelispiil.ch`, Return URLs `https://zettelispiil.ch/api/auth/callback/apple` → Save. The website signs in with it.
+3. **Keys** → **+** → name "Zettelispiil Sign in with Apple", tick **Sign in with Apple** → Configure: primary App ID
+   `ch.zettelispiil.app` → Register → download `AuthKey_<KEYID>.p8` (only once possible).
+4. `just apple-signin-setup ~/Downloads/AuthKey_<KEYID>.p8`: stores it in `.env.local` and Vercel. The server makes the
+   client secret from it at start, so nothing expires after Apple's six months.
