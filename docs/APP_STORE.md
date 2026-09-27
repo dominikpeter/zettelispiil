@@ -3,7 +3,7 @@
 What goes into App Store Connect for Zettelispiil (app 6816618404, bundle `ch.zettelispiil.app`). Copy the fields as
 they are; the limits in brackets are Apple's.
 
-## Version page (iOS App → 1.0 Prepare for Submission)
+## Version page (iOS App → <version> Prepare for Submission)
 
 **Promotional Text** (170)
 
@@ -43,7 +43,8 @@ they are; the limits in brackets are Apple's.
 **Support URL**: `https://github.com/dominikpeter/zettelispiil/issues`
 **Marketing URL**: `https://zettelispiil.ch`
 **Copyright**: `2026 Dominik Peter`
-**Version**: `1.0` (the build carries the app's own version; this is the store's label)
+**Version**: the version in `package.json` (e.g. `1.16.1`). CI stamps it into the build as `MARKETING_VERSION`, and
+App Store Connect only accepts a build whose version matches the version record, so create the record with that number.
 
 **Screenshots**: 6.5" iPhone, 1284 × 2778, up to 10, the first three show on the install sheet. Made with
 `scripts/store-screenshots` (see below) in this order: home, lobby, a turn, round end, stats.
@@ -74,10 +75,15 @@ they are; the limits in brackets are Apple's.
   - **Playing on several phones (no account needed)**: the room keeps what the players enter so every phone sees the
     same game, deleted a day after the last activity.
     - **User Content → Other User Content**: player names (nicknames), the Zetteli, drawings, scores. App Functionality,
-      **not linked** to the user, not used for tracking.
+      not used for tracking. **Linked** to the user: when the host is signed in, the room keeps the host's account id
+      (so AI help runs on that account), which ties the room's content to that account. Without sign-in nothing
+      identifies anyone, but Apple asks for the strictest case.
   - **Signing in for AI help (optional)**:
     - **Contact Info → Email Address** and **Name**: App Functionality (sign-in), linked to the user, not used for
       tracking.
+    - **User Content → Photos or Videos**: the profile picture a Google, GitHub or Microsoft sign-in brings along, shown
+      in the account menu. App Functionality, linked, not used for tracking. (The iOS app offers only the e-mail code,
+      so there it never comes up, but the declaration covers the website sign-in to the same account too.)
     - **Identifiers → User ID**: App Functionality, linked, not used for tracking.
     - **Usage Data → Product Interaction**: counts of sign-ins and AI requests per account, App Functionality / Analytics,
       linked, not used for tracking.

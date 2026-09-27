@@ -700,8 +700,8 @@ npm run verify
 git commit -am "chore: release v1.0.1"
 git tag v1.0.1
 
-# 5. Publish to npm
-npm publish
+# 5. Check the package (the real publish is left to a human)
+npm publish --access public --dry-run
 
 # 6. Push to GitHub
 git push && git push --tags
