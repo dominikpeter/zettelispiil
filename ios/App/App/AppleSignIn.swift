@@ -13,6 +13,8 @@ public class AppleSignInPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationCont
     private var pending: CAPPluginCall?
 
     @objc func authorize(_ call: CAPPluginCall) {
+        // one sheet at a time: a second tap while it opens would otherwise orphan the first call
+        guard pending == nil else { return call.reject("already signing in", "BUSY") }
         let request = ASAuthorizationAppleIDProvider().createRequest()
         request.requestedScopes = [.fullName, .email]
         request.nonce = call.getString("nonce")

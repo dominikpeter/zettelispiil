@@ -82,8 +82,8 @@ install sheet. `just store-shots` makes both sets again (with `just dev` running
   - **Signing in for AI help (optional)**:
     - **Contact Info → Email Address** and **Name**: App Functionality (sign-in), linked to the user, not used for
       tracking.
-    - **User Content → Photos or Videos**: the profile picture a Google, GitHub or Microsoft sign-in brings along, shown
-      in the account menu. App Functionality, linked, not used for tracking. (The iOS app offers only Sign in with Apple and the e-mail code, so there it never comes up, but the declaration covers
+    - **User Content → Photos or Videos**: the profile picture a Google, GitHub or Microsoft sign-in brings along, kept
+      with the sign-in (the app itself shows only the name). App Functionality, linked, not used for tracking. (The iOS app offers only Sign in with Apple and the e-mail code, so there it never comes up, but the declaration covers
       the website sign-in to the same account too.)
     - **Identifiers → User ID**: App Functionality, linked, not used for tracking.
     - **Usage Data → Product Interaction**: counts of sign-ins and AI requests per account, App Functionality / Analytics,

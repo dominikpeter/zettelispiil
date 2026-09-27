@@ -2,7 +2,7 @@
 // iPad (13"). Run `just store-shots` with the dev server up; the JPEGs land in assets/app-store/{iphone,ipad}.
 import { webkit } from "@playwright/test";
 
-const base = process.env.BASE_URL ?? "http://localhost:3000";
+const base = process.env.BASE_URL ?? "http://localhost:3001";
 const DEVICES = {
   iphone: { viewport: { width: 428, height: 926 }, deviceScaleFactor: 3 }, // 1284 × 2778
   ipad: { viewport: { width: 1024, height: 1366 }, deviceScaleFactor: 2 }, // 2048 × 2732

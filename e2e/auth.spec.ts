@@ -5,7 +5,7 @@ closePhonesAfterEach();
 
 // Sign-in unlocks the AI features. Signed out, nothing AI shows anywhere; a room opened by a signed-in host lends AI to everyone in it.
 // /api/ai/status is mocked to switch sign-in on (the local test server has no OAuth keys); the last test uses the real providers.
-const PROVIDERS = ["google", "github", "microsoft"];
+const PROVIDERS = ["apple", "google", "github", "microsoft"];
 const status = (page: Page, user: { name: string; email: string } | null) =>
   page.route("**/api/ai/status", (r) => r.fulfill({ json: { ai: true, login: true, providers: PROVIDERS, user } }));
 const aiButtons = (page: Page) => page.getByRole("button", { name: /Lustigen Namen erfinden/ });
@@ -20,7 +20,7 @@ test("signed out: no AI anywhere, sign-in only in the settings sheet", async ({ 
   await expect(aiButtons(page)).toHaveCount(0); // home: no sparkle next to player names
 
   await openSettings(page);
-  for (const p of ["Google", "GitHub", "Microsoft"]) await expect(page.getByRole("button", { name: `Mit ${p} anmelden` })).toBeVisible();
+  for (const p of ["Apple", "Google", "GitHub", "Microsoft"]) await expect(page.getByRole("button", { name: `Mit ${p} anmelden` })).toBeVisible();
   await expect(page.getByRole("heading", { name: "KI-Hilfe" })).toBeVisible(); // AI help and signing in belong together
   await expect(page.getByRole("button", { name: "Aus", exact: true })).toHaveCount(0); // but no AI switch before signing in
   await expect(page.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/dominikpeter/zettelispiil"); // the credit line
@@ -117,17 +117,17 @@ test("a room opened by a signed-in host: a guest without an account gets AI, and
   expect(sent.at(-1)?.room?.token).toBeTruthy();
 });
 
-test("the sign-in buttons lead to Google and GitHub (live providers)", async ({ page, request }) => {
+test("the sign-in buttons lead to Apple, Google and GitHub (live providers)", async ({ page, request, baseURL }) => {
   const s = await (await request.get("/api/ai/status")).json();
   test.skip(!s.login, "sign-in is not set up on this server (run against zettelispiil.ch: just e2e-prod)");
-  for (const [p, host] of [["Google", "accounts.google.com"], ["GitHub", "github.com"]] as const) {
+  for (const [p, host] of [["Apple", "appleid.apple.com"], ["Google", "accounts.google.com"], ["GitHub", "github.com"]] as const) {
     if (!s.providers.includes(p.toLowerCase())) continue;
     await page.goto("/");
     await openSettings(page);
     await page.getByRole("button", { name: `Mit ${p} anmelden` }).click();
     await page.waitForURL((u) => u.hostname === host);
     // the way back to us; GitHub tucks it (encoded twice) into return_to on its login page
-    expect(decodeURIComponent(decodeURIComponent(page.url()))).toContain("zettelispiil.ch/api/auth/callback/");
+    expect(decodeURIComponent(decodeURIComponent(page.url()))).toContain(`${new URL(baseURL!).host}/api/auth/callback/`); // this server, e.g. zettelispiil.ch
   }
 });
 
