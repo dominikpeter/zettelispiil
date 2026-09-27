@@ -16,7 +16,8 @@ export const metadata: Metadata = { title: "Admin · Zettelispiil", robots: { in
 const admins = () => (process.env.ADMIN_EMAIL ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
 const isAdmin = (u: { email: string; emailVerified: boolean } | undefined): u is { email: string; emailVerified: boolean } =>
   !!u && u.emailVerified && admins().includes(u.email.toLowerCase());
-const me = async () => (await getAuth()?.api.getSession({ headers: await headers() }))?.user;
+// from the session store, like every other check (auth.ts currentUser): a signed-out or deleted admin is out at once
+const me = async () => (await getAuth()?.api.getSession({ headers: await headers(), query: { disableCookieCache: true } }))?.user;
 
 /** the switch: AI on or off for everyone. Checked again here, a form post can come from anyone */
 async function switchAi(form: FormData) {
