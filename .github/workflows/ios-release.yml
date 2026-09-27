@@ -7,10 +7,8 @@ name: iOS release
 # One-time setup, once you have an Apple Developer Program membership:
 #   1. App Store Connect → Users and Access → Integrations → App Store Connect API → generate a key with the
 #      "App Manager" role. Note the Key ID and Issuer ID, download the .p8 file (Apple only lets you download it once).
-#   2. just secret-gh APPSTORE_KEY_ID          (paste the Key ID)
-#      just secret-gh APPSTORE_ISSUER_ID       (paste the Issuer ID)
-#      just secret-gh APPSTORE_PRIVATE_KEY     (paste the .p8 file's contents)
-#      just secret-gh APPLE_TEAM_ID            (Developer Portal → Membership → Team ID)
+#   2. just ios-ci-setup   (reads the downloaded AuthKey_<KEYID>.p8 itself, asks for the Issuer ID; stores the key,
+#      its id, the Issuer ID and the Team ID as secrets and sets IOS_SIGNING_READY, so step 4 is done too)
 #   3. In App Store Connect, create the app once by hand (bundle id ch.zettelispiil.app) — the very first app record
 #      can't be created by CI, only builds after that.
 #   4. Set the repository variable IOS_SIGNING_READY = true (Settings → Secrets and variables → Actions → Variables),
@@ -52,9 +50,11 @@ jobs:
             -allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" \
             -authenticationKeyID "$APPSTORE_KEY_ID" -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            MARKETING_VERSION="$(node -p "require('../../package.json').version")" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             archive
 
-      - name: Export the .ipa
+      # the version players see is package.json's; every upload needs a new build number: this workflow's run number
+      - name: Export and upload to TestFlight
         if: ${{ vars.IOS_SIGNING_READY == 'true' }}
         working-directory: ios/App
         run: |
@@ -63,6 +63,7 @@ jobs:
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
             <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
             <key>teamID</key><string>$APPLE_TEAM_ID</string>
             <key>signingStyle</key><string>automatic</string>
           </dict></plist>
@@ -71,18 +72,6 @@ jobs:
             -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
             -allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" \
             -authenticationKeyID "$APPSTORE_KEY_ID" -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID"
-
-      - name: Upload to TestFlight
-        if: ${{ vars.IOS_SIGNING_READY == 'true' }}
-        run: |
-          xcrun altool --upload-app -f "$RUNNER_TEMP/export/App.ipa" -t ios \
-            --apiKey "$APPSTORE_KEY_ID" --apiIssuer "$APPSTORE_ISSUER_ID"
-
-      - uses: actions/upload-artifact@v7
-        if: ${{ vars.IOS_SIGNING_READY == 'true' }}
-        with:
-          name: App.ipa
-          path: ${{ runner.temp }}/export/App.ipa
 
       - name: Build only, unsigned (no API key secret yet — proves the native project builds)
         if: ${{ vars.IOS_SIGNING_READY != 'true' }}
