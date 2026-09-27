@@ -46,7 +46,8 @@ they are; the limits in brackets are Apple's.
 **Version**: the version in `package.json` (e.g. `1.16.1`). CI stamps it into the build as `MARKETING_VERSION`, and
 App Store Connect only accepts a build whose version matches the version record, so create the record with that number.
 
-**Screenshots**: 6.5" iPhone, 1284 × 2778, up to 10, the first three show on the install sheet. Taken with Playwright
+**Screenshots**: `assets/app-store/`, 6.5" iPhone, 1284 × 2778, up to 10, the first three show on the install sheet,
+upload them in file-name order. Taken with Playwright
 in an iPhone viewport at 3× scale, in this order: home, lobby, a turn, pass the phone, winner, awards, a Zetteli's story.
 
 ## App Review Information
