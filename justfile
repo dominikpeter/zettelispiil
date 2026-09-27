@@ -61,6 +61,10 @@ vercel-ci-setup:
 ios-ci-setup *key:
     bash scripts/setup-ios-ci.sh {{key}}
 
+# one-time: Sign in with Apple (website + iPhone app); reads the key file itself, prompts for the Services ID
+apple-signin-setup *key:
+    bash scripts/setup-apple-signin.sh {{key}}
+
 # push the current branch (dev) and open its pull request into main, or show the one that's open
 pr:
     #!/usr/bin/env bash
@@ -139,3 +143,7 @@ secret-gh name:
 # app icons and splash screens for Android and iOS from assets/*.png
 app-icons:
     npx @capacitor/assets generate --iconBackgroundColor '#25003d' --splashBackgroundColor '#f5f1e8' --splashBackgroundColorDark '#1f1d1a'
+
+# App Store screenshots for iPhone and iPad into assets/app-store (needs `just dev` running)
+store-shots url="http://localhost:3001":
+    BASE_URL={{url}} npx tsx scripts/store-screenshots.mts

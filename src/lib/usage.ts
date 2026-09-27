@@ -15,6 +15,7 @@ export type UsageRedis = {
     hset(key: string, v: Record<string, unknown>): unknown;
     hsetnx(key: string, field: string, v: unknown): unknown;
     hgetall(key: string): unknown;
+    hdel(key: string, ...fields: string[]): unknown;
     expire(key: string, s: number): unknown;
     exec(): Promise<unknown[]>;
   };
@@ -65,6 +66,20 @@ export async function signedIn(user: { id: string; name?: string | null; email?:
     await p.exec();
   } catch (e) {
     console.error("usage sign-in failed", e);
+  }
+}
+
+/** a deleted account: its record and counters go (the daily totals stay, they name no one). false when Redis failed */
+export async function forget(userId: string, r = client()) {
+  if (!r) return true;
+  try {
+    const p = r.pipeline();
+    for (const k of Object.values(K)) p.hdel(k, userId);
+    await p.exec();
+    return true;
+  } catch (e) {
+    console.error("usage forget failed", e);
+    return false;
   }
 }
 

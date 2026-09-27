@@ -4,6 +4,8 @@ export const COFFEES = [
   { id: "big", chf: 5 },
   { id: "deluxe", chf: 10 },
 ] as const;
+/** the coffee's In-App Purchase in the iPhone app (App Store Connect → In-App Purchases, consumable, same price) */
+export const iapId = (id: (typeof COFFEES)[number]["id"]) => `ch.zettelispiil.coffee.${id}`;
 export const MAX_CHF = 500; // a typo like 5000 shouldn't go through
 
 /** a whole number of francs from 1 to MAX_CHF, or null */

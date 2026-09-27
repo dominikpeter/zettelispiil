@@ -2,8 +2,9 @@
 // who may use AI on this phone: fetched once from /api/ai/status, refreshed after signing out
 import { createContext, useContext, useSyncExternalStore } from "react";
 import { aiPref, langPref } from "./prefs";
+import { appleIdToken, hasAppleSignIn } from "./native";
 
-export type Provider = "google" | "github" | "microsoft" | "email";
+export type Provider = "apple" | "google" | "github" | "microsoft" | "email";
 export type AiStatus = { ai: boolean; login: boolean; providers: Provider[]; user: { name: string; email: string; image?: string | null } | null };
 
 // the last answer is kept on the phone: a reload (or coming back from Google/GitHub) starts signed in as it was, instead
@@ -64,10 +65,60 @@ export const warmAuth = () => void auth().catch(() => {});
 // the callback URL carries a marker (like Stripe's own ?coffee=thanks) so the settings sheet, closed by the redirect
 // away and back, reopens once the player returns signed in, instead of leaving them wondering where their tap went
 export const signIn = async (provider: Exclude<Provider, "email">) => {
+  if (provider === "apple" && hasAppleSignIn()) return signInWithAppleNatively();
   const url = new URL(location.pathname + location.search, location.origin);
   url.searchParams.set("login", "1");
   return (await auth()).signIn.social({ provider, callbackURL: url.pathname + url.search });
 };
+/** in the iPhone app: Apple's own sheet gives a signed token, the server checks it and signs in; no web page opens */
+async function signInWithAppleNatively() {
+  // 16 random bytes as hex: randomUUID is missing on iOS 15.0–15.3, which the app still supports
+  const nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+  let t;
+  try {
+    t = await appleIdToken(nonce);
+  } catch {
+    return; // cancelled: nothing to report
+  }
+  // Apple sends the name only the very first time; later there's none to send (an empty one would count as a name)
+  const user = t.givenName || t.familyName ? { name: { firstName: t.givenName, lastName: t.familyName } } : undefined;
+  const r = await (await auth()).signIn.social({ provider: "apple", idToken: { token: t.identityToken, nonce, user } });
+  if (!r.error) {
+    remember(WITH, "apple"); // deleting the account later asks Apple again, to revoke its tokens
+    await load();
+  }
+  return r;
+}
+const WITH = "zettelispiil:signed-in-with";
+const remember = (k: string, v: string | null) => {
+  try {
+    if (v) localStorage.setItem(k, v);
+    else localStorage.removeItem(k);
+  } catch {}
+};
+const recall = (k: string) => {
+  try {
+    return localStorage.getItem(k);
+  } catch {
+    return null;
+  }
+};
+/**
+ * delete the account (App Review 5.1.1(v)): the server forgets it and ends its sessions, then this phone signs out.
+ * Signed in with Apple in the app: Apple's sheet shows once more, its code lets the server revoke Apple's tokens.
+ * Throws when it didn't work (or Apple's sheet was cancelled); the account then stays as it was
+ */
+export async function deleteAccount() {
+  let appleCode: string | undefined;
+  if (hasAppleSignIn() && recall(WITH) === "apple") {
+    const nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+    appleCode = (await appleIdToken(nonce)).authorizationCode;
+    if (!appleCode) throw new Error("no code from Apple");
+  }
+  const r = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appleCode }) });
+  if (!r.ok) throw new Error(`delete: ${r.status}`);
+  await signOut();
+}
 /** a sign-in code to this address */
 export const sendCode = async (email: string) => (await auth()).emailOtp.sendVerificationOtp({ email, type: "sign-in" }, { headers: { "x-lang": langPref.get() } }); // the mail in the app's language
 /** sign in with the code from the mail; on success the whole app sees the new user */
@@ -77,6 +128,7 @@ export async function signInWithCode(email: string, otp: string) {
   return r;
 }
 export async function signOut() {
+  remember(WITH, null);
   await (await auth()).signOut();
   await load();
 }

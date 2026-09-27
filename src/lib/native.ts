@@ -67,3 +67,39 @@ export function syncStatusBar(): () => void {
     media.removeEventListener("change", apply);
   };
 }
+
+/** whether this app build has one of the app's own plugins (ios/App/App/*.swift); older builds don't */
+const hasPlugin = (name: string) =>
+  isNative() && !!(window as { Capacitor?: { isPluginAvailable?: (n: string) => boolean } }).Capacitor?.isPluginAvailable?.(name);
+
+type AppleSignIn = { authorize(o: { nonce: string }): Promise<{ identityToken: string; authorizationCode?: string; givenName?: string; familyName?: string }> };
+/** whether this app build has the native Sign in with Apple */
+export const hasAppleSignIn = () => hasPlugin("AppleSignIn");
+
+// the app's own native plugins (ios/App/App/*.swift), registered once. Kept in an object: a Capacitor plugin answers every
+// property, `then` too: returned from a promise it looks like one and the call fails, so it's only ever used inside `use`
+const own = <T,>(name: string) => {
+  let loaded: Promise<{ plugin: T }> | undefined;
+  return <R,>(use: (plugin: T) => Promise<R>) =>
+    (loaded ??= import("@capacitor/core").then(({ registerPlugin }) => ({ plugin: registerPlugin<T>(name) }))).then(({ plugin }) => use(plugin));
+};
+const appleSignIn = own<AppleSignIn>("AppleSignIn");
+
+/** Apple's own sign-in sheet (Face ID), no web page: resolves with Apple's signed token, rejects when cancelled */
+export const appleIdToken = (nonce: string) => appleSignIn((p) => p.authorize({ nonce }));
+
+type CoffeeIap = {
+  products(o: { ids: string[] }): Promise<{ products: { id: string; price: string }[] }>;
+  buy(o: { id: string }): Promise<{ status: "purchased" | "pending" | "cancelled" }>;
+};
+/** whether this app build can take a coffee through In-App Purchase (ios/App/App/Coffee.swift) */
+export const hasCoffeeIap = () => hasPlugin("Coffee");
+const coffee = own<CoffeeIap>("Coffee");
+let products: Promise<{ id: string; price: string }[]> | undefined;
+/** the coffees with App Store prices: asked once per app start (the settings sheet opens often), again after a failure */
+export const coffeeProducts = (ids: string[]) =>
+  (products ??= coffee((p) => p.products({ ids })).then((r) => r.products)).catch((e) => {
+    products = undefined;
+    throw e;
+  });
+export const buyCoffee = async (id: string) => (await coffee((p) => p.buy({ id }))).status;

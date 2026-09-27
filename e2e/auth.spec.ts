@@ -5,7 +5,7 @@ closePhonesAfterEach();
 
 // Sign-in unlocks the AI features. Signed out, nothing AI shows anywhere; a room opened by a signed-in host lends AI to everyone in it.
 // /api/ai/status is mocked to switch sign-in on (the local test server has no OAuth keys); the last test uses the real providers.
-const PROVIDERS = ["google", "github", "microsoft"];
+const PROVIDERS = ["apple", "google", "github", "microsoft"];
 const status = (page: Page, user: { name: string; email: string } | null) =>
   page.route("**/api/ai/status", (r) => r.fulfill({ json: { ai: true, login: true, providers: PROVIDERS, user } }));
 const aiButtons = (page: Page) => page.getByRole("button", { name: /Lustigen Namen erfinden/ });
@@ -20,7 +20,7 @@ test("signed out: no AI anywhere, sign-in only in the settings sheet", async ({ 
   await expect(aiButtons(page)).toHaveCount(0); // home: no sparkle next to player names
 
   await openSettings(page);
-  for (const p of ["Google", "GitHub", "Microsoft"]) await expect(page.getByRole("button", { name: `Mit ${p} anmelden` })).toBeVisible();
+  for (const p of ["Apple", "Google", "GitHub", "Microsoft"]) await expect(page.getByRole("button", { name: `Mit ${p} anmelden` })).toBeVisible();
   await expect(page.getByRole("heading", { name: "KI-Hilfe" })).toBeVisible(); // AI help and signing in belong together
   await expect(page.getByRole("button", { name: "Aus", exact: true })).toHaveCount(0); // but no AI switch before signing in
   await expect(page.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/dominikpeter/zettelispiil"); // the credit line
@@ -117,17 +117,17 @@ test("a room opened by a signed-in host: a guest without an account gets AI, and
   expect(sent.at(-1)?.room?.token).toBeTruthy();
 });
 
-test("the sign-in buttons lead to Google and GitHub (live providers)", async ({ page, request }) => {
+test("the sign-in buttons lead to Apple, Google and GitHub (live providers)", async ({ page, request, baseURL }) => {
   const s = await (await request.get("/api/ai/status")).json();
   test.skip(!s.login, "sign-in is not set up on this server (run against zettelispiil.ch: just e2e-prod)");
-  for (const [p, host] of [["Google", "accounts.google.com"], ["GitHub", "github.com"]] as const) {
+  for (const [p, host] of [["Apple", "appleid.apple.com"], ["Google", "accounts.google.com"], ["GitHub", "github.com"]] as const) {
     if (!s.providers.includes(p.toLowerCase())) continue;
     await page.goto("/");
     await openSettings(page);
     await page.getByRole("button", { name: `Mit ${p} anmelden` }).click();
     await page.waitForURL((u) => u.hostname === host);
     // the way back to us; GitHub tucks it (encoded twice) into return_to on its login page
-    expect(decodeURIComponent(decodeURIComponent(page.url()))).toContain("zettelispiil.ch/api/auth/callback/");
+    expect(decodeURIComponent(decodeURIComponent(page.url()))).toContain(`${new URL(baseURL!).host}/api/auth/callback/`); // this server, e.g. zettelispiil.ch
   }
 });
 
@@ -158,6 +158,28 @@ test("sign in with a code by email: wrong code refused, right code signs in, sig
   await expect(page.getByText("e2e@example.com", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Abmelden" }).click();
   await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible();
+});
+
+test("delete the account: asked first inside the app, then signed out, also after a reload", async ({ page }) => {
+  test.skip(!!process.env.BASE_URL, "needs the local e2e server's fixed code");
+  await page.goto("/");
+  await openSettings(page);
+  await page.getByLabel("E-Mail-Adresse").fill("delete-me@example.com");
+  await page.getByRole("button", { name: "Code per E-Mail" }).click();
+  await page.getByLabel("Code aus der E-Mail").fill("123456");
+  await page.getByRole("button", { name: "Anmelden", exact: true }).click();
+  await expect(page.getByText("delete-me@example.com", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Konto löschen" }).click();
+  await page.getByRole("button", { name: "Behalten" }).click(); // changed my mind: nothing happens
+  await expect(page.getByText("delete-me@example.com", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Konto löschen" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Konto löschen" }).click();
+  await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible(); // signed out
+  await page.reload();
+  await openSettings(page);
+  await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible();
+  await expect(page.getByText("delete-me@example.com", { exact: true })).toHaveCount(0);
 });
 
 test("live: a code mail really goes out through Resend", async ({ page }) => {
