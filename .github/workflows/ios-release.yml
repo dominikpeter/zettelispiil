@@ -52,6 +52,13 @@ jobs:
             CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             MARKETING_VERSION="$(node -p "require('../../package.json').version")" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             archive
+          # unsigned, the archive carries none of the app's entitlements (App/App.entitlements: Sign in with Apple), and
+          # the export below only re-signs what it finds: the app shipped without them and Apple's sign-in sheet failed.
+          # Sign it ad hoc with them (nested frameworks first, plain); the export keeps them when it signs for real
+          app="$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
+          find "$app/Frameworks" -maxdepth 1 \( -name "*.framework" -o -name "*.dylib" \) -exec codesign --force --sign - {} \; 2>/dev/null || true
+          codesign --force --sign - --entitlements App/App.entitlements "$app"
+          codesign -d --entitlements - "$app" # in the log: the entitlements the app goes out with
 
       # the version players see is package.json's; every upload needs a new build number: this workflow's run number
       - name: Export and upload to TestFlight

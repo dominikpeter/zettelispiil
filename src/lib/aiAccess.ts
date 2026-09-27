@@ -77,8 +77,10 @@ async function signInWithAppleNatively() {
   let t;
   try {
     t = await appleIdToken(nonce);
-  } catch {
-    return; // cancelled: nothing to report
+  } catch (e) {
+    if ((e as { code?: string }).code === "CANCELLED") return; // closed by the player: nothing to report
+    console.error("Sign in with Apple failed", e);
+    return { error: { status: -1 } }; // Apple refused (e.g. the app lacks the entitlement): say it didn't work
   }
   // Apple sends the name only the very first time; later there's none to send (an empty one would count as a name)
   const user = t.givenName || t.familyName ? { name: { firstName: t.givenName, lastName: t.familyName } } : undefined;
