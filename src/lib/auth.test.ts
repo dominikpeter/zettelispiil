@@ -29,6 +29,14 @@ test("account deletion rejects independent and cached sessions after a fresh sig
   const user = (cookie: string) => currentUser({ headers: new Headers({ cookie }) });
   const first = await login();
   const second = await login(otherServer);
+  const dormantServer = betterAuth(auth.options);
+  const dormant = await login(dormantServer);
+  // Refresh an old session immediately before deletion, then leave it untouched until the watermark expires.
+  const lifetime = auth.options.session!.expiresIn! * 1000;
+  t.mock.timers.enable({ apis: ["Date"], now: Date.now() + 86_401_000 });
+  const dormantSession = await dormantServer.api.getSession({ headers: new Headers({ cookie: dormant }), query: { disableCookieCache: true } });
+  assert.ok(dormantSession);
+  assert.ok(dormantSession.session.expiresAt.getTime() <= Date.now() + lifetime);
   const otherSession = () => otherServer.api.getSession({ headers: new Headers({ cookie: second }), query: { disableCookieCache: true } });
   assert.equal((await user(first))?.email, email);
   assert.equal((await otherSession())?.user.email, email);
@@ -42,9 +50,15 @@ test("account deletion rejects independent and cached sessions after a fresh sig
   assert.equal(await otherSession(), null);
   // Exercise the public cookie-cache/refresh path too, not just the application's authoritative lookup.
   assert.equal(await (await call("/get-session", second, undefined, otherServer)).json(), null);
+  t.mock.timers.tick(1); // the new sign-in starts after deletion
   const fresh = await login(auth, second); // another device still sends its old, revoked cookie
   assert.equal((await user(fresh))?.email, email);
   assert.equal(await user(first), null);
   assert.equal(await otherSession(), null);
   assert.equal(await (await call("/get-session", second, undefined, otherServer)).json(), null);
+  t.mock.timers.tick(lifetime + 1000);
+  const { sessionRevoked } = await import("./usage.ts");
+  assert.equal(await sessionRevoked(email, dormantSession.session.createdAt), false); // watermark has expired
+  assert.equal(await dormantServer.api.getSession({ headers: new Headers({ cookie: dormant }), query: { disableCookieCache: true } }), null);
+  assert.equal(await (await call("/get-session", dormant, undefined, dormantServer)).json(), null);
 });

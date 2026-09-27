@@ -148,3 +148,15 @@ test("a deleted account cannot lend AI after its old tombstone expires", async (
   r.data.delete(`usage:deleted:${id}`);
   assert.equal(await deleted(id, r), true);
 });
+
+
+test("local account deletion removes room AI access until a fresh sign-in", async () => {
+  const store = memoryStore();
+  const id = "local-host@example.ch";
+  await signedIn({ id }, "email", Date.now(), null, store);
+  assert.equal(await deleted(id, null, store), false);
+  await forget(id, null, store);
+  assert.equal(await deleted(id, null, store), true);
+  await signedIn({ id }, "email", Date.now() + 1, null, store);
+  assert.equal(await deleted(id, null, store), false);
+});

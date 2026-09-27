@@ -60,8 +60,11 @@ export async function count(add: Partial<Record<Counter, number>>, now = new Dat
 export type Account = { id: string; name: string; email: string; provider: string; first: number; last: number; signins: number; ai: number };
 
 /** a sign-in: who, when first and last, how often (one round trip, no read-then-write) */
-export async function signedIn(user: { id: string; name?: string | null; email?: string | null }, provider: string, now = Date.now(), r = client()) {
-  if (!r) return;
+export async function signedIn(user: { id: string; name?: string | null; email?: string | null }, provider: string, now = Date.now(), r = client(), store: Store = db) {
+  if (!r) {
+    await store.set(localProfileKey(user.id), true, { ex: KEEP });
+    return;
+  }
   try {
     const p = r.pipeline();
     p.hset(K.who, { [user.id]: { id: user.id, name: user.name ?? "", email: user.email ?? "", provider, last: now } });
@@ -76,6 +79,7 @@ export async function signedIn(user: { id: string; name?: string | null; email?:
   }
 }
 
+const localProfileKey = (id: string) => `usage:local-profile:${id}`;
 const revokedKey = (id: string) => `auth:revoked-before:${id}`;
 const SESSION_KEEP = 60 * 60 * 24 * 30;
 
@@ -94,6 +98,8 @@ export async function forget(userId: string, r = client(), store: Store = db, no
       const p = r.pipeline();
       for (const k of Object.values(K)) p.hdel(k, userId);
       await p.exec();
+    } else {
+      await store.set(localProfileKey(userId), false, { ex: SESSION_KEEP });
     }
     // A fresh sign-in restores the profile, but must never clear session revocation.
     // Auth rejects and removes revoked sessions on access, so they cannot renew past this retention period.
@@ -107,8 +113,9 @@ export async function forget(userId: string, r = client(), store: Store = db, no
 }
 
 /** Missing, deleted or expired profiles cannot lend AI; a fresh sign-in restores access. */
-export async function deleted(userId: string, r = client()) {
-  if (!r || !userId) return false;
+export async function deleted(userId: string, r = client(), store: Store = db) {
+  if (!userId) return true;
+  if (!r) return (await store.get<boolean>(localProfileKey(userId))) !== true;
   const p = r.pipeline();
   p.hget(K.who, userId);
   const account = (await p.exec())[0] as Pick<Account, "last"> | null;
