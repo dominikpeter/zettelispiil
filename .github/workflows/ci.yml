@@ -20,14 +20,20 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:8-alpine
+        ports: [6379:6379]
+    env:
+      REDIS_TEST_PORT: "6379"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm }
       - uses: extractions/setup-just@v4
       - run: npm ci
-      - name: Install Redis for store regression tests
-        run: sudo apt-get update && sudo apt-get install -y redis-server
+      - name: Install the Redis test client
+        run: sudo apt-get update && sudo apt-get install -y redis-tools
       - run: just check
 
   e2e:

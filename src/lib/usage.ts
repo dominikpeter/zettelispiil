@@ -10,6 +10,7 @@ const K = { who: "usage:accounts", first: "usage:first", signins: "usage:signins
 
 /** the few Redis commands this needs; the real client (@upstash/redis) or a stand-in in tests */
 export type UsageRedis = {
+  eval(script: string, keys: string[], args: (string | number)[]): Promise<unknown>;
   pipeline(): {
     hincrby(key: string, field: string, n: number): unknown;
     hset(key: string, v: Record<string, unknown>): unknown;
@@ -59,21 +60,39 @@ export async function count(add: Partial<Record<Counter, number>>, now = new Dat
 
 export type Account = { id: string; name: string; email: string; provider: string; first: number; last: number; signins: number; ai: number };
 
-/** a sign-in: who, when first and last, how often (one round trip, no read-then-write) */
+// The watermark check and profile restoration must be one Redis operation: an in-flight sign-in may finish
+// after deletion. `now` is the session's creation time, not the time its after-hook finally runs.
+const SIGNED_IN = `
+local revoked = tonumber(redis.call('GET', KEYS[1]))
+if revoked and tonumber(ARGV[3]) <= revoked then return 0 end
+redis.call('HSET', KEYS[2], ARGV[1], ARGV[2])
+redis.call('HSETNX', KEYS[3], ARGV[1], ARGV[3])
+redis.call('HINCRBY', KEYS[4], ARGV[1], 1)
+redis.call('HINCRBY', KEYS[6], 'signins', 1)
+for i = 2, 5 do
+  redis.call('HEXPIRE', KEYS[i], ARGV[4], 'FIELDS', 1, ARGV[1])
+  redis.call('EXPIRE', KEYS[i], ARGV[4])
+end
+redis.call('EXPIRE', KEYS[6], ARGV[4])
+return 1`;
+const FORGET = `
+local revoked = tonumber(redis.call('GET', KEYS[1]))
+if revoked and revoked >= tonumber(ARGV[2]) then return 1 end
+for i = 2, #KEYS do redis.call('HDEL', KEYS[i], ARGV[1]) end
+redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3])
+return 1`;
+
+/** Record a completed sign-in using its immutable session creation time. */
 export async function signedIn(user: { id: string; name?: string | null; email?: string | null }, provider: string, now = Date.now(), r = client(), store: Store = db) {
-  if (!r) {
-    await store.set(localProfileKey(user.id), true, { ex: KEEP });
-    return;
-  }
   try {
-    const p = r.pipeline();
-    p.hset(K.who, { [user.id]: { id: user.id, name: user.name ?? "", email: user.email ?? "", provider, last: now } });
-    p.hsetnx(K.first, user.id, now);
-    p.hincrby(K.signins, user.id, 1);
-    p.hincrby(dayKey(new Date(now)), "signins", 1);
-    for (const k of Object.values(K)) p.hexpire(k, user.id, KEEP);
-    for (const k of [...Object.values(K), dayKey(new Date(now))]) p.expire(k, KEEP);
-    await p.exec();
+    if (!r) {
+      await store.withLock(revokedKey(user.id), async (locked) => {
+        if (!(await sessionRevoked(user.id, new Date(now), locked))) await locked.set(localProfileKey(user.id), true, { ex: KEEP });
+      });
+      return;
+    }
+    const profile = { id: user.id, name: user.name ?? "", email: user.email ?? "", provider, last: now };
+    await r.eval(SIGNED_IN, [revokedKey(user.id), ...Object.values(K), dayKey(new Date(now))], [user.id, JSON.stringify(profile), now, KEEP]);
   } catch (e) {
     console.error("usage sign-in failed", e);
   }
@@ -95,16 +114,15 @@ export async function sessionRevoked(userId: string, createdAt: Date | string, s
 export async function forget(userId: string, r = client(), store: Store = db, now = Date.now()) {
   try {
     if (r) {
-      const p = r.pipeline();
-      for (const k of Object.values(K)) p.hdel(k, userId);
-      await p.exec();
+      await r.eval(FORGET, [revokedKey(userId), ...Object.values(K)], [userId, now, SESSION_KEEP]);
     } else {
-      await store.set(localProfileKey(userId), false, { ex: SESSION_KEEP });
+      await store.withLock(revokedKey(userId), async (locked) => {
+        const before = await locked.get<number>(revokedKey(userId));
+        if (before !== null && before >= now) return;
+        await locked.set(localProfileKey(userId), false, { ex: SESSION_KEEP });
+        await locked.set(revokedKey(userId), now, { ex: SESSION_KEEP });
+      });
     }
-    // A fresh sign-in restores the profile, but must never clear session revocation.
-    // Auth rejects and removes revoked sessions on access, so they cannot renew past this retention period.
-    // Purge first: when storage fails, the existing session must remain usable to retry deletion.
-    await store.set(revokedKey(userId), now, { ex: SESSION_KEEP });
     return true;
   } catch (e) {
     console.error("usage forget failed", e);
@@ -122,15 +140,19 @@ export async function deleted(userId: string, r = client(), store: Store = db) {
   return !account || account.last <= Date.now() - KEEP * 1000;
 }
 
+// An AI call may finish after account deletion; never recreate its counter without a live profile.
+const AI_USED = `
+if redis.call('HEXISTS', KEYS[1], ARGV[1]) == 0 then return 0 end
+redis.call('HINCRBY', KEYS[2], ARGV[1], 1)
+redis.call('HEXPIRE', KEYS[2], ARGV[2], 'FIELDS', 1, ARGV[1])
+redis.call('EXPIRE', KEYS[2], ARGV[2])
+return 1`;
+
 /** an AI call on this account (its own or, in a host's room, the host's) */
 export async function aiUsedBy(userId: string, r = client()) {
   if (!r || !userId) return;
   try {
-    const p = r.pipeline();
-    p.hincrby(K.ai, userId, 1);
-    p.hexpire(K.ai, userId, KEEP);
-    p.expire(K.ai, KEEP);
-    await p.exec();
+    await r.eval(AI_USED, [K.who, K.ai], [userId, KEEP]);
   } catch {}
 }
 

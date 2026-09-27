@@ -164,9 +164,9 @@ const make = () => betterAuth({
       }
       if (!s) return;
       const user = { ...s.user, id: accountOf(s.user) };
-      if (ctx.path.startsWith("/callback/")) await signedIn(user, ctx.path.slice("/callback/".length));
-      else if (ctx.path === "/sign-in/email-otp") await signedIn(user, "email");
-      else if (ctx.path === "/sign-in/social") await signedIn(user, String(ctx.body?.provider)); // the app's native Apple sign-in
+      if (ctx.path.startsWith("/callback/")) await signedIn(user, ctx.path.slice("/callback/".length), new Date(s.session.createdAt).getTime());
+      else if (ctx.path === "/sign-in/email-otp") await signedIn(user, "email", new Date(s.session.createdAt).getTime());
+      else if (ctx.path === "/sign-in/social") await signedIn(user, String(ctx.body?.provider), new Date(s.session.createdAt).getTime()); // the app's native Apple sign-in
     }),
   },
 });
