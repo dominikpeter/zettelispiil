@@ -80,8 +80,9 @@ async function signInWithAppleNatively() {
   } catch {
     return; // cancelled: nothing to report
   }
-  const name = { firstName: t.givenName, lastName: t.familyName }; // Apple sends the name only the very first time
-  const r = await (await auth()).signIn.social({ provider: "apple", idToken: { token: t.identityToken, nonce, user: { name } } });
+  // Apple sends the name only the very first time; later there's none to send (an empty one would count as a name)
+  const user = t.givenName || t.familyName ? { name: { firstName: t.givenName, lastName: t.familyName } } : undefined;
+  const r = await (await auth()).signIn.social({ provider: "apple", idToken: { token: t.identityToken, nonce, user } });
   if (!r.error) {
     remember(WITH, "apple"); // deleting the account later asks Apple again, to revoke its tokens
     await load();
