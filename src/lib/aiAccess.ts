@@ -82,8 +82,41 @@ async function signInWithAppleNatively() {
   }
   const name = { firstName: t.givenName, lastName: t.familyName }; // Apple sends the name only the very first time
   const r = await (await auth()).signIn.social({ provider: "apple", idToken: { token: t.identityToken, nonce, user: { name } } });
-  if (!r.error) await load();
+  if (!r.error) {
+    remember(WITH, "apple"); // deleting the account later asks Apple again, to revoke its tokens
+    await load();
+  }
   return r;
+}
+const WITH = "zettelispiil:signed-in-with";
+const remember = (k: string, v: string | null) => {
+  try {
+    if (v) localStorage.setItem(k, v);
+    else localStorage.removeItem(k);
+  } catch {}
+};
+const recall = (k: string) => {
+  try {
+    return localStorage.getItem(k);
+  } catch {
+    return null;
+  }
+};
+/**
+ * delete the account (App Review 5.1.1(v)): the server forgets it and ends its sessions, then this phone signs out.
+ * Signed in with Apple in the app: Apple's sheet shows once more, its code lets the server revoke Apple's tokens.
+ * Throws when it didn't work (or Apple's sheet was cancelled); the account then stays as it was
+ */
+export async function deleteAccount() {
+  let appleCode: string | undefined;
+  if (hasAppleSignIn() && recall(WITH) === "apple") {
+    const nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+    appleCode = (await appleIdToken(nonce)).authorizationCode;
+    if (!appleCode) throw new Error("no code from Apple");
+  }
+  const r = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appleCode }) });
+  if (!r.ok) throw new Error(`delete: ${r.status}`);
+  await signOut();
 }
 /** a sign-in code to this address */
 export const sendCode = async (email: string) => (await auth()).emailOtp.sendVerificationOtp({ email, type: "sign-in" }, { headers: { "x-lang": langPref.get() } }); // the mail in the app's language
@@ -94,6 +127,7 @@ export async function signInWithCode(email: string, otp: string) {
   return r;
 }
 export async function signOut() {
+  remember(WITH, null);
   await (await auth()).signOut();
   await load();
 }

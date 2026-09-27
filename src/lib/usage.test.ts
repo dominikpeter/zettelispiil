@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { aiUsedBy, count, report, signedIn, type UsageRedis } from "./usage.ts";
+import { aiUsedBy, count, forget, report, signedIn, type UsageRedis } from "./usage.ts";
 
 // an in-memory stand-in for the few Redis hash commands usage.ts uses
 function fakeRedis(): UsageRedis & { data: Map<string, Record<string, unknown>> } {
@@ -15,6 +15,7 @@ function fakeRedis(): UsageRedis & { data: Map<string, Record<string, unknown>> 
         hset: (k: string, v: Record<string, unknown>) => (ops.push(() => Object.assign(h(k), v)), p),
         hsetnx: (k: string, f: string, v: unknown) => (ops.push(() => (f in h(k) ? 0 : ((h(k)[f] = v), 1))), p),
         hgetall: (k: string) => (ops.push(() => (data.has(k) ? { ...data.get(k) } : null)), p),
+        hdel: (k: string, ...fs: string[]) => (ops.push(() => fs.forEach((f) => delete h(k)[f])), p),
         expire: () => (ops.push(() => 1), p),
         exec: async () => ops.map((o) => o()),
       };
@@ -42,6 +43,19 @@ test("usage: daily counters, sign-ins and AI calls per account end up on the adm
   assert.equal(lisa.ai, 3);
   assert.equal(lisa.first, now.getTime() - 60_000); // first sign-in kept
   assert.equal(lisa.last, now.getTime());
+});
+
+test("usage: a deleted account leaves no trace on the admin page, other accounts and the daily totals stay", async () => {
+  const r = fakeRedis();
+  const now = new Date("2026-09-25T12:00:00Z");
+  await signedIn({ id: "lisa@example.ch", name: "Lisa", email: "lisa@example.ch" }, "apple", now.getTime(), r);
+  await signedIn({ id: "tim@example.ch", name: "Tim", email: "tim@example.ch" }, "email", now.getTime(), r);
+  await aiUsedBy("lisa@example.ch", r);
+  assert.equal(await forget("lisa@example.ch", r), true);
+  const rep = await report(1, now, r);
+  assert.deepEqual(rep.accounts.map((a) => a.id), ["tim@example.ch"]);
+  for (const k of ["usage:accounts", "usage:first", "usage:signins", "usage:ai-by"]) assert.ok(!("lisa@example.ch" in (r.data.get(k) ?? {})), k);
+  assert.equal(rep.days[0].signins, 2); // today's count names no one: it stays
 });
 
 test("usage: without Redis nothing is counted and the report says so", async () => {

@@ -160,6 +160,28 @@ test("sign in with a code by email: wrong code refused, right code signs in, sig
   await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible();
 });
 
+test("delete the account: asked first inside the app, then signed out, also after a reload", async ({ page }) => {
+  test.skip(!!process.env.BASE_URL, "needs the local e2e server's fixed code");
+  await page.goto("/");
+  await openSettings(page);
+  await page.getByLabel("E-Mail-Adresse").fill("delete-me@example.com");
+  await page.getByRole("button", { name: "Code per E-Mail" }).click();
+  await page.getByLabel("Code aus der E-Mail").fill("123456");
+  await page.getByRole("button", { name: "Anmelden", exact: true }).click();
+  await expect(page.getByText("delete-me@example.com", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Konto löschen" }).click();
+  await page.getByRole("button", { name: "Behalten" }).click(); // changed my mind: nothing happens
+  await expect(page.getByText("delete-me@example.com", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Konto löschen" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Konto löschen" }).click();
+  await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible(); // signed out
+  await page.reload();
+  await openSettings(page);
+  await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible();
+  await expect(page.getByText("delete-me@example.com", { exact: true })).toHaveCount(0);
+});
+
 test("live: a code mail really goes out through Resend", async ({ page }) => {
   test.skip(!process.env.BASE_URL, "only against the live site: the local server sends no mail");
   // Resend's test address accepts the mail without an inbox behind it: proves key, verified sender domain and sending.

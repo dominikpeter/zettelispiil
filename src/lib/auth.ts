@@ -23,17 +23,39 @@ const microsoft = microsoftKeys && { ...microsoftKeys, tenantId: "common", promp
 // app's bundle id, so tokens for either are accepted. Apple wants a client secret that is itself a JWT signed with the
 // Sign in with Apple key and valid at most six months: made here at start, so it never needs renewing by hand
 export const APP_BUNDLE_ID = "ch.zettelispiil.app";
-const appleOn = !!(env.APPLE_CLIENT_ID && env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY);
-const apple = appleOn
-  ? { clientId: env.APPLE_CLIENT_ID!, clientSecret: appleSecret(), appBundleIdentifier: APP_BUNDLE_ID, audience: [env.APPLE_CLIENT_ID!, APP_BUNDLE_ID] }
-  : undefined;
-function appleSecret() {
+const apple = env.APPLE_CLIENT_ID && env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY ? appleConfig(env.APPLE_CLIENT_ID) : undefined;
+function appleConfig(clientId: string) {
+  try {
+    return { clientId, clientSecret: appleSecret(clientId), appBundleIdentifier: APP_BUNDLE_ID, audience: [clientId, APP_BUNDLE_ID] };
+  } catch {
+    // a key that can't be read switches only Apple off, not every route that signs in or asks for AI
+    console.error("Sign in with Apple is off: APPLE_PRIVATE_KEY can't be read");
+    return undefined;
+  }
+}
+/** the client secret Apple wants: a JWT for this client id (the website's Services ID, or the app's bundle id) */
+function appleSecret(clientId: string) {
   const b64 = (x: string | Buffer) => Buffer.from(x).toString("base64url");
   const now = Math.floor(Date.now() / 1000);
   const head = b64(JSON.stringify({ alg: "ES256", kid: env.APPLE_KEY_ID }));
-  const body = b64(JSON.stringify({ iss: env.APPLE_TEAM_ID, iat: now, exp: now + 150 * 86400, aud: "https://appleid.apple.com", sub: env.APPLE_CLIENT_ID }));
+  const body = b64(JSON.stringify({ iss: env.APPLE_TEAM_ID, iat: now, exp: now + 150 * 86400, aud: "https://appleid.apple.com", sub: clientId }));
   const key = createPrivateKey(env.APPLE_PRIVATE_KEY!.replace(/\\n/g, "\n")); // a pasted key may carry its line breaks as \n
   return `${head}.${body}.${b64(sign("sha256", Buffer.from(`${head}.${body}`), { key, dsaEncoding: "ieee-p1363" }))}`;
+}
+
+/**
+ * deleting an account that signed in with Apple in the app: Apple wants its tokens revoked (App Review 5.1.1(v)). With no
+ * database there's no stored token, so the app gets a fresh authorization code from Apple's sheet; it belongs to the
+ * app's bundle id. Exchanged for a refresh token here, which is then revoked. false when Apple refused
+ */
+export async function revokeApple(code: string) {
+  if (!apple) return false;
+  const secret = appleSecret(APP_BUNDLE_ID);
+  const post = (path: string, form: Record<string, string>) =>
+    fetch(`https://appleid.apple.com/auth/${path}`, { method: "POST", body: new URLSearchParams({ client_id: APP_BUNDLE_ID, client_secret: secret, ...form }), signal: AbortSignal.timeout(8000) });
+  const t = await post("token", { code, grant_type: "authorization_code" });
+  const token = t.ok ? ((await t.json()) as { refresh_token?: string }).refresh_token : undefined;
+  return !!token && (await post("revoke", { token, token_type_hint: "refresh_token" })).ok;
 }
 
 // a code by email (Resend). The e2e server has no mail: it uses a fixed code, never on Vercel

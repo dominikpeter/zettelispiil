@@ -57,7 +57,7 @@ install sheet. `just store-shots` makes both sets again (with `just dev` running
 
 > Zettelispiil is a party game (salad bowl / fishbowl) for a group in one room. To try it alone: tap "Neues Spiel" (one phone), then "Spiel starten", write a word for each player ("Ich bin …" → type → "In die Schüssel"), then "Los, Zetteli ziehen" and swipe the word right (guessed) or left (skip). The game runs through up to five rounds and ends with statistics.
 > "Mehrere Handys" lets several phones play together in a room (6-character code, QR code or link).
-> AI help is optional and needs a sign-in (Sign in with Apple, or a code sent by e-mail); playing never needs an account. Optional tips ("Spendier mir einen Kaffee" in the settings) are consumable In-App Purchases; they unlock nothing. No ads.
+> AI help is optional and needs a sign-in (Sign in with Apple, or a code sent by e-mail); playing never needs an account. The account can be deleted in the app: settings (gear icon) > under the signed-in name > "Konto löschen"; for Sign in with Apple this also revokes Apple's tokens. Optional tips ("Spendier mir einen Kaffee" in the settings) are consumable In-App Purchases; they unlock nothing. No ads.
 
 - **Contact**: Dominik Peter, info@zettelispiil.ch
 

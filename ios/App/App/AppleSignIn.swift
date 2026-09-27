@@ -43,6 +43,8 @@ public class AppleSignInPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationCont
             return
         }
         var result: [String: Any] = ["identityToken": token]
+        // a one-time code; deleting the account hands it to the server, which revokes Apple's tokens with it
+        if let code = credential.authorizationCode.flatMap({ String(data: $0, encoding: .utf8) }) { result["authorizationCode"] = code }
         if let given = credential.fullName?.givenName { result["givenName"] = given }
         if let family = credential.fullName?.familyName { result["familyName"] = family }
         pending?.resolve(result)

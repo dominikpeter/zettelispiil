@@ -1,9 +1,10 @@
 "use client";
 
-import { LogOut, Mail } from "lucide-react";
+import { LogOut, Mail, Trash2 } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { useT } from "@/lib/prefs";
-import { sendCode, signIn, signInWithCode, signOut, useAiStatus, warmAuth, type Provider } from "@/lib/aiAccess";
+import { deleteAccount, sendCode, signIn, signInWithCode, signOut, useAiStatus, warmAuth, type Provider } from "@/lib/aiAccess";
+import { Confirm } from "@/components/game/common";
 import { hasAppleSignIn, isNative } from "@/lib/native";
 import { field, press } from "@/lib/ui";
 
@@ -55,22 +56,37 @@ export function Account() {
   const inApp = useSyncExternalStore(noop, isNative, () => false);
   const appleHere = useSyncExternalStore(noop, hasAppleSignIn, () => false);
   const [err, setErr] = useState("");
+  const [asking, setAsking] = useState(false);
   const go = async (p: Social) => {
     setErr("");
-    // on success the page navigates to the provider; an answer here means it didn't
+    // on success the page navigates to the provider (or, Apple in the app, signs in right here); an answer here means
+    // it didn't: no connection, too many tries, or the server refused the sign-in
     const r = await signIn(p).catch(() => ({ error: { status: 0 } }));
-    if (r?.error) setErr(r.error.status === 429 ? t.rate_limited : t.offline);
+    if (r?.error) setErr(r.error.status === 429 ? t.rate_limited : r.error.status ? t.signInFailed : t.offline);
+  };
+  const remove = async () => {
+    setAsking(false);
+    setErr("");
+    await deleteAccount().catch(() => setErr(t.deleteFailed));
   };
   if (!s?.login) return null;
   if (s.user)
     return (
-      <div className="flex items-center justify-between gap-3 rounded-2xl bg-raised py-1 pr-1 pl-4">
-        <p className="min-w-0 truncate text-sm text-muted">
-          {t.signedInAs} <b className="truncate text-ink">{s.user.name || s.user.email}</b>
-        </p>
-        <button type="button" onPointerDown={warmAuth} onClick={signOut} className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-raised hover:text-ink ${press}`}>
-          <LogOut className="size-4" aria-hidden /> {t.signOut}
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-raised py-1 pr-1 pl-4">
+          <p className="min-w-0 truncate text-sm text-muted">
+            {t.signedInAs} <b className="truncate text-ink">{s.user.name || s.user.email}</b>
+          </p>
+          <button type="button" onPointerDown={warmAuth} onClick={signOut} className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-raised hover:text-ink ${press}`}>
+            <LogOut className="size-4" aria-hidden /> {t.signOut}
+          </button>
+        </div>
+        {/* App Review 5.1.1(v): an app that creates accounts lets people delete them in the app */}
+        <button type="button" onClick={() => setAsking(true)} className={`flex items-center gap-1.5 self-start rounded-xl px-2 py-1.5 text-xs font-semibold text-muted hover:text-ink ${press}`}>
+          <Trash2 className="size-3.5" aria-hidden /> {t.deleteAccount}
         </button>
+        {err && <p role="alert" className="enter text-sm font-medium text-hi">{err}</p>}
+        {asking && <Confirm text={t.deleteAccountAsk} yes={t.deleteAccount} no={t.keepAccount} onYes={remove} onNo={() => setAsking(false)} />}
       </div>
     );
   return (

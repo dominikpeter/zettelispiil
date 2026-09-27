@@ -18,7 +18,10 @@ public class CoffeePlugin: CAPPlugin, CAPBridgedPlugin {
         // purchases that complete outside buy() (e.g. approved later via Ask to Buy): finish them, as Apple asks
         updates = Task {
             for await update in Transaction.updates {
-                if case .verified(let transaction) = update { await transaction.finish() }
+                // unverified too: a tip unlocks nothing, and an unfinished one would come back at every launch
+                switch update {
+                case .verified(let transaction), .unverified(let transaction, _): await transaction.finish()
+                }
             }
         }
     }
@@ -44,8 +47,12 @@ public class CoffeePlugin: CAPPlugin, CAPBridgedPlugin {
                 guard let product = try await Product.products(for: [id]).first else { return call.reject("unknown product") }
                 switch try await product.purchase() {
                 case .success(let result):
-                    guard case .verified(let transaction) = result else { return call.reject("unverified purchase") }
-                    await transaction.finish()
+                    switch result {
+                    case .verified(let transaction): await transaction.finish()
+                    case .unverified(let transaction, _):
+                        await transaction.finish() // nothing to take back: a tip unlocks nothing
+                        return call.reject("unverified purchase")
+                    }
                     call.resolve(["status": "purchased"])
                 case .pending:
                     call.resolve(["status": "pending"])
