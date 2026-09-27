@@ -1,9 +1,10 @@
 "use client";
 
 import { LogOut, Mail } from "lucide-react";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useT } from "@/lib/prefs";
 import { sendCode, signIn, signInWithCode, signOut, useAiStatus, warmAuth, type Provider } from "@/lib/aiAccess";
+import { isNative } from "@/lib/native";
 import { field, press } from "@/lib/ui";
 
 // provider marks, drawn small and in their own colors as the providers ask for
@@ -38,9 +39,14 @@ type Social = Exclude<Provider, "email">;
 const NAME: Record<Social, string> = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
 
 /** sign-in buttons, or who is signed in; renders nothing when sign-in isn't set up */
+const noop = () => () => {};
+
 export function Account() {
   const t = useT();
   const s = useAiStatus();
+  // in the phone apps only the e-mail code: Apple asks apps that offer Google/GitHub/Microsoft sign-in to also offer
+  // Sign in with Apple (App Review 4.8); an app's own sign-in is exempt. The website keeps every option
+  const inApp = useSyncExternalStore(noop, isNative, () => false);
   const [err, setErr] = useState("");
   const go = async (p: Social) => {
     setErr("");
@@ -64,7 +70,7 @@ export function Account() {
     <div className="flex flex-col gap-2">
       <p className="text-sm text-muted">{t.signInNote}</p>
       <div className="grid gap-2">
-        {s.providers.filter((p): p is Social => p !== "email").map((p) => (
+        {s.providers.filter((p): p is Social => p !== "email" && !inApp).map((p) => (
           <button
             key={p}
             type="button"
