@@ -54,6 +54,7 @@ for (const name of PHONES) {
     // drawing is already on by default with several phones; drop everything else to leave only it
     for (const r of ["Umschreiben", "Pantomime", "Ein Wort", "Geräusch"]) await host.getByRole("button", { name: `${r} weglassen` }).click();
     for (let i = 0; i < 3; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
+    if (name === "iPhone SE") await host.getByRole("button", { name: "Passen pro Zug mehr" }).click();
     await host.getByRole("button", { name: "Spiel starten" }).click();
     for (const [i, p] of phones.entries()) {
       await p.getByLabel("Zetteli 1", { exact: true }).fill(LONG[i]);
@@ -97,6 +98,25 @@ for (const name of PHONES) {
     await mate.getByRole("button", { name: "Erraten" }).click();
     for (const p of watchers) await expect.poll(() => p.evaluate("window.__flashes.join(' ')"), { timeout: 10_000 }).toContain(word);
     await expect(d.getByTestId("word")).not.toHaveText(word);
+
+    const skipped = await d.getByTestId("word").innerText();
+    await d.getByRole("button", { name: /^Passen/ }).click();
+    const swap = d.getByRole("button", { name: `Zurück zu ${skipped}`, exact: true });
+    await expect(swap).toBeVisible();
+    await expect.poll(() => fits(d), { message: "drawing with a set-aside Zetteli" }).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });
+    expect(await sideways(d)).toBe(0);
+    await swap.click();
+    await expect(d.getByTestId("word")).toHaveText(skipped);
+    if (name === "iPhone SE") {
+      await d.getByRole("button", { name: /^Passen/ }).click();
+      await expect(d.getByTestId("word")).not.toHaveText(skipped);
+      const held = d.getByRole("button", { name: /^Zurück zu / });
+      await expect(held).toHaveCount(2);
+      await expect.poll(() => fits(d), { message: "drawing with several set-aside Zetteli" }).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });
+      expect(await sideways(d)).toBe(0);
+      await held.last().click(); // scrolls within the row, leaving the game controls on screen
+      await expect(d.getByTestId("word")).toHaveText(skipped);
+    }
   });
 }
 
@@ -162,10 +182,12 @@ test("iPhone SE: no screen scrolls sideways and single-screen views fit, through
       await check("ready");
       await fitsTall("ready");
       await go.click();
+      await expect(page.getByTestId("word")).toBeVisible();
     } else if (await next.isVisible()) {
       await check("round end");
       await fitsTall("round end");
       await next.click();
+      await expect(go).toBeVisible();
     } else if (await page.getByTestId("word").isVisible()) {
       // settled, the turn screen fits (drawing on paper too); a moment between two screens may briefly be taller
       await expect.poll(() => fits(page), { message: "turn screen", timeout: 3000 }).toEqual({ scrolls: false, buttonsCut: false, wordWraps: false });

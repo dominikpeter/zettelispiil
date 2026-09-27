@@ -65,9 +65,13 @@ test("KI schreibt: the host picks two topics, nobody writes, no word shows befor
   for (let guard = 0; guard < 40 && !(await end.isVisible()); guard++) {
     const next = page.getByRole("button", { name: /^Runde \d starten/ });
     await expect(go.or(next).or(page.getByTestId("word")).or(end).first()).toBeVisible();
-    if (await go.isVisible()) await go.click();
-    else if (await next.isVisible()) await next.click();
-    else if (await page.getByTestId("word").isVisible()) {
+    if (await go.isVisible()) {
+      await go.click();
+      await expect(page.getByTestId("word")).toBeVisible();
+    } else if (await next.isVisible()) {
+      await next.click();
+      await expect(go).toBeVisible();
+    } else if (await page.getByTestId("word").isVisible()) {
       const w = await page.getByTestId("word").innerText();
       expect(WORDS).toContain(w);
       if (first) await expect(page.getByText(`Tipp zu ${w}`)).toBeVisible(); // the AI's hint for the describer

@@ -94,7 +94,7 @@ export function ScanCode({ onCode, labels }: { onCode: (code: string) => void; l
         <div className="relative flex h-full flex-col items-center justify-center">
           <video ref={video} playsInline muted className="absolute inset-0 size-full object-cover" />
           {/* viewfinder */}
-          <div className="relative size-64 rounded-3xl border-4 border-white/90 shadow-[0_0_0_100vmax_rgba(0,0,0,0.45)]">
+          <div className="relative size-64 rounded-3xl border-4 border-white/90 shadow-viewfinder">
             <span className="absolute inset-x-4 top-1/2 h-0.5 animate-pulse bg-gold" />
           </div>
           <p className="relative mt-6 max-w-xs text-center text-lg font-semibold">{error ? labels.noCamera : labels.pointCamera}</p>
@@ -102,7 +102,7 @@ export function ScanCode({ onCode, labels }: { onCode: (code: string) => void; l
             type="button" // inside the home page's form: a plain button would also submit it (and join the room)
             onClick={() => sheet.current?.close()}
             aria-label={labels.close}
-            className={`absolute top-[max(1rem,env(safe-area-inset-top))] right-4 grid size-11 place-items-center rounded-full bg-black/60 ${press}`}
+            className={`absolute top-safe-dialog right-4 grid size-11 place-items-center rounded-full bg-black/60 ${press}`}
           >
             <X className="size-6" aria-hidden />
           </button>

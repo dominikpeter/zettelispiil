@@ -248,10 +248,10 @@ export function StorySheet({ c, stack, onBack, onClose }: { c: Ctx; stack: Focus
       onClose={onClose}
       onClick={(e) => e.target === dialog.current && dialog.current.close()} // tap outside closes
       aria-label={title}
-      className="sheet mx-auto mt-auto mb-0 max-h-[88dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
+      className="sheet mx-auto mt-auto mb-0 max-h-detail-sheet w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
     >
       {top && (
-        <div key={stack.length} className="enter flex flex-col gap-4 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <div key={stack.length} className="enter flex flex-col gap-4 p-5 pb-safe-5">
           <div className="flex items-start gap-2">
             {stack.length > 1 && (
               <button onClick={onBack} aria-label={t.back} className={`${round_btn} shrink-0`}>

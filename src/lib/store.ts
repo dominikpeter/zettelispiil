@@ -2,6 +2,8 @@ import { Redis } from "@upstash/redis";
 
 // the few Redis operations rooms need
 export interface Store {
+  /** Serialize a room's read/modify/write work across callers; use the scoped store inside the callback. */
+  withLock<T>(key: string, fn: (store: Store) => Promise<T>): Promise<T>;
   get<T>(key: string): Promise<T | null>;
   set(key: string, value: unknown, opts: { ex: number; nx?: boolean }): Promise<boolean>;
   hset(key: string, field: string, value: unknown, ex: number): Promise<void>;
@@ -15,7 +17,22 @@ export interface Store {
   expire(key: string, ex: number): Promise<boolean>;
 }
 
+export class StoreBusyError extends Error {}
+
+/** Local callers share a queue; rejected work must not strand the next caller. */
+export async function serialise<T>(pending: Map<string, Promise<unknown>>, key: string, fn: () => Promise<T>): Promise<T> {
+  const before = pending.get(key) ?? Promise.resolve();
+  const next = before.catch(() => {}).then(fn);
+  pending.set(key, next);
+  try {
+    return await next;
+  } finally {
+    if (pending.get(key) === next) pending.delete(key);
+  }
+}
+
 export function memoryStore(): Store {
+  const pending = new Map<string, Promise<unknown>>();
   const data = new Map<string, { v: unknown; until: number }>();
   const live = (k: string) => {
     const e = data.get(k);
@@ -23,7 +40,8 @@ export function memoryStore(): Store {
     return data.get(k);
   };
   const clone = <T>(v: unknown) => structuredClone(v) as T;
-  return {
+  const store: Store = {
+    withLock: (key, fn) => serialise(pending, key, () => fn(store)),
     async get<T>(k: string) {
       const e = live(k);
       return e ? clone<T>(e.v) : null;
@@ -58,10 +76,46 @@ export function memoryStore(): Store {
       return !!e;
     },
   };
+  return store;
 }
 
-function redisStore(redis: Redis): Store {
-  return {
+// A lease holder may pause longer than the lease (server freeze, network outage). Every scoped mutation checks
+// ownership and renews the lease in the same Redis operation, so an expired holder can never overwrite its successor.
+const LOCK_SECONDS = 30;
+const FENCED_WRITE = `
+if redis.call('GET', KEYS[1]) ~= ARGV[1] then return redis.error_reply('room lock expired') end
+redis.call('EXPIRE', KEYS[1], ${LOCK_SECONDS})
+local results = {}
+for _, command in ipairs(cjson.decode(ARGV[2])) do results[#results + 1] = redis.call(unpack(command)) end
+return results`;
+const RELEASE_LOCK = "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end return 0";
+const encoded = (v: unknown) => typeof v === "string" ? v : JSON.stringify(v);
+
+export function redisStore(redis: Redis, lease?: { key: string; token: string }): Store {
+  const write = async (commands: (string | number)[][]) => {
+    try { return await redis.eval<string[], unknown[]>(FENCED_WRITE, [lease!.key], [lease!.token, JSON.stringify(commands)]); }
+    catch (e) {
+      if (e instanceof Error && e.message.includes("room lock expired")) throw new StoreBusyError("room lock expired");
+      throw e;
+    }
+  };
+  const store: Store = {
+    async withLock(key, fn) {
+      const lock = `lock:${key}`;
+      const token = crypto.randomUUID();
+      const deadline = Date.now() + 5000;
+      while (!(await redis.set(lock, token, { nx: true, ex: LOCK_SECONDS }))) {
+        if (Date.now() >= deadline) throw new StoreBusyError("room is busy");
+        await new Promise((r) => setTimeout(r, 25 + Math.random() * 25));
+      }
+      try {
+        return await fn(redisStore(redis, { key: lock, token }));
+      } finally {
+        // Never delete a newer owner's lease, even if this callback outlived its lease.
+        try { await redis.eval(RELEASE_LOCK, [lock], [token]); }
+        catch { console.error("room lock release failed; the lease will expire"); }
+      }
+    },
     get: (k) => redis.get(k),
     async set(k, v, { ex, nx }) {
       return (await (nx ? redis.set(k, v, { ex, nx: true }) : redis.set(k, v, { ex }))) === "OK";
@@ -85,6 +139,21 @@ function redisStore(redis: Redis): Store {
     },
     async expire(k, ex) {
       return (await redis.expire(k, ex)) === 1;
+    },
+  };
+  if (!lease) return store;
+  return {
+    ...store,
+    async set(k, v, { ex, nx }) {
+      return (await write([["SET", k, encoded(v), "EX", ex, ...(nx ? ["NX"] : [])]]))[0] === "OK";
+    },
+    async hset(k, f, v, ex) {
+      await write([["HSET", k, f, encoded(v)], ["EXPIRE", k, ex]]);
+    },
+    async hdel(k, f) { await write([["HDEL", k, f]]); },
+    async expire(k, ex) { return (await write([["EXPIRE", k, ex]]))[0] === 1; },
+    async rpush(k, vs, ex, max) {
+      return (await write([["RPUSH", k, ...vs.map(encoded)], ["LTRIM", k, 0, max - 1], ["EXPIRE", k, ex]]))[0] as number;
     },
   };
 }

@@ -136,14 +136,14 @@ export default function Room() {
 
   return (
     <AiRoomContext value={aiRoom}>
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3 pb-safe-2">
       {/* settings float at the top right while the lobby scrolls: a zero-height sticky row over the header's right end */}
       {!inGame && (
-        <div className="sticky top-[calc(env(safe-area-inset-top)+0.75rem)] z-30 flex h-0 items-start justify-end">
+        <div className="sticky top-safe-3 z-30 flex h-0 items-start justify-end">
           <TopControls />
         </div>
       )}
-      <header className="mb-4 flex min-h-[calc(2.75rem+2px)] items-center justify-between gap-2">
+      <header className="mb-4 flex min-h-header items-center justify-between gap-2">
         {/* the code only in the lobby: mid-game the header needs its room (score, pause) on small phones */}
         <BackButton v={v} onLeave={() => router.push("/")} onSettings={v?.isHost ? () => send({ type: "toSettings" }) : undefined} label={!v || v.phase === "lobby" ? code : undefined} />
         {inGame && (
@@ -171,7 +171,7 @@ export default function Room() {
           <Bowl className="mx-auto w-32" />
           <p className="text-muted">{t.invites(players[v.hostIndex]?.name ?? "")}</p>
           <h1 className="text-4xl font-extrabold tracking-tight">{t.playAlong}</h1>
-          <p className="text-3xl font-bold tracking-[0.3em] text-hi">{code}</p>
+          <p className="text-3xl font-bold tracking-room text-hi">{code}</p>
           <form
             onSubmit={(e) => {
               e.preventDefault();

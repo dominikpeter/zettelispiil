@@ -7,7 +7,8 @@ cd "$(dirname "$0")/.."
 source scripts/gh-secret.sh
 name=${1:-}
 [[ $name =~ ^[A-Z][A-Z0-9_]*$ ]] || { echo "usage: just secret-gh NAME   (NAME in CAPITALS, e.g. PLAY_SERVICE_ACCOUNT_JSON)"; exit 1; }
-echo "Paste the value, then press Enter. For a multi-line secret (a JSON key file), paste it all, then Ctrl-D on its own line."
-value=$(cat)
+echo "Paste the value (hidden), press Enter, then Ctrl-D on its own line. Multi-line values are supported."
+value=$(while IFS= read -rs line || [ -n "$line" ]; do printf '%s\n' "$line"; done)
+echo
 [ -n "$value" ] || { echo "Empty, nothing changed."; exit 1; }
 put_gh "$name" "$value"

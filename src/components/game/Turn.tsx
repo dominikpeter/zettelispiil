@@ -143,7 +143,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   const [wipes, setWipes] = useState(0);
 
   const topBar = (
-    <div className="sticky top-[env(safe-area-inset-top)] z-10 -mx-4 flex items-center justify-between gap-3 bg-canvas/90 px-4 py-2 backdrop-blur">
+    <div className="sticky top-safe z-10 -mx-4 flex items-center justify-between gap-3 bg-canvas/90 px-4 py-2 backdrop-blur">
       <TimerRing left={shownLeft} total={total} size={76} label={t.secondsLeft} />
       <div className="text-center">
         <p className="text-sm text-muted">{t.thisTurn}</p>
@@ -155,7 +155,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
     </div>
   );
   const buttons = (
-    <div className="grid grid-cols-[1fr_1.6fr] gap-3 pb-2">
+    <div className="grid grid-cols-turn-actions gap-3 pb-2">
       <button onClick={() => act("l")} disabled={up || !!fling || !v.canSkip} className={`${btn2} min-h-14 flex-col gap-0 leading-tight`}>
         {t.next}
         {v.settings.skips !== -1 && <span className="text-xs font-medium text-muted">{t.left(v.settings.skips - v.held.length)}</span>}
@@ -163,6 +163,28 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
       <button onClick={() => act("r")} disabled={up || !!fling} className={btn}>
         <Check className="size-5" aria-hidden /> {t.got}
       </button>
+    </div>
+  );
+
+  const drawingOnline = type === "draw" && mode === "online";
+  const heldSlips = v.held.length > 0 && (
+    <div className="enter min-w-0">
+      <p className="mb-1.5 text-xs text-muted">{t.setAside}</p>
+      <div className={`flex gap-2 ${drawingOnline ? "overflow-x-auto py-1" : "flex-wrap"}`}>
+        {v.held.map((h, i) => (
+          <button
+            key={h.id}
+            disabled={up || !!fling}
+            onClick={() => v.word && send({ type: "back", w: v.word.id, to: h.id }, d)}
+            aria-label={t.swapBack(h.text)}
+            className={`${press} max-w-full disabled:opacity-40 ${drawingOnline ? "shrink-0" : ""}`}
+          >
+            <Slip tilt={i % 2 ? 2 : -3} className="unfold px-2.5 pt-0.5 pb-0.5">
+              <span className={`font-hand text-xl font-bold ${drawingOnline ? "block truncate" : "break-words"}`}>{h.text}</span>
+            </Slip>
+          </button>
+        ))}
+      </div>
     </div>
   );
 
@@ -184,7 +206,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
           </HeckleFx>
         )}
         {/* the paper takes what's left of the screen, never more: no scrolling while drawing */}
-        <div className="mx-auto w-full" style={{ maxWidth: "min(100%, calc(100dvh - 24rem))" }}>
+        <div className="mx-auto w-full" style={{ maxWidth: v.held.length ? "min(100%, calc(100dvh - 28rem))" : "min(100%, calc(100dvh - 24rem))" }}>
           {word && sheet !== null && live && (
             <DrawPad key={word.id} code={live.code} sheet={sheet} wipeNo={wipes} ink={ink} label={t.drawHere} onFlush={up ? undefined : live.draw} />
           )}
@@ -215,6 +237,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
             <Eraser className="size-5" aria-hidden />
           </button>
         </div>
+        {heldSlips}
         {buttons}
       </div>
     );
@@ -306,26 +329,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
         {!up && !v.held.length && <p className="mt-4 text-center text-sm text-muted [@media(max-height:640px)]:hidden">{t.swipeHint}</p>}
       </div>
 
-      {v.held.length > 0 && (
-        <div className="enter">
-          <p className="mb-1.5 text-xs text-muted">{t.setAside}</p>
-          <div className="flex flex-wrap gap-2">
-            {v.held.map((h, i) => (
-              <button
-                key={h.id}
-                disabled={up || !!fling}
-                onClick={() => v.word && send({ type: "back", w: v.word.id, to: h.id }, d)}
-                aria-label={t.swapBack(h.text)}
-                className={`${press} max-w-full disabled:opacity-40`}
-              >
-                <Slip tilt={i % 2 ? 2 : -3} className="unfold px-2.5 pt-0.5 pb-0.5">
-                  <span className="font-hand text-xl font-bold break-words">{h.text}</span>
-                </Slip>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {heldSlips}
 
       {buttons}
     </div>

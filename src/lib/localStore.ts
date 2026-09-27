@@ -2,6 +2,7 @@
 import type { Store } from "./store";
 
 const PREFIX = "zettelispiil:local:";
+const pending = new Map<string, Promise<unknown>>();
 
 type Entry = { v: unknown; until: number };
 function read(k: string): Entry | null {
@@ -23,6 +24,13 @@ function write(k: string, v: unknown, ex: number) {
 }
 
 export const localStore: Store = {
+  async withLock(key, fn) {
+    if (typeof navigator !== "undefined" && navigator.locks) return navigator.locks.request(`${PREFIX}${key}`, () => fn(localStore));
+    const next = (pending.get(key) ?? Promise.resolve()).catch(() => {}).then(() => fn(localStore));
+    pending.set(key, next);
+    try { return await next; }
+    finally { if (pending.get(key) === next) pending.delete(key); }
+  },
   async get<T>(k: string) {
     return (read(k)?.v as T) ?? null;
   },

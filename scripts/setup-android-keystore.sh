@@ -28,6 +28,8 @@ put_gh ANDROID_KEYSTORE_BASE64 "$(base64 -i "$ks" | tr -d '\n')"
 put_gh ANDROID_KEYSTORE_PASSWORD "$storepass"
 put_gh ANDROID_KEY_ALIAS "zettelispiil"
 put_gh ANDROID_KEY_PASSWORD "$keypass"
+gh variable set ANDROID_SIGNING_READY --body true >/dev/null
+echo "  ANDROID_SIGNING_READY=true set on GitHub"
 
 cat <<'EOF'
 Done. The keystore is on GitHub as a secret (used by .github/workflows/android-release.yml).
@@ -39,4 +41,5 @@ Still needed before the workflow can publish to the Play Store:
      to get past the store's first-review requirement — GitHub Actions can't do that very first upload.
   2. Play Console → Setup → API access → create a service account, grant it "Release manager", download its JSON key.
   3. Run: just secret-gh PLAY_SERVICE_ACCOUNT_JSON   (paste the JSON's content when asked)
+  4. Enable uploads: gh variable set PLAY_PUBLISHING_READY --body true
 EOF
