@@ -72,7 +72,8 @@ export const signIn = async (provider: Exclude<Provider, "email">) => {
 };
 /** in the iPhone app: Apple's own sheet gives a signed token, the server checks it and signs in; no web page opens */
 async function signInWithAppleNatively() {
-  const nonce = crypto.randomUUID();
+  // 16 random bytes as hex: randomUUID is missing on iOS 15.0–15.3, which the app still supports
+  const nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
   let t;
   try {
     t = await appleIdToken(nonce);
