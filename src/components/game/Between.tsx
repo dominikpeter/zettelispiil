@@ -19,7 +19,7 @@ export function PassPhone({ name, team, teamName, onReady, note }: { name: strin
         <p className="enter mt-2 text-lg text-muted">{t.passTo}</p>
         <h1 className={`enter text-6xl font-extrabold tracking-tight text-balance break-words tiny:text-5xl ${TEAM[team].text}`}>{name}</h1>
         <p className="enter text-muted">{teamName}</p>
-        {note && <p className="enter mt-4 max-w-[30ch] text-muted">{note}</p>}
+        {note && <p className="enter mt-4 max-w-instruction text-muted">{note}</p>}
       </div>
       <Cta>
         <button onClick={onReady} className={btn}>
@@ -46,7 +46,7 @@ export function Ready({ v, send, busy, mode }: P) {
           {t.gotLast(v.players[last.p].name, last.got)}
         </p>
       )}
-      <div className="enter flex flex-1 flex-col items-center justify-center gap-2 text-center [animation-delay:120ms]">
+      <div className="enter flex flex-1 flex-col items-center justify-center gap-2 text-center animate-delay-120">
         {/* the middle of the screen is this moment: a big bowl showing what's left, and whose turn it is */}
         <Bowl count={v.bowlLeft} className="w-44 short:w-28 tiny:w-16" />
         <p className="mt-3 text-lg text-muted short:mt-1 short:text-base">{local ? t.passTo : me ? t.yourTurn : t.upNext}</p>
@@ -65,8 +65,8 @@ export function Ready({ v, send, busy, mode }: P) {
           <Waiting text={v.players[v.me]?.team === p.team ? t.youGuess(p.name) : t.youListen(p.name)} />
         )}
         {/* "Anna ist nicht da": not on Anna's own phone (she is here); on one phone it's the host's call as before */}
-        {v.isHost && (local || !me) && (
-          <button onClick={() => send({ type: "pass" })} disabled={busy} className={`${ghost} w-full text-sm tiny:min-h-9`}>
+        {(local || (v.isHost && !me)) && (
+          <button onClick={() => send({ type: "pass" }, local ? v.hostIndex : undefined)} disabled={busy} className={`${ghost} w-full text-sm tiny:min-h-9`}>
             {t.notHere(p.name)}
           </button>
         )}
@@ -88,7 +88,7 @@ export function RoundEnd({ v, send, busy, mode }: P) {
         <h1 className="mt-2 text-4xl font-extrabold tracking-tight short:mt-0 short:text-3xl tiny:text-2xl">{t.bowlEmpty}</h1>
         <p className="text-muted tiny:hidden">{t.roundDone(t.round[v.settings.rounds[v.round]].name)}</p>
       </div>
-      <section className={`${panel} enter grid gap-3 text-center short:py-3 tiny:py-2 [animation-delay:100ms] ${many ? "max-xs:gap-1.5 max-xs:px-3" : ""}`} style={{ gridTemplateColumns: `repeat(${v.teamNames.length}, minmax(0, 1fr))` }}>
+      <section className={`${panel} enter grid gap-3 text-center short:py-3 tiny:py-2 animate-delay-100 ${many ? "max-xs:gap-1.5 max-xs:px-3" : ""}`} style={{ gridTemplateColumns: `repeat(${v.teamNames.length}, minmax(0, 1fr))` }}>
         {v.teamNames.map((name, i) => (
           <div key={i} className="min-w-0">
             <p className={`truncate font-semibold ${TEAM[i].text} ${many ? "text-sm" : ""}`}>{name}</p>
@@ -96,8 +96,8 @@ export function RoundEnd({ v, send, busy, mode }: P) {
           </div>
         ))}
       </section>
-      <RoundCard v={v} n={v.round + 1} mode={mode} className="enter [animation-delay:200ms]" />
-      {starter && carry > 0 && <p className="enter text-center text-muted tiny:text-sm [animation-delay:260ms]">{t.starts(starter.name, carry)}</p>}
+      <RoundCard v={v} n={v.round + 1} mode={mode} className="enter animate-delay-200" />
+      {starter && carry > 0 && <p className="enter text-center text-muted tiny:text-sm animate-delay-260">{t.starts(starter.name, carry)}</p>}
       <Cta>
         {v.isHost ? (
           <button onClick={() => send({ type: "nextRound" })} disabled={busy} className={btn}>

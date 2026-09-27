@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* a plain inline script runs as the parser reaches it; next/script's beforeInteractive only queues it for Next's runtime, so the saved theme came in late */}
         <script dangerouslySetInnerHTML={{ __html: prefsScript }} />
       </head>
-      <body className="flex min-h-full flex-col font-sans pt-[env(safe-area-inset-top)]">
+      <body className="flex min-h-full flex-col font-sans pt-safe">
         {children}
         <NativeShell />
       </body>

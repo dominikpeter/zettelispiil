@@ -2,6 +2,7 @@
 
 import { ArrowLeft, Brush, ChevronRight, MessageCircle, PenLine, Repeat, Shuffle, SkipForward, SlidersHorizontal, Smartphone, Trophy, Users, Zap } from "lucide-react";
 import Link from "next/link";
+import styles from "./page.module.css";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useT } from "@/lib/prefs";
 import { ONLINE_DEFAULT_ROUNDS, ROUND_TYPES } from "@/lib/settings";
@@ -121,8 +122,9 @@ export default function Guide() {
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-4 pt-3">
       {/* the top of the page is a snap point too; the margin cancels the scroll padding, which would put it above the page
-          and throw WebKit's snapping off (a swipe from the first chapter went nowhere) */}
-      <header className="flex min-h-[calc(2.75rem+2px)] snap-start items-center" style={{ scrollMarginTop: -(pad + 8) }}>
+          and throw WebKit's snapping off (a swipe from the first chapter went nowhere), and keeps the status bar's room
+          (else the back link sits under the clock in the installed app) */}
+      <header className="flex min-h-header snap-start items-center" style={{ scrollMarginTop: `calc(env(safe-area-inset-top) - ${pad + 8}px)` }}>
         <Link href="/" className={`${ghost} -ml-3 inline-flex items-center gap-1.5`}>
           <ArrowLeft className="size-5" aria-hidden /> {t.back}
         </Link>
@@ -132,7 +134,7 @@ export default function Guide() {
 
       {/* the pinned step bar and scene; the scene is decoration, the chapters below carry the words */}
       {/* solid, so the chapters scroll away underneath instead of showing through; a short fade below it */}
-      <div ref={pinned} className="sticky top-0 z-10 -mx-4 mt-4 mb-2 bg-canvas px-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]">
+      <div ref={pinned} className="sticky top-0 z-10 -mx-4 mt-4 mb-2 bg-canvas px-2 pt-safe-2">
         <nav aria-label={t.howTo} className="mb-2 flex justify-between px-2">
           {g.steps.map((s, i) => {
             const Icon = ICONS[i];
@@ -171,7 +173,7 @@ export default function Guide() {
         </section>
       ))}
 
-      <div ref={end} className="pt-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div ref={end} className="pt-4 pb-safe-8">
         <Link href="/" className={btn}>
           {g.go} <ChevronRight className="size-5" aria-hidden />
         </Link>
@@ -189,7 +191,7 @@ function Stage({ step, zoom }: { step: number; zoom: number }) {
   return (
     <div aria-hidden className="mx-auto" style={{ width: STAGE_W * zoom, height: STAGE_H * zoom }}>
       <div
-        className={`relative origin-top-left overflow-hidden rounded-4xl ${TINT[step]} transition-colors duration-500 [container-type:size]`}
+        className={`relative origin-top-left overflow-hidden rounded-4xl ${TINT[step]} transition-colors duration-500 ${styles.stage}`}
         style={{ width: STAGE_W, height: STAGE_H, scale: String(zoom) }}
       >
         {scene === "teams" && <Teams />}
@@ -200,7 +202,7 @@ function Stage({ step, zoom }: { step: number; zoom: number }) {
           return (
             <span
               key={p.name}
-              className={`absolute top-1/2 left-1/2 rounded-full px-3 py-1 text-sm font-bold shadow-sm transition-[translate,scale,background-color,color] duration-500 ease-spring ${team}`}
+              className={`absolute top-1/2 left-1/2 rounded-full px-3 py-1 text-sm font-bold shadow-sm transition ${styles.player} duration-500 ease-spring ${team}`}
               style={{ translate: `calc(-50% + ${x}cqw) calc(-50% + ${y}cqh)`, scale: step >= at("explain") ? "0.85" : "1", transitionDelay: `${i * 60}ms` } as CSSProperties}
             >
               {p.name}
@@ -238,7 +240,7 @@ function Stage({ step, zoom }: { step: number; zoom: number }) {
         {scene === "win" && (
           <>
             <Confetti n={40} />
-            <div className="guide-pop absolute inset-x-0 top-[14%] flex flex-col items-center gap-1">
+            <div className={`guide-pop absolute inset-x-0 ${styles.winner} flex flex-col items-center gap-1`}>
               <Trophy className="size-12 text-gold" aria-hidden />
               <p className="text-6xl font-extrabold tabular-nums">
                 <span className="text-team-a">12</span>
@@ -266,7 +268,7 @@ function StageBowl({ step }: { step: number }) {
     return () => clearTimeout(id);
   }, [scene]);
   const count = !landed ? 0 : scene === "explain" || scene === "pass" || scene === "heckle" || scene === "draw" ? 3 : 4;
-  return <Bowl count={count} className={`absolute bottom-[6%] left-1/2 w-[46cqw] -translate-x-1/2 ${scene === "win" ? "translate-y-[4cqh]" : ""}`} />;
+  return <Bowl count={count} className={`absolute ${styles.bowl} left-1/2 -translate-x-1/2 ${scene === "win" ? styles.wonBowl : ""}`} />;
 }
 
 /** one turn in a loop: the slip unfolds out of the bowl, the clock runs, then a swipe sends it off */
@@ -281,15 +283,15 @@ function Turn({ dir, word, label }: { dir: "right" | "left"; word: string; label
   }, [dir]);
   return (
     <>
-      <div className="absolute top-[5%] right-[5%]">
+      <div className={`absolute ${styles.timer}`}>
         <TimerRing left={left} total={30_000} size={56} label={t.secondsLeft} />
       </div>
       {dir === "right" && (
-        <span key={score} className="bump absolute top-[7%] left-[6%] rounded-full bg-team-a px-3 py-1 text-lg font-extrabold text-white tabular-nums">
+        <span key={score} className={`bump absolute ${styles.score} rounded-full bg-team-a px-3 py-1 text-lg font-extrabold text-white tabular-nums`}>
           +{score + 1}
         </span>
       )}
-      <div className={`guide-swipe-${dir} absolute top-[30%] left-1/2`}>
+      <div className={`guide-swipe-${dir} absolute ${styles.slip} left-1/2`}>
         <Slip tilt={dir === "right" ? -2 : 2} className="px-5 pt-2 pb-3">
           <span className="font-hand text-4xl font-bold whitespace-nowrap">{word}</span>
         </Slip>
@@ -313,7 +315,7 @@ function Rounds() {
     return () => clearInterval(id);
   }, []);
   return (
-    <div className="absolute inset-x-0 top-[12%] flex flex-col items-center gap-3">
+    <div className={`absolute inset-x-0 ${styles.rounds} flex flex-col items-center gap-3`}>
       <div className="flex gap-2.5">
         {ONLINE_DEFAULT_ROUNDS.map((r, k) => (
           <span key={r} className={`grid size-11 place-items-center rounded-2xl shadow-sm transition-colors duration-300 ${k === i ? "bg-accent text-canvas" : "bg-surface text-muted"}`}>
@@ -342,16 +344,16 @@ function Teams() {
       {[0, 1].map((team) => (
         <div
           key={team}
-          className={`absolute top-1/2 left-1/2 flex h-[40cqh] w-[40cqw] flex-col items-center justify-end rounded-3xl pb-2 ${team ? "bg-team-b/15" : "bg-team-a/15"}`}
+          className={`absolute top-1/2 left-1/2 flex ${styles.teamMat} flex-col items-center justify-end rounded-3xl pb-2 ${team ? "bg-team-b/15" : "bg-team-a/15"}`}
           style={{ translate: `calc(-50% + ${team ? 29 : -29}cqw) calc(-50% - 21cqh)` }}
         >
           <span className={`max-w-full truncate px-2 text-xs font-extrabold ${team ? "text-team-b" : "text-team-a"}`}>{t.funnyTeams[team]}</span>
         </div>
       ))}
-      <div className="absolute bottom-[9%] left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
+      <div className={`absolute ${styles.teamCount} left-1/2 flex -translate-x-1/2 flex-col items-center gap-2`}>
         <div className="flex gap-2">
           {TEAM_BG.map((bg, i) => (
-            <span key={bg} className={`grid size-10 place-items-center rounded-full text-white shadow-sm transition-[opacity,scale] duration-300 ${bg} ${i < count ? "opacity-100" : "scale-75 opacity-20"}`}>
+            <span key={bg} className={`grid size-10 place-items-center rounded-full text-white shadow-sm transition ${styles.teamIcon} duration-300 ${bg} ${i < count ? "opacity-100" : "scale-75 opacity-20"}`}>
               <Users className="size-5" aria-hidden />
             </span>
           ))}
@@ -374,13 +376,13 @@ function Heckle() {
   }, []);
   return (
     <>
-      <p key={`m${n}`} className="guide-pop absolute top-[8%] left-[6%] text-base font-extrabold text-team-b">
+      <p key={`m${n}`} className={`guide-pop absolute ${styles.heckleLabel} text-base font-extrabold text-team-b`}>
         {t.heckled("Nora")}
       </p>
-      <span key={`b${n}`} className="bump absolute top-[6%] right-[6%] inline-flex items-center gap-1 rounded-full bg-team-b px-3 py-1 text-sm font-bold text-white shadow-sm">
+      <span key={`b${n}`} className={`bump absolute ${styles.heckleCount} inline-flex items-center gap-1 rounded-full bg-team-b px-3 py-1 text-sm font-bold text-white shadow-sm`}>
         <Zap className="size-4" aria-hidden /> {t.heckle}
       </span>
-      <div className="absolute top-[30%] left-1/2 -translate-x-1/2">
+      <div className={`absolute ${styles.slip} left-1/2 -translate-x-1/2`}>
         <div key={n} className="heckle-fx">
           <Slip tilt={-2} className="px-5 pt-2 pb-3">
             <span className="font-hand text-4xl font-bold whitespace-nowrap">{WORDS[2]}</span>
@@ -406,7 +408,7 @@ function Setup() {
   ];
   // below the teams, where the bowl would be
   return (
-    <div className="absolute bottom-[4%] left-1/2 flex w-[80cqw] -translate-x-1/2 flex-col gap-1.5 rounded-2xl bg-surface px-3 py-2.5 shadow-sm">
+    <div className={`absolute ${styles.setup} left-1/2 flex -translate-x-1/2 flex-col gap-1.5 rounded-2xl bg-surface px-3 py-2.5 shadow-sm`}>
       <div className="flex gap-1.5">
         {[false, true].map((m) => (
           <span key={String(m)} className={`flex flex-1 items-center justify-center rounded-full py-1 transition-colors duration-300 ${m === many ? "bg-accent text-canvas" : "bg-raised text-muted"}`}>
@@ -442,8 +444,8 @@ function Draw() {
   }, []);
   return (
     // a flipchart: white sheet under a clamp bar, on easel legs, drawn in marker (paper colours stay light in dark mode)
-    <div className="absolute top-[4%] left-1/2 w-[50cqw] -translate-x-1/2">
-      <div className="relative z-10 mx-[-4%] h-2.5 rounded-full bg-ink-black" />
+    <div className={`absolute ${styles.drawing} left-1/2 -translate-x-1/2`}>
+      <div className={`relative z-10 ${styles.clamp} h-2.5 rounded-full bg-ink-black`} />
       <div className="relative -mt-1 rounded-b-md bg-white px-2 pt-2 pb-2">
       <svg key={n} viewBox="0 0 100 56" className="w-full text-paper-ink" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
         <path className="draw" pathLength={100} style={{ "--len": 100 } as CSSProperties} d="M4 52 L30 30 L40 34 L56 6 L64 18 L70 16 L96 52" />
@@ -451,7 +453,7 @@ function Draw() {
       </svg>
       </div>
       {/* the easel's legs, tucked under the sheet */}
-      <div className="relative h-[13cqh]">
+      <div className={`relative ${styles.easel}`}>
         {[-14, 14].map((r) => (
           <span key={r} className="absolute top-0 h-full w-1.5 origin-top rounded-b-full bg-muted" style={{ left: r < 0 ? "22%" : "74%", rotate: `${r}deg` }} />
         ))}

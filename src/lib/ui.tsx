@@ -4,8 +4,8 @@ import type { CSSProperties, ReactNode } from "react";
 import { Brush, MessageSquareText, PersonStanding, Volume2, WholeWord, type LucideIcon } from "lucide-react";
 import type { RoundType } from "./room";
 
-export const press = "transition duration-200 ease-spring active:scale-[0.96]";
-export const btn = `flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-cta px-6 text-lg font-bold text-cta-ink hover:brightness-105 disabled:hover:brightness-100 shadow-[0_6px_0_var(--color-cta-edge)] active:translate-y-1 active:shadow-[0_2px_0_var(--color-cta-edge)] disabled:opacity-40 disabled:shadow-none disabled:active:translate-y-0 ${press}`;
+export const press = "transition duration-200 ease-spring active:scale-96";
+export const btn = `flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-cta px-6 text-lg font-bold text-cta-ink hover:brightness-105 disabled:hover:brightness-100 shadow-button active:translate-y-1 active:shadow-button-pressed disabled:opacity-40 disabled:shadow-none disabled:active:translate-y-0 ${press}`;
 export const btn2 = `flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-5 font-semibold text-ink hover:bg-raised disabled:opacity-40 ${press}`;
 export const ghost = `min-h-11 rounded-xl px-3 font-medium text-muted hover:text-ink hover:bg-surface disabled:opacity-40 disabled:hover:bg-transparent ${press}`;
 export const panel = "rounded-3xl bg-surface p-5";
@@ -23,7 +23,7 @@ export const pill = "flex items-center gap-0.5 rounded-full border border-line/7
 export const pillBtn = `grid size-10 place-items-center rounded-full text-muted hover:bg-raised hover:text-ink ${press}`;
 export const round_btn = `grid size-11 place-items-center rounded-full border border-line bg-raised text-2xl leading-none text-ink hover:bg-surface disabled:opacity-40 ${press}`;
 /** the square button next to a text field (invent a name, scan a code): one size, level with the field */
-export const fieldBtn = `grid size-[3.4rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent hover:bg-raised disabled:opacity-40 ${press}`;
+export const fieldBtn = `grid size-field-button shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent hover:bg-raised disabled:opacity-40 ${press}`;
 
 // team colors; the names come from the room
 export const TEAM = [
@@ -81,7 +81,7 @@ export function Bowl({ count, className = "w-24", pile = true }: { count?: numbe
         <path d="M6 34h108" style={{ stroke: "var(--color-accent)" }} strokeWidth="4" strokeLinecap="round" />
       </svg>
       {count !== undefined && (
-        <span key={count} className="bump absolute inset-x-0 bottom-[14%] text-center text-lg font-bold tabular-nums text-white">
+        <span key={count} className="bump absolute inset-x-0 bottom-bowl-count text-center text-lg font-bold tabular-nums text-white">
           {count}
         </span>
       )}
@@ -159,7 +159,7 @@ export function Confetti({ n = 60 }: { n?: number }) {
       {bits.map((b, i) => (
         <span
           key={i}
-          className="confetti absolute top-0 rounded-[1px]"
+          className="confetti absolute top-0 rounded-confetti"
           style={{ left: `${b.left}%`, width: b.w, height: b.w * 1.4, background: b.c, "--dx": b.dx, "--rot": b.rot, "--dur": b.dur, "--delay": b.delay } as CSSProperties}
         />
       ))}

@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { refresh } from "next/cache";
 import { Power } from "lucide-react";
 import { Account } from "@/components/Account";
-import { getAuth } from "@/lib/auth";
+import { currentUser, getAuth } from "@/lib/auth";
 import { report, type Day } from "@/lib/usage";
 import { aiSwitchedOff, setAiSwitch } from "@/lib/aiSwitch";
 import { btn, btn2, panel } from "@/lib/ui";
@@ -14,10 +14,10 @@ import { btn, btn2, panel } from "@/lib/ui";
 export const metadata: Metadata = { title: "Admin · Zettelispiil", robots: { index: false, follow: false } };
 
 const admins = () => (process.env.ADMIN_EMAIL ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-const isAdmin = (u: { email: string; emailVerified: boolean } | undefined): u is { email: string; emailVerified: boolean } =>
+const isAdmin = (u: { email: string; emailVerified: boolean } | null): u is { email: string; emailVerified: boolean } =>
   !!u && u.emailVerified && admins().includes(u.email.toLowerCase());
 // from the session store, like every other check (auth.ts currentUser): a signed-out or deleted admin is out at once
-const me = async () => (await getAuth()?.api.getSession({ headers: await headers(), query: { disableCookieCache: true } }))?.user;
+const me = async () => currentUser({ headers: await headers() });
 
 /** the switch: AI on or off for everyone. Checked again here, a form post can come from anyone */
 async function switchAi(form: FormData) {
@@ -124,8 +124,8 @@ export default async function Admin() {
               </g>
             );
           })}
-          <text x="0" y={H + 12} className="fill-muted text-[8px]">{days[0].day.slice(5)}</text>
-          <text x={W} y={H + 12} textAnchor="end" className="fill-muted text-[8px]">heute</text>
+          <text x="0" y={H + 12} className="fill-muted text-chart-tick">{days[0].day.slice(5)}</text>
+          <text x={W} y={H + 12} textAnchor="end" className="fill-muted text-chart-tick">heute</text>
         </svg>
       </section>
 

@@ -26,7 +26,7 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
           type="button"
           onClick={() => onChange(o.id)}
           aria-pressed={o.id === value}
-          className={`relative z-10 flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 active:scale-[0.96] transition-[color,scale] duration-300 ${o.id === value ? "text-canvas" : "text-muted hover:text-ink"}`}
+          className={`relative z-10 flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 active:scale-96 transition-control duration-300 ${o.id === value ? "text-canvas" : "text-muted hover:text-ink"}`}
         >
           {o.label}
         </button>
@@ -213,7 +213,7 @@ export function TopControls() {
       <CoffeeThanks />
       <div className={`${pill} pointer-events-auto`}>
         <button onClick={() => openSheet(sheet.current)} aria-label={t.settings} className={pillBtn}>
-          <Settings className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />
+          <Settings className="size-control-icon" strokeWidth={2.25} aria-hidden />
         </button>
 
         <dialog
@@ -221,9 +221,9 @@ export function TopControls() {
           tabIndex={-1}
           aria-labelledby="settings-title"
           onClick={(e) => e.target === sheet.current && sheet.current.close()} // tap outside closes
-          className="sheet mx-auto mt-auto mb-0 max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
+          className="sheet mx-auto mt-auto mb-0 max-h-sheet w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
         >
-          <div className="flex flex-col gap-5 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <div className="flex flex-col gap-5 p-5 pb-safe-5">
             <div className="flex items-center justify-between">
               <h2 id="settings-title" className="flex items-center gap-2 text-2xl font-extrabold tracking-tight">
                 <Settings className="size-6 text-accent" aria-hidden /> {t.settings}

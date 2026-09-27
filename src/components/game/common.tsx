@@ -27,7 +27,7 @@ export function Waiting({ text }: { text: string }) {
 
 export function Cta({ children }: { children: ReactNode }) {
   // own bottom padding: clears the iPhone home bar and leaves room for the button's 3D edge
-  return <div className="sticky bottom-0 z-20 -mx-4 mt-auto cta-fade px-4 pt-9 pb-[max(0.9rem,env(safe-area-inset-bottom))] short:pt-3 tiny:pt-2">{children}</div>;
+  return <div className="sticky bottom-0 z-20 -mx-4 mt-auto cta-fade px-4 pt-9 pb-safe-action short:pt-3 tiny:pt-2">{children}</div>;
 }
 
 /** the rule of a round; with one phone, drawing happens on a flip chart or paper */
@@ -87,7 +87,7 @@ export function Confirm({ text, yes, no, onYes, onNo }: { text: string; yes: str
       role="alertdialog"
       onCancel={onNo}
       onBackdrop={onNo}
-      className="enter mx-auto mt-auto mb-[max(1rem,env(safe-area-inset-bottom))] w-[calc(100%-2rem)] max-w-md rounded-3xl bg-surface p-0 text-ink shadow-lg backdrop:bg-canvas/70 backdrop:backdrop-blur-sm"
+      className="enter mx-auto mt-auto mb-safe-4 w-dialog max-w-md rounded-3xl bg-surface p-0 text-ink shadow-lg backdrop:bg-canvas/70 backdrop:backdrop-blur-sm"
     >
       <div className="p-5">
         <p className="text-lg leading-snug font-semibold">{text}</p>

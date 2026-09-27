@@ -3,11 +3,12 @@
 import { createPrivateKey, sign } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
+import { deleteSessionCookie } from "better-auth/cookies";
 import { emailOTP } from "better-auth/plugins/email-otp";
 import { Ratelimit } from "@upstash/ratelimit";
 import { redis } from "./store";
 import { DICT, type Lang } from "./i18n";
-import { signedIn } from "./usage";
+import { sessionRevoked, signedIn } from "./usage";
 
 const env = process.env;
 const limiters = new Map<string, Ratelimit>();
@@ -145,6 +146,16 @@ const make = () => betterAuth({
   // a finished sign-in (the provider sent the player back): remember who, for the admin page
   hooks: {
     after: createAuthMiddleware(async (ctx) => {
+      // Better Auth IDs differ between independent sign-ins without a user database. Revoke by account and
+      // creation time as well, including the public get-session route and its cookie-cache/refresh path.
+      // Removing the token also stops a revoked session renewing until the 30-day watermark expires.
+      const existing = ctx.context.session;
+      if (existing && await sessionRevoked(accountOf(existing.user), existing.session.createdAt)) {
+        await ctx.context.internalAdapter.deleteSession(existing.session.token);
+        deleteSessionCookie(ctx);
+        if (ctx.path === "/get-session") return ctx.json(null);
+        if (ctx.path !== "/revoke-sessions" && ctx.path !== "/sign-out") throw new APIError("UNAUTHORIZED");
+      }
       const s = ctx.context.newSession;
       if (!s) return;
       const user = { ...s.user, id: accountOf(s.user) };
@@ -171,7 +182,7 @@ export const getAuth = () => (authEnabled() ? (instance ??= make()) : null);
 export const accountOf = (u: { id: string; email?: string | null }) => (u.email ? u.email.trim().toLowerCase() : u.id);
 
 /** the signed-in user of a request (its id is the account, see accountOf), or null */
-export async function currentUser(req: Request) {
+export async function currentUser(req: Pick<Request, "headers">) {
   if (!authEnabled()) return null;
   try {
     // from the session store, not the day-long cookie cache: a signed-out or deleted account is out at once

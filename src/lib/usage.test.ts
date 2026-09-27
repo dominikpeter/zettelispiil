@@ -1,19 +1,30 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { aiUsedBy, count, deleted, forget, report, signedIn, type UsageRedis } from "./usage.ts";
+import { aiUsedBy, count, deleted, forget, report, sessionRevoked, signedIn, type UsageRedis } from "./usage.ts";
+import { memoryStore } from "./store.ts";
 
 // an in-memory stand-in for the few Redis hash commands usage.ts uses
-function fakeRedis(): UsageRedis & { data: Map<string, Record<string, unknown>> } {
+function fakeRedis(): UsageRedis & { data: Map<string, Record<string, unknown>>; expires: Map<string, number> } {
   const data = new Map<string, Record<string, unknown>>();
+  const expires = new Map<string, number>();
   const h = (k: string) => data.get(k) ?? (data.set(k, {}), data.get(k)!);
   return {
     data,
+    expires,
     pipeline() {
       const ops: (() => unknown)[] = [];
       const p = {
         hincrby: (k: string, f: string, n: number) => (ops.push(() => (h(k)[f] = (Number(h(k)[f]) || 0) + n)), p),
         hset: (k: string, v: Record<string, unknown>) => (ops.push(() => Object.assign(h(k), v)), p),
         hsetnx: (k: string, f: string, v: unknown) => (ops.push(() => (f in h(k) ? 0 : ((h(k)[f] = v), 1))), p),
+        hexpire: (k: string, f: string, seconds: number) => (ops.push(() => { if (f in h(k)) expires.set(`${k}:${f}`, Date.now() + seconds * 1000); }), p),
+        hexpireat: (k: string, f: string, timestamp: number) => (ops.push(() => {
+          const key = `${k}:${f}`;
+          if (f in h(k) && !expires.has(key)) {
+            expires.set(key, timestamp * 1000);
+            if (timestamp * 1000 <= Date.now()) delete h(k)[f];
+          }
+        }), p),
         hgetall: (k: string) => (ops.push(() => (data.has(k) ? { ...data.get(k) } : null)), p),
         hdel: (k: string, ...fs: string[]) => (ops.push(() => fs.forEach((f) => delete h(k)[f])), p),
         get: (k: string) => (ops.push(() => (data.has(k) ? data.get(k)!.v : null)), p),
@@ -70,4 +81,58 @@ test("usage: without Redis nothing is counted and the report says so", async () 
   const rep = await report(2, new Date(), null);
   assert.equal(rep.live, false);
   assert.equal(rep.accounts.length, 0);
+});
+
+test("deleting an account revokes all earlier sign-ins, even after signing in again", async () => {
+  const r = fakeRedis();
+  const store = memoryStore();
+  const id = "several-phones@example.ch";
+  const now = Date.now();
+  await forget(id, r, store, now);
+  for (const at of [now - 60_000, now - 1000, now]) {
+    assert.equal(await sessionRevoked(id, new Date(at), store), true);
+  }
+  await signedIn({ id }, "email", now + 1, r);
+  assert.equal(await deleted(id, r), false);
+  assert.equal(await sessionRevoked(id, new Date(now - 1000), store), true);
+  assert.equal(await sessionRevoked(id, new Date(now + 1), store), false);
+  assert.equal(await sessionRevoked("someone-else@example.ch", new Date(now - 1000), store), false);
+});
+
+test("deleting an account without Redis still revokes earlier sign-ins", async () => {
+  const store = memoryStore();
+  const now = Date.now();
+  assert.equal(await forget("local@example.ch", null, store, now), true);
+  assert.equal(await sessionRevoked("local@example.ch", new Date(now - 1), store), true);
+  assert.equal(await sessionRevoked("local@example.ch", new Date(now + 1), store), false);
+});
+
+test("a failed account purge leaves the session usable for a retry", async (t) => {
+  const r = fakeRedis();
+  const pipeline = r.pipeline.bind(r);
+  r.pipeline = () => ({ ...pipeline(), exec: async () => { throw new Error("storage unavailable"); } });
+  const store = memoryStore();
+  t.mock.method(console, "error", () => {});
+  assert.equal(await forget("retry@example.ch", r, store), false);
+  assert.equal(await sessionRevoked("retry@example.ch", new Date(0), store), false);
+});
+
+test("usage field expiry is independent per account and report migrates old records", async () => {
+  const r = fakeRedis();
+  const now = Date.now();
+  const keep = 400 * 86_400_000;
+  await signedIn({ id: "active" }, "email", now, r);
+  const activeExpiry = r.expires.get("usage:accounts:active");
+  await signedIn({ id: "other" }, "email", now, r);
+  assert.equal(r.expires.get("usage:accounts:active"), activeExpiry);
+  for (const k of ["usage:accounts", "usage:first", "usage:signins", "usage:ai-by"]) {
+    assert.ok(r.expires.has(`${k}:other`) || k === "usage:ai-by");
+  }
+  r.data.get("usage:accounts")!.old = { id: "old", name: "Old", email: "old@example.ch", provider: "email", last: now - keep - 1000 };
+  r.data.get("usage:first")!.old = now - keep - 1000;
+  r.data.get("usage:signins")!.old = 4;
+  r.data.set("usage:ai-by", { old: 8 });
+  const result = await report(1, new Date(now), r);
+  assert.deepEqual(result.accounts.map((a) => a.id).sort(), ["active", "other"]);
+  for (const k of ["usage:accounts", "usage:first", "usage:signins", "usage:ai-by"]) assert.equal(r.data.get(k)?.old, undefined);
 });

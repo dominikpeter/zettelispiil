@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeft, Home, Pause, Play, ChevronDown, Settings2, X } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useT } from "@/lib/prefs";
 import { type View } from "@/lib/room";
 import { btn, btn2, ghost, pill, pillBtn, TEAM } from "@/lib/ui";
@@ -58,7 +58,7 @@ export function BackButton({ v, onLeave, onSettings, label, local = false }: { v
       >
         <ArrowLeft className="size-5" aria-hidden />
         {label && (
-          <span translate="no" className="font-bold tracking-[0.2em] text-ink">
+          <span translate="no" className="font-bold tracking-eyebrow text-ink">
             {label}
           </span>
         )}
@@ -74,6 +74,7 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
   const [open, setOpen] = useState(false);
   const [asking, setAsking] = useState(false);
   const local = mode === "local";
+  const pausing = useRef<Promise<void> | null>(null);
   const turn = v.phase === "turn";
   const paused = turn && v.pausedLeft > 0;
   const canPause = local || v.isHost || (turn && v.me === v.active);
@@ -82,11 +83,19 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
 
   const pause = async () => {
     setOpen(true);
-    if (turn && canPause && !paused) await send({ type: "pause" });
+    if (turn && canPause && !paused) {
+      pausing.current = send({ type: "pause" });
+      await pausing.current;
+      pausing.current = null;
+    }
   };
   const resume = async () => {
+    // A quick tap may arrive before the pause response; finish that request before resuming.
+    if (turn && canPause) {
+      await pausing.current;
+      await send({ type: "resume" });
+    }
     setOpen(false);
-    if (paused) await send({ type: "resume" });
   };
   const cancel = async () => {
     setAsking(false);
@@ -102,7 +111,7 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
     <>
       <div className={pill}>
         <button onClick={pause} aria-label={t.pause} className={pillBtn}>
-          <Pause className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />
+          <Pause className="size-control-icon" strokeWidth={2.25} aria-hidden />
         </button>
       </div>
       {(open || paused) && (
@@ -111,14 +120,14 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
           onCancel={() => (!paused || canPause) && resume()} // Escape: back to the game, where this phone may resume it
           className="enter m-0 h-dvh max-h-none w-full max-w-none overflow-y-auto overscroll-contain bg-canvas p-0 text-ink"
         >
-          <div className="flex min-h-full flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="flex min-h-full flex-col px-4 pt-safe-4 pb-safe-4">
             <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 py-6 text-center">
               <span className="pop grid size-24 place-items-center rounded-4xl bg-raised text-accent">
                 <Pause className="size-12" strokeWidth={1.75} aria-hidden />
               </span>
               <h2 className="mt-2 text-5xl font-extrabold tracking-tight">{t.paused}</h2>
-              {paused && <p className="max-w-[30ch] text-muted">{canPause ? t.pausedTurn : t.pausedBy}</p>}
-              {turn && !paused && !canPause && <p className="max-w-[30ch] text-muted">{t.menuRunning}</p>}
+              {paused && <p className="max-w-instruction text-muted">{canPause ? t.pausedTurn : t.pausedBy}</p>}
+              {turn && !paused && !canPause && <p className="max-w-instruction text-muted">{t.menuRunning}</p>}
             </div>
             <details className="mx-auto mb-4 w-full max-w-md rounded-3xl bg-surface p-4 [&[open]>summary>svg]:rotate-180">
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-semibold [&::-webkit-details-marker]:hidden">

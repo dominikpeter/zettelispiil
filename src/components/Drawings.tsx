@@ -78,9 +78,9 @@ function Big({ code, d, word, by, t, onClose }: { code: string; d: Drawing; word
       onClose={onClose}
       onClick={(e) => e.target === dialog.current && dialog.current.close()} // tap outside closes
       aria-label={t.drawingOf(word)}
-      className="sheet mx-auto mt-auto mb-0 max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
+      className="sheet mx-auto mt-auto mb-0 max-h-sheet w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
     >
-      <div className="flex flex-col gap-4 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <div className="flex flex-col gap-4 p-5 pb-safe-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="font-hand text-3xl leading-tight font-bold break-words">{word}</h2>

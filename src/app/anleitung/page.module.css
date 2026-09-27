@@ -1,0 +1,63 @@
+/* Geometry of the animated tutorial, relative to its fixed-size stage. */
+.stage {
+  container-type: size;
+}
+.player {
+  transition-property: translate, scale, background-color, color;
+}
+.winner {
+  top: 14%;
+}
+.bowl {
+  bottom: 6%;
+  width: 46cqw;
+}
+.wonBowl {
+  translate: -50% 4cqh;
+}
+.timer {
+  top: 5%;
+  right: 5%;
+}
+.score {
+  top: 7%;
+  left: 6%;
+}
+.slip {
+  top: 30%;
+}
+.rounds {
+  top: 12%;
+}
+.teamMat {
+  height: 40cqh;
+  width: 40cqw;
+}
+.teamCount {
+  bottom: 9%;
+}
+.teamIcon {
+  transition-property: opacity, scale;
+}
+.heckleLabel {
+  top: 8%;
+  left: 6%;
+}
+.heckleCount {
+  top: 6%;
+  right: 6%;
+}
+.setup {
+  bottom: 4%;
+  width: 80cqw;
+}
+.drawing {
+  top: 4%;
+  width: 50cqw;
+}
+.clamp {
+  margin-inline: -4%;
+}
+.easel {
+  height: 13cqh;
+}

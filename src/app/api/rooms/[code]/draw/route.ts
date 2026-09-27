@@ -1,5 +1,5 @@
 import { pullStrokes, pushStrokes, sheetStrokes } from "@/lib/room";
-import { handle } from "../../handle";
+import { handle, roomJson } from "../../handle";
 
 const clean = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); // 5 letters today, 4 for rooms made before
 
@@ -17,7 +17,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
 export async function POST(req: Request, { params }: { params: Promise<{ code: string }> }) {
   const code = clean((await params).code);
   return handle(async (db) => {
-    const b = await req.json();
+    const b = await roomJson(req);
     await pushStrokes(db, code, b?.pid, b?.token, b?.sheet, b?.strokes);
   }, { req, kind: "draw", scope: code });
 }

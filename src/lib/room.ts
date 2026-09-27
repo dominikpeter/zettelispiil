@@ -156,6 +156,10 @@ export async function createRoom(db: Store, hostName: unknown, lang: unknown = "
 }
 
 export async function joinRoom(db: Store, code: string, name: unknown) {
+  return db.withLock(k(code).room, (locked) => joinUnlocked(locked, code, name));
+}
+
+async function joinUnlocked(db: Store, code: string, name: unknown) {
   const n = cleanName(name);
   if (!n) throw new RoomError("bad_request");
   const { room, members } = await load(db, code);
@@ -320,6 +324,10 @@ export async function roomAi(db: Store, code: unknown, pid: unknown, token: unkn
 
 /** the host signed in after opening the room: from now on AI is on for everyone in it, on their budget */
 export async function claimAi(db: Store, code: string, pid: unknown, token: unknown, userId: string) {
+  return db.withLock(k(code).room, (locked) => claimAiUnlocked(locked, code, pid, token, userId));
+}
+
+async function claimAiUnlocked(db: Store, code: string, pid: unknown, token: unknown, userId: string) {
   const { room, members } = await load(db, code);
   const me = members.find((m) => m.id === pid);
   if (!me || me.token !== token || me.id !== room.hostId || !userId) throw new RoomError("forbidden");
@@ -329,6 +337,10 @@ export async function claimAi(db: Store, code: string, pid: unknown, token: unkn
 }
 
 export async function act(db: Store, code: string, pid: unknown, token: unknown, a: Action, now = Date.now()) {
+  return db.withLock(k(code).room, (locked) => actUnlocked(locked, code, pid, token, a, now));
+}
+
+async function actUnlocked(db: Store, code: string, pid: unknown, token: unknown, a: Action, now: number) {
   const { room, members } = await load(db, code);
   const me = members.find((m) => m.id === pid);
   if (!me || me.token !== token) throw new RoomError("forbidden");
@@ -419,7 +431,6 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       const all = await db.hgetall<WriteEntry>(key);
       const mine: WriteEntry = { words: slips, cancelled: [] };
       // same word as someone else: both copies go, both writers write a new one
-      // ponytail: two phones submitting the same word in the same instant can both slip through
       for (const [j, other] of Object.entries(all)) {
         if (Number(j) === idx) continue;
         const clash = new Set(other.words.map((o) => norm(o.word)).filter((w) => mine.words.some((x) => norm(x.word) === w)));
@@ -431,12 +442,6 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       await db.hset(key, String(idx), mine, TTL);
       const now2 = await db.hgetall<WriteEntry>(key);
       if (!room.ids.every((_, i) => now2[String(i)]?.words.length === n)) return; // others still writing; room itself unchanged
-      // the room as loaded may be stale by now: the host went back to the settings while this was on its way. Filling the
-      // bowl from it would undo that, so only a room still in this round of writing gets its bowl
-      // ponytail: re-read narrows the race to milliseconds; a revision check on save would close it for every action
-      const latest = await db.get<Room>(k(code).room);
-      if (latest?.phase !== "write" || latest.writeNo !== room.writeNo) return;
-      // ponytail: two last writers racing both build the same bowl from the same hash, so the double write is harmless
       const entries = room.ids.map((_, i) => now2[String(i)].words);
       fillBowl(room, entries.flat(), entries.flatMap((ws, i) => ws.map(() => i)));
       break;
@@ -595,7 +600,16 @@ export type View = {
 
 /** What one player may see: Zetteli only while describing them, everything at the end. */
 export async function view(db: Store, code: string, pid: unknown, token: unknown, now = Date.now()): Promise<View> {
-  const { room, members } = await load(db, code);
+  const snapshot = await load(db, code);
+  const r = snapshot.room;
+  // Ordinary polling only reads. A timeout changes the room, so re-read and settle under the same lock as actions.
+  if (r.phase === "turn" && !r.pausedAt && now > r.endsAt + GRACE)
+    return db.withLock(k(code).room, (locked) => roomView(locked, code, pid, token, now));
+  return roomView(db, code, pid, token, now, snapshot);
+}
+
+async function roomView(db: Store, code: string, pid: unknown, token: unknown, now: number, snapshot?: Awaited<ReturnType<typeof load>>): Promise<View> {
+  const { room, members } = snapshot ?? await load(db, code);
   const drawn = room.drawings?.length ?? 0;
   if (settle(room, now)) {
     await keepDrawings(db, room, drawn);

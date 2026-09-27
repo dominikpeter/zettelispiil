@@ -1,7 +1,7 @@
 // server only: what happens on zettelispiil.ch, counted for the admin page. A few Redis counters per day and one small
 // record per signed-in account; nothing about what anyone writes. Everything expires after about a year.
 // Without Redis (local dev) nothing is counted.
-import { redis as live } from "./store";
+import { db, redis as live, type Store } from "./store";
 
 const KEEP = 60 * 60 * 24 * 400; // seconds: a bit more than a year
 const dayKey = (d: Date) => `usage:${d.toISOString().slice(0, 10)}`;
@@ -14,6 +14,8 @@ export type UsageRedis = {
     hincrby(key: string, field: string, n: number): unknown;
     hset(key: string, v: Record<string, unknown>): unknown;
     hsetnx(key: string, field: string, v: unknown): unknown;
+    hexpire(key: string, field: string, seconds: number): unknown;
+    hexpireat(key: string, field: string, timestamp: number, option: "NX"): unknown;
     hgetall(key: string): unknown;
     hdel(key: string, ...fields: string[]): unknown;
     get(key: string): unknown;
@@ -66,6 +68,7 @@ export async function signedIn(user: { id: string; name?: string | null; email?:
     p.hsetnx(K.first, user.id, now);
     p.hincrby(K.signins, user.id, 1);
     p.hincrby(dayKey(new Date(now)), "signins", 1);
+    for (const k of Object.values(K)) p.hexpire(k, user.id, KEEP);
     for (const k of [...Object.values(K), dayKey(new Date(now))]) p.expire(k, KEEP);
     await p.exec();
   } catch (e) {
@@ -74,17 +77,30 @@ export async function signedIn(user: { id: string; name?: string | null; email?:
 }
 
 const deletedKey = (id: string) => `usage:deleted:${id}`;
+const revokedKey = (id: string) => `auth:revoked-before:${id}`;
+const SESSION_KEEP = 60 * 60 * 24 * 30;
+
+/** A fresh sign-in may use the account again, but never restores a session from before deletion. */
+export async function sessionRevoked(userId: string, createdAt: Date | string, store: Store = db) {
+  const before = await store.get<number>(revokedKey(userId));
+  return before !== null && new Date(createdAt).getTime() <= before;
+}
 /**
  * a deleted account: its record and counters go (the daily totals stay, they name no one), and a marker stops rooms it
  * opened from lending its AI (rooms don't expire at once, and there's no list of them by host). false when Redis failed
  */
-export async function forget(userId: string, r = client()) {
-  if (!r) return true;
+export async function forget(userId: string, r = client(), store: Store = db, now = Date.now()) {
   try {
-    const p = r.pipeline();
-    for (const k of Object.values(K)) p.hdel(k, userId);
-    p.set(deletedKey(userId), 1, { ex: 60 * 60 * 24 * 30 }); // longer than any room stays alive
-    await p.exec();
+    if (r) {
+      const p = r.pipeline();
+      for (const k of Object.values(K)) p.hdel(k, userId);
+      p.set(deletedKey(userId), 1, { ex: SESSION_KEEP }); // longer than any room stays alive
+      await p.exec();
+    }
+    // Separate from the room marker: signedIn clears that marker, but must never clear session revocation.
+    // Auth rejects and removes revoked sessions on access, so they cannot renew past this retention period.
+    // Purge first: when storage fails, the existing session must remain usable to retry deletion.
+    await store.set(revokedKey(userId), now, { ex: SESSION_KEEP });
     return true;
   } catch (e) {
     console.error("usage forget failed", e);
@@ -106,6 +122,7 @@ export async function aiUsedBy(userId: string, r = client()) {
   try {
     const p = r.pipeline();
     p.hincrby(K.ai, userId, 1);
+    p.hexpire(K.ai, userId, KEEP);
     p.expire(K.ai, KEEP);
     await p.exec();
   } catch {}
@@ -124,8 +141,15 @@ export async function report(days = 30, now = new Date(), r = client()) {
   for (const k of [K.who, K.first, K.signins, K.ai]) p.hgetall(k);
   const res = await p.exec();
   const [who, first, signins, ai] = res.slice(days) as Record<string, unknown>[];
+  // Migrate records made before field TTLs existed. NX never shortens an expiry refreshed by a concurrent sign-in.
+  const profiles = Object.values((who ?? {}) as Record<string, Omit<Account, "first" | "signins" | "ai">>);
+  if (profiles.length) {
+    const expiry = r.pipeline();
+    for (const a of profiles) for (const k of Object.values(K)) expiry.hexpireat(k, a.id, Math.floor(a.last / 1000) + KEEP, "NX");
+    await expiry.exec();
+  }
   const [f, s, a] = [num(first), num(signins), num(ai)];
-  const accounts = Object.values((who ?? {}) as Record<string, Omit<Account, "first" | "signins" | "ai">>)
+  const accounts = profiles.filter((x) => x.last > now.getTime() - KEEP * 1000)
     .map((x) => ({ ...x, first: f[x.id] ?? x.last, signins: s[x.id] ?? 0, ai: a[x.id] ?? 0 }))
     .sort((x, y) => y.last - x.last);
   return { days: iso.map((day, i) => ({ day, ...num(res[i]) })) as Day[], accounts, live: true };

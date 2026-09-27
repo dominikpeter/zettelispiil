@@ -139,7 +139,7 @@ export default function Home() {
       {/* sticky: settings stay a thumb away while the player list scrolls. No band behind it: the pill floats on its own
           (it has its own blurred background). pointer-events-none: the header's full width must not block taps on what
           scrolls under it; the pill and the coffee toast (DOM children of TopControls) opt back in */}
-      <header className="sticky top-[calc(env(safe-area-inset-top)+0.75rem)] z-30 -mx-4 flex min-h-[calc(2.75rem+2px)] items-center justify-end px-4 pointer-events-none">
+      <header className="sticky top-safe-3 z-30 -mx-4 flex min-h-header items-center justify-end px-4 pointer-events-none">
         <TopControls />
       </header>
       {/* a few slips are tossed into the bowl on scroll: aimDrops measures where each one lands */}
@@ -152,8 +152,8 @@ export default function Home() {
         </div>
       </div>
 
-      <h1 translate="no" className="mt-3 text-[2.75rem] leading-[0.95] font-extrabold tracking-tight text-hi">Zettelispiil</h1>
-      <p className="mt-2 max-w-[36ch] text-muted">{t.tagline}</p>
+      <h1 translate="no" className="mt-3 text-hero leading-hero font-extrabold tracking-tight text-hi">Zettelispiil</h1>
+      <p className="mt-2 max-w-intro text-muted">{t.tagline}</p>
       {/* first time here? the game in seven scrolled scenes */}
       <Link href="/anleitung" className={`mt-3 inline-flex min-h-11 items-center gap-2 self-start rounded-full bg-surface pr-4 pl-1.5 font-semibold text-ink shadow-sm hover:bg-raised ${press}`}>
         <span className="grid size-8 place-items-center rounded-full bg-accent text-canvas">
@@ -261,7 +261,7 @@ export default function Home() {
                   aria-label={t.roomCode}
                   placeholder={t.roomCode}
                   onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
-                  className={`${field} min-w-0 flex-1 text-center text-2xl font-bold tracking-[0.4em] uppercase placeholder:text-lg placeholder:font-normal placeholder:tracking-normal placeholder:normal-case`}
+                  className={`${field} min-w-0 flex-1 text-center text-2xl font-bold tracking-code uppercase placeholder:text-lg placeholder:font-normal placeholder:tracking-normal placeholder:normal-case`}
                 />
                 <ScanCode
                   labels={{ scan: t.scan, pointCamera: t.pointCamera, noCamera: t.noCamera, close: t.close }}
@@ -279,7 +279,7 @@ export default function Home() {
             one screen, and sticky-in-a-flex-column only stays glued to the bottom while everything still fits one
             viewport (it works fine on every in-game screen, which are all short); fixed always pins to the viewport */}
         <div className="fixed inset-x-0 bottom-0 z-20 cta-fade pt-9 short:pt-3 tiny:pt-2">
-          <div className="mx-auto max-w-md px-4 pb-[max(0.9rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto max-w-md px-4 pb-safe-action">
             <div className="flex flex-col gap-2">
               <button key={String(ready)} className={`${btn} ${ready ? "hop" : ""}`} disabled={!ready}>
                 {busy ? t.wait : play === "local" ? (players.length >= 4 ? t.newGame : t.needFour) : mode === "create" ? t.createRoom : t.join}

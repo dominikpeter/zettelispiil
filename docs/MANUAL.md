@@ -21,6 +21,7 @@ Auf der Startseite wählst du, wie ihr spielt.
 - Ihr braucht mindestens 2 Spieler pro Team, bei zwei Teams also 4.
 - Tippe auf **Neues Spiel**. Ein laufendes Spiel kannst du später mit **Weiterspielen** fortsetzen, auch nach einem Neuladen der Seite.
 - Das Handy sagt jeweils, wem ihr es geben sollt («Gib das Handy an …»). Wer bestätigt («Ich bin …»), ist dran.
+- Ist diese Person nicht da, könnt ihr sie auf diesem Bildschirm überspringen. Das geht vor jedem Zug, unabhängig davon, wer das Spiel erstellt hat.
 
 ### Mehrere Handys
 
@@ -77,7 +78,7 @@ Die Spielleitung legt mit Plus und Minus fest:
 
 **Mit mehreren Handys** sind alle fünf Runden standardmässig dabei, Zeichnen als vorletzte. **Mit einem Handy** sind es die ersten vier; Zeichnen kannst du dort zusätzlich hinzufügen, auf Papier oder Flipchart:
 
-- **Mit mehreren Handys** zeichnest du auf deinem Handy, alle anderen sehen live mit: die Linie entsteht bei ihnen Strich für Strich, ein Punkt zeigt, wo dein Stift gerade ist. Du hast mehrere Stifte zur Auswahl und kannst mit **Alles löschen** neu anfangen.
+- **Mit mehreren Handys** zeichnest du auf deinem Handy, alle anderen sehen live mit: die Linie entsteht bei ihnen Strich für Strich, ein Punkt zeigt, wo dein Stift gerade ist. Du hast mehrere Stifte zur Auswahl und kannst mit **Alles löschen** neu anfangen. Auch beim Zeichnen lassen sich beiseitegelegte Zetteli antippen und zurücktauschen.
 - **Mit einem Handy** zeichnest du auf ein Flipchart oder Papier, das Handy zeigt nur den Begriff.
 
 Runden anpassen («Reihenfolge ändern oder Runden weglassen»):
@@ -164,7 +165,7 @@ Ist die Schüssel leer, ist die Runde durch. Bleiben dabei noch mindestens 5 Sek
 
 Der Pause-Knopf oben öffnet das Spielmenü:
 
-- **Pause**: Erklärer:in oder Spielleitung (bei einem Handy alle) halten die Zeit an. Die Uhr steht auf allen Handys still, das Zetteli bleibt verdeckt. Mit **Weiterspielen** geht's weiter. Öffnen andere das Menü, läuft die Zeit weiter.
+- **Pause**: Erklärer:in oder Spielleitung (bei einem Handy alle) halten die Zeit an. Die Uhr steht auf allen Handys still, das Zetteli bleibt verdeckt. Mit **Weiterspielen** geht's weiter, auch wenn du die Pause sofort wieder beendest. Öffnen andere das Menü, läuft die Zeit weiter.
 - **Zurück zu den Einstellungen** (Spielleitung, bei einem Handy alle): Solange noch niemand erklärt hat, also beim Schreiben oder bei «Los, Zetteli ziehen», geht's zurück in die Lobby, etwa um Runden, Zeit oder Teams zu ändern. Die schon geschriebenen Zetteli bleiben: Die Lobby zeigt, wie viele es sind, und nach **Spiel starten** schreibt nur noch, wem etwas fehlt. Mehr Zetteli pro Person: Die geschriebenen stehen schon da, nur die neuen kommen dazu. Weniger: Es bleiben die ersten.
 - **Spiel abbrechen** (Spielleitung): Alle kommen zurück in die Lobby. Spieler, Teams und Einstellungen bleiben, Punkte und Zetteli sind weg. Das Spiel fragt vorher nach.
 - **Zur Startseite**: Du verlässt das Spiel. Bei mehreren Handys kommst du über den Link wieder zurück, bei einem Handy mit **Weiterspielen** auf der Startseite.
@@ -198,9 +199,9 @@ Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 - **Sprache**: Deutsch, English oder Français.
 - **Hell oder dunkel**: Unter **Darstellung** wählst du Auto, Hell oder Dunkel.
 - **Farben**: Post-it (Standard, ruhige App, Zetteli in Stapel-Post-it-Farben), Klassisch (das ursprüngliche knallige Gelb-Pink-Blau), Nacht, Tinte, Gold, Abendrot, Ozean, Arosa (Blau und Sonnengelb) oder Aarau (Schwarz, Rot, Weiss).
-- **KI-Hilfe**: An oder Aus. Prüft Rechtschreibung und Schwierigkeit, schlägt Hinweise und lustige Namen vor.
+- **KI-Hilfe**: An oder Aus. Prüft Rechtschreibung und Schwierigkeit, schlägt Hinweise und lustige Namen vor. Du kannst sie auch während eines Spiels über die Einstellungen im Pause-Menü umschalten.
 - **Hinweise beim Erklären**: An oder Aus. Zeigt den KI-Hinweis klein unter dem Zetteli. Braucht KI-Hilfe.
-- **Konto**: Für die KI-Hilfe meldest du dich mit Apple, Google, GitHub oder einem Code per E-Mail an (in der iPhone-App mit Apple oder dem Code per E-Mail). Spielen geht auch ohne Konto. Unter deinem Namen kannst du das Konto mit **Konto löschen** wieder löschen: Anmeldung und Zähler sind dann weg, du bist auf allen Geräten sofort abgemeldet, und Räume, die du angemeldet eröffnet hast, haben keine KI-Hilfe mehr.
+- **Konto**: Für die KI-Hilfe meldest du dich mit Apple, Google, GitHub oder einem Code per E-Mail an (in der iPhone-App mit Apple oder dem Code per E-Mail). Spielen geht auch ohne Konto. Unter deinem Namen kannst du das Konto mit **Konto löschen** wieder löschen: Anmeldung und Zähler sind dann weg, du bist auf allen Geräten sofort abgemeldet, und Räume, die du angemeldet eröffnet hast, haben keine KI-Hilfe mehr. Auch wenn du dich später neu anmeldest, bleiben die alten Anmeldungen auf anderen Geräten ungültig.
 - **Spendier mir einen Kaffee**: Zettelispiil ist gratis und ohne Werbung. Wer mag, spendiert einen kleinen (CHF 1), grossen (CHF 5) oder Deluxe-Kaffee (CHF 10) oder einen eigenen Betrag. Bezahlt wird bei Stripe (Karte, Apple Pay, Google Pay), danach kommst du zurück ins Spiel. In der iPhone-App gibt es die drei Kaffees als In-App-Kauf über den App Store (ohne eigenen Betrag). Muss ein Kauf erst noch bestätigt werden, zum Beispiel von den Eltern, steht das gleich darunter.
 - **Teilen**: **WhatsApp** oder **Link kopieren**, um Zettelispiil weiterzuempfehlen.
 - Ganz unten: **Problem mit der App? Hier melden** führt zu den GitHub-Issues, wo du Fehler melden kannst. **Datenschutz** zeigt, welche Daten wo und wie lange gespeichert werden. Darunter «Gemacht mit ♥ von Dominik», der Link zu GitHub und die Version.

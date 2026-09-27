@@ -2,7 +2,7 @@ import { after } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { act, claimAi, joinRoom, view } from "@/lib/room";
 import { count } from "@/lib/usage";
-import { handle } from "../handle";
+import { handle, roomJson } from "../handle";
 
 const clean = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); // 5 letters today, 4 for rooms made before
 
@@ -16,7 +16,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
 export async function POST(req: Request, { params }: { params: Promise<{ code: string }> }) {
   const code = clean((await params).code);
   return handle(async (db) => {
-    const { pid, token, ...a } = await req.json();
+    const { pid, token, ...a } = (await roomJson(req)) ?? {};
     if (a.type === "join") {
       const me = await joinRoom(db, code, a.name);
       after(() => count({ joins: 1 })); // usage counters wait until the player has their answer

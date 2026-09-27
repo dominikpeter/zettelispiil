@@ -78,7 +78,7 @@ function Race({ race, turns, players, names, teams, t }: { race: number[][]; tur
         {[0.5, 1].map((f) => (
           <g key={f}>
             <line x1={pad.l} x2={W - pad.r} y1={y(max * f)} y2={y(max * f)} stroke="var(--color-line)" strokeDasharray="2 4" />
-            <text x={pad.l} y={y(max * f) - 4} className="fill-muted text-[10px]">
+            <text x={pad.l} y={y(max * f) - 4} className="fill-muted text-chart-label">
               {Math.round(max * f)}
             </text>
           </g>
@@ -103,10 +103,10 @@ function Race({ race, turns, players, names, teams, t }: { race: number[][]; tur
             ))}
           </g>
         )}
-        <text x={pad.l} y={H - 4} className="fill-muted text-[10px]">
+        <text x={pad.l} y={H - 4} className="fill-muted text-chart-label">
           Start
         </text>
-        <text x={W - pad.r} y={H - 4} textAnchor="end" className="fill-muted text-[10px]">
+        <text x={W - pad.r} y={H - 4} textAnchor="end" className="fill-muted text-chart-label">
           {t.turnN(race.length - 1)}
         </text>
       </svg>
@@ -157,7 +157,7 @@ function RoundBars({ scores, names, teams, t }: { scores: number[][]; names: str
                 </g>
               );
             })}
-            <text x={gw * r + gw / 2} y={H - 8} textAnchor="middle" className="fill-muted text-[11px]">
+            <text x={gw * r + gw / 2} y={H - 8} textAnchor="middle" className="fill-muted text-caption">
               {names[r]}
             </text>
           </g>
@@ -184,7 +184,7 @@ function Tempo({ rounds, names, label }: { rounds: { avgMs: number }[]; names: s
             <text x={bx + bw / 2} y={H - 32 - h} textAnchor="middle" className="fill-ink text-xs font-bold tabular-nums">
               {r.avgMs ? `${fmt(r.avgMs)} s` : "–"}
             </text>
-            <text x={gw * i + gw / 2} y={H - 8} textAnchor="middle" className="fill-muted text-[11px]">
+            <text x={gw * i + gw / 2} y={H - 8} textAnchor="middle" className="fill-muted text-caption">
               {names[i]}
             </text>
           </g>

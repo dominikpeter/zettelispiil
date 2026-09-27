@@ -61,7 +61,12 @@ export async function fromPool(pool: string, n: number, avoid: string[], refill:
       for (let tries = 0; out.length < n && tries < 3; tries++) {
         const xs = await r.lpop<string>(pool, n - out.length);
         if (!xs?.length) break;
-        for (const x of xs.map(String)) if (!taken.has(x.toLowerCase())) (out.push(x), taken.add(x.toLowerCase()));
+        for (const x of xs.map(String)) {
+          if (!taken.has(x.toLowerCase())) {
+            out.push(x);
+            taken.add(x.toLowerCase());
+          }
+        }
       }
     } catch {}
   }

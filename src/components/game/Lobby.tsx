@@ -181,7 +181,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
           <div className="@container flex min-w-0 flex-1 flex-col items-start gap-1">
             <p className="text-sm text-muted">{t.scanOrCode}</p>
             {/* six characters: sized to the column next to the QR (≈4.9em wide), so it fits on every phone and font, never broken */}
-            <p translate="no" className="text-[min(1.875rem,19cqw)] font-extrabold tracking-[0.1em] whitespace-nowrap text-hi">{v.code}</p>
+            <p translate="no" className="text-team-score font-extrabold tracking-score whitespace-nowrap text-hi">{v.code}</p>
             <div className="-ml-3 flex flex-col items-start">
               <button onClick={share.onShare} className={`${ghost} flex items-center gap-2 text-accent`}>
                 {share.copied ? <Check className="size-4" aria-hidden /> : <Share2 className="size-4" aria-hidden />}

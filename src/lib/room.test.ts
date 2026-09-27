@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { act, claimAi, cleanSettings, createRoom, DEFAULT_ROUNDS, joinRoom, ONLINE_DEFAULT_ROUNDS, pullStrokes, roomAi, pushStrokes, RoomError, sheetStrokes, view, type View } from "./room.ts";
+import { act, claimAi, cleanSettings, createRoom, DEFAULT_ROUNDS, joinRoom, MAX_PLAYERS, ONLINE_DEFAULT_ROUNDS, pullStrokes, roomAi, pushStrokes, RoomError, sheetStrokes, view, type View } from "./room.ts";
 import { computeStats } from "./stats.ts";
 import { db as envStore, memoryStore, persistent } from "./store.ts";
 
@@ -49,6 +49,34 @@ test("teams fill alternately and start needs two per team", async () => {
   assert.deepEqual(v.players.map((p) => p.team), [0, 1, 0]);
   await assert.rejects(act(db, host.code, host.pid, host.token, { type: "start" }), (e: RoomError) => e.code === "teams");
   await assert.rejects(act(db, host.code, nora.pid, nora.token, { type: "start" }), RoomError); // only the host starts
+});
+
+test("simultaneous joins stay balanced and cannot exceed the room capacity", async () => {
+  const db = store();
+  const host = await createRoom(db, "Lisa");
+  const joined = await Promise.allSettled(Array.from({ length: 25 }, (_, i) => joinRoom(db, host.code, `Player ${i}`)));
+  const v = await view(db, host.code, host.pid, host.token);
+  assert.equal(v.players.length, MAX_PLAYERS);
+  assert.deepEqual([0, 1].map((t) => v.players.filter((p) => p.team === t).length), [10, 10]);
+  assert.equal(joined.filter((r) => r.status === "fulfilled").length, MAX_PLAYERS - 1);
+  for (const r of joined) if (r.status === "rejected") assert.equal((r.reason as RoomError).code, "full");
+});
+
+test("simultaneous independent room changes both survive", async () => {
+  const { as, see } = await setup();
+  await Promise.all([as(0, { type: "teamName", team: 0, name: "Team One" }), as(1, { type: "teamName", team: 1, name: "Team Two" })]);
+  assert.deepEqual((await see(0)).teamNames, ["Team One", "Team Two"]);
+});
+
+test("simultaneous duplicate Zetteli are cancelled on both phones", async () => {
+  const { as, see } = await setup();
+  await as(0, { type: "start" });
+  await Promise.all([as(0, { type: "words", words: ["Raclette"] }), as(1, { type: "words", words: ["Raclette"] })]);
+  for (const i of [0, 1]) {
+    const v = await see(i);
+    assert.equal(v.myWrite?.words.length, 0);
+    assert.deepEqual(v.myWrite?.cancelled, ["Raclette"]);
+  }
 });
 
 test("only the describer sees the Zetteli; guessing empties the bowl and ends the round", async () => {

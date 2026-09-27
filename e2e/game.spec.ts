@@ -62,8 +62,13 @@ test("one phone: default players, write, swipe through every round, stats at the
     const go = page.getByRole("button", { name: "Los, Zetteli ziehen" });
     const next = page.getByRole("button", { name: /^Runde \d starten/ });
     await expect(go.or(next).or(page.getByTestId("word")).or(end).first()).toBeVisible();
-    if (await go.isVisible()) await go.click();
-    else if (await next.isVisible()) await next.click();
+    if (await go.isVisible()) {
+      await go.click();
+      await expect(page.getByTestId("word")).toBeVisible();
+    } else if (await next.isVisible()) {
+      await next.click();
+      await expect(go).toBeVisible();
+    }
     else if (await page.getByTestId("word").isVisible()) {
       const before = await word(page);
       if (swipes++ % 2) await swipe(page, "right");
@@ -158,10 +163,12 @@ for (const teams of [3, 4]) {
       if (await go.isVisible()) {
         await fitsTall("ready");
         await go.click();
+        await expect(page.getByTestId("word")).toBeVisible();
       } else if (await next.isVisible()) {
         await fitsTall("round end");
         expect(await sideways()).toBe(0);
         await next.click();
+        await expect(go).toBeVisible();
       } else if (await page.getByTestId("word").isVisible()) {
         const before = await word(page);
         await page.getByRole("button", { name: "Erraten" }).click();
@@ -488,8 +495,26 @@ test("drawing round: lines drawn on one phone show up on the others", async ({ b
       for (let i = 3; i < px.length; i += 4) if (px[i] > 0) n++;
       return n;
     });
+  // Resuming immediately must also work while the pause request is still in flight.
+  let releasePause!: () => void;
+  const pauseGate = new Promise<void>((resolve) => { releasePause = resolve; });
+  let pauseRequested!: () => void;
+  const requested = new Promise<void>((resolve) => { pauseRequested = resolve; });
+  await d.route(`**/api/rooms/${code}`, async (route) => {
+    if (route.request().method() === "POST" && route.request().postDataJSON()?.type === "pause") {
+      pauseRequested();
+      await pauseGate;
+    }
+    await route.continue();
+  });
   await d.getByRole("button", { name: "Pause" }).click();
+  await requested;
   await d.getByRole("button", { name: "Weiterspielen" }).click();
+  const pauseResponse = d.waitForResponse((response) => response.request().method() === "POST" && response.request().postDataJSON()?.type === "pause");
+  releasePause();
+  await pauseResponse;
+  await expect.poll(async () => (await (await d.request.get(`/api/rooms/${code}`)).json()).pausedLeft).toBe(0);
+  await expect(d.getByRole("dialog", { name: "Pause" })).toHaveCount(0);
   await expect.poll(() => ink(d), { timeout: 5_000 }).toBeGreaterThan(50);
 
   // wiping clears it for everyone, and lines drawn right after the wipe still arrive
@@ -501,6 +526,17 @@ test("drawing round: lines drawn on one phone show up on the others", async ({ b
   for (let i = 1; i <= 8; i++) await d.mouse.move(b2.x + 40 + i * 20, b2.y + 150 + (i % 2) * 40);
   await d.mouse.up();
   await expect.poll(inked, { timeout: 5_000 }).toBeGreaterThan(50);
+
+  // Drawing uses the same set-aside slips as the other rounds: swapping them back costs no skip.
+  const original = await word(d);
+  await d.getByRole("button", { name: /^Passen/ }).click();
+  await expect(d.getByTestId("word")).not.toHaveText(original);
+  const replacement = await word(d);
+  await d.getByRole("button", { name: `Zurück zu ${original}`, exact: true }).click();
+  await expect(d.getByTestId("word")).toHaveText(original);
+  await expect(d.getByRole("button", { name: /^Passen/ })).toBeDisabled();
+  await d.getByRole("button", { name: `Zurück zu ${replacement}`, exact: true }).click();
+  await expect(d.getByTestId("word")).toHaveText(replacement);
 });
 
 /** one-phone game with 1 Zetteli each, written by `write(i)`, up to the first "Los" */
@@ -517,6 +553,40 @@ async function localGame(page: Page, write = (i: number) => `Wort${i}`) {
     await page.getByRole("button", { name: "In die Schüssel" }).click();
   }
 }
+
+test("one phone: every absent describer can be skipped", async ({ page }) => {
+  await localGame(page);
+  const skip = page.getByRole("button", { name: /ist nicht da, überspringen/ });
+  // Advance through more than a full player cycle: non-host identities must also send this as the host.
+  for (let i = 0; i < 5; i++) {
+    await expect(skip).toBeVisible();
+    const before = await skip.innerText();
+    await skip.click();
+    await expect(skip).not.toHaveText(before);
+  }
+});
+
+test("AI help can be toggled during a turn without losing the game", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route("**/api/ai/status", (route) => route.fulfill({ json: { ai: true, login: false, providers: [], user: null } }));
+  await page.route("**/api/ai/check", (route) => route.fulfill({ json: { ai: false } }));
+  await localGame(page);
+  await page.getByRole("button", { name: "Los, Zetteli ziehen" }).click();
+  const before = await word(page);
+  for (const choice of ["Aus", "An"]) {
+    await page.getByRole("button", { name: "Pause" }).click();
+    const menu = page.getByRole("dialog", { name: "Pause" });
+    await menu.locator("summary").click();
+    const section = menu.locator("section").filter({ has: page.getByRole("heading", { name: "KI-Hilfe", exact: true }) });
+    await section.getByRole("button", { name: choice, exact: true }).click();
+    await menu.getByRole("button", { name: "Weiterspielen" }).click();
+    await expect(page.getByTestId("word")).toHaveText(before);
+  }
+  await page.getByRole("button", { name: "Erraten" }).click();
+  await expect(page.getByTestId("word")).not.toHaveText(before);
+  expect(errors).toEqual([]);
+});
 
 test("pause hides the Zetteli and stops the clock; cancel goes back to the lobby; back goes home", async ({ page }) => {
   await localGame(page);
@@ -822,6 +892,8 @@ test("every phase: back and each pause-menu button work (asked in the app, never
     await expect(page).toHaveURL("/");
     await page.getByRole("button", { name: "Weiterspielen" }).click(); // the game is still there
     await page.waitForURL(/\/local$/);
+    // The URL changes before the stored room is read; wait for the game header before checking its pause state.
+    await expect(page.getByRole("button", { name: "Pause", exact: true, includeHidden: true })).toBeAttached();
     // left from the pause menu mid-turn: the turn is still paused, clock frozen, so it resumes from there
     const paused = page.getByRole("dialog", { name: "Pause" });
     if (await paused.isVisible()) await paused.getByRole("button", { name: "Weiterspielen" }).click();

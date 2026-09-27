@@ -165,7 +165,7 @@ function EmailCode() {
             autoComplete="one-time-code"
             placeholder="000000"
             aria-label={t.codeLabel}
-            className={`${field} text-center text-2xl font-bold tracking-[0.4em]`}
+            className={`${field} text-center text-2xl font-bold tracking-code`}
           />
           <button disabled={busy || code.length !== 6} className={option}>
             {t.codeSignIn}
