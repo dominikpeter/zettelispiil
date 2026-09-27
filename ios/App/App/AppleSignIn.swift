@@ -11,6 +11,7 @@ public class AppleSignInPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationCont
     public let jsName = "AppleSignIn"
     public let pluginMethods: [CAPPluginMethod] = [CAPPluginMethod(name: "authorize", returnType: CAPPluginReturnPromise)]
     private var pending: CAPPluginCall?
+    private var controller: ASAuthorizationController? // held until Apple answers, so its callback surely comes
 
     @objc func authorize(_ call: CAPPluginCall) {
         // one sheet at a time: a second tap while it opens would otherwise orphan the first call
@@ -23,6 +24,7 @@ public class AppleSignInPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationCont
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
             controller.presentationContextProvider = self
+            self.controller = controller
             controller.performRequests()
         }
     }
@@ -37,6 +39,7 @@ public class AppleSignInPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationCont
               let data = credential.identityToken, let token = String(data: data, encoding: .utf8) else {
             pending?.reject("no identity token")
             pending = nil
+            self.controller = nil
             return
         }
         var result: [String: Any] = ["identityToken": token]
@@ -44,12 +47,14 @@ public class AppleSignInPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationCont
         if let family = credential.fullName?.familyName { result["familyName"] = family }
         pending?.resolve(result)
         pending = nil
+        self.controller = nil
     }
 
     public func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         let cancelled = (error as? ASAuthorizationError)?.code == .canceled
         pending?.reject(cancelled ? "cancelled" : error.localizedDescription, cancelled ? "CANCELLED" : nil)
         pending = nil
+        self.controller = nil
     }
 }
 
