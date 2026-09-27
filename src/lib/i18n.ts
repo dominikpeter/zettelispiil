@@ -121,6 +121,7 @@ const de = {
   offline: "Keine Verbindung. Prüf dein Internet.",
   rate_limited: "Zu viele Anfragen aus diesem Netz. Warte eine Minute.",
   home: "Zur Startseite",
+  notFound: "Diese Seite gibt es nicht.",
   loading: "Raum wird geladen …",
   // settings sheet
   settings: "Einstellungen",
@@ -457,6 +458,7 @@ const en: Dict = {
   offline: "No connection. Check your internet.",
   rate_limited: "Too many requests from this network. Wait a minute.",
   home: "Back to start",
+  notFound: "This page doesn't exist.",
   loading: "Loading room…",
   settings: "Settings",
   language: "Language",
@@ -783,6 +785,7 @@ const fr: Dict = {
   offline: "Pas de connexion. Vérifie ton internet.",
   rate_limited: "Trop de requêtes depuis ce réseau. Attends une minute.",
   home: "Retour à l'accueil",
+  notFound: "Cette page n'existe pas.",
   loading: "Chargement de la salle…",
   settings: "Réglages",
   language: "Langue",

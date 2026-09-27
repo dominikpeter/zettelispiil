@@ -135,8 +135,8 @@ for (const teams of [3, 4]) {
     await expect(page.getByRole("button", { name: "Jedes Team braucht 2 Leute" })).toBeDisabled(); // the new teams are still empty
     const extra = ["Mia", "Jan", "Eva", "Luc"].slice(0, (teams - 2) * 2);
     for (const n of extra) {
-      await page.getByLabel("Spieler hinzufügen").fill(n);
-      await page.getByRole("button", { name: "+", exact: true }).click();
+      await page.getByRole("textbox", { name: "Spieler hinzufügen" }).fill(n);
+      await page.getByRole("button", { name: "Spieler hinzufügen" }).click();
       await expect(page.getByText(n, { exact: true })).toBeVisible();
     }
     expect(await sideways()).toBe(0);

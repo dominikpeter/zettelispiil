@@ -12,7 +12,7 @@ import { loadLocalGame, loadPlayers, newLocalGame, savePlayers, subscribePlayers
 import { langPref, useT } from "@/lib/prefs";
 import { api, errKey, funnyName, saveIdentity, type Identity } from "@/lib/roomClient";
 import { aimDrops } from "@/lib/heroDrop";
-import { Bowl, btn, btn2, field, ghost, panel, press, Slip } from "@/lib/ui";
+import { Bowl, btn, btn2, field, fieldBtn, ghost, panel, press, scrollBehavior, Slip } from "@/lib/ui";
 
 const noop = () => () => {};
 const hasLocalGame = () => !!loadLocalGame();
@@ -103,7 +103,7 @@ export default function Home() {
   useEffect(() => {
     if (play !== "online" || mode !== "join") return; // also when coming back to "Mehrere Handys" with join still picked
     codeRef.current?.focus({ preventScroll: true });
-    codeRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    codeRef.current?.scrollIntoView({ block: "center", behavior: scrollBehavior() });
   }, [mode, play]);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -134,11 +134,11 @@ export default function Home() {
   const choice = (on: boolean) => `flex flex-col items-start gap-1 rounded-2xl border-2 p-3 text-left ${press} ${on ? "border-accent bg-raised" : "border-line"}`;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-3">
       {/* sticky: settings stay a thumb away while the player list scrolls. No band behind it: the pill floats on its own
           (it has its own blurred background). pointer-events-none: the header's full width must not block taps on what
           scrolls under it; the pill and the coffee toast (DOM children of TopControls) opt back in */}
-      <header className="sticky top-0 z-30 -mx-4 flex justify-end px-4 pt-6 pointer-events-none">
+      <header className="sticky top-[calc(env(safe-area-inset-top)+0.75rem)] z-30 -mx-4 flex min-h-[calc(2.75rem+2px)] items-center justify-end px-4 pointer-events-none">
         <TopControls />
       </header>
       {/* a few slips are tossed into the bowl on scroll: aimDrops measures where each one lands */}
@@ -197,8 +197,10 @@ export default function Home() {
                     aria-label={t.playerN(i + 1)}
                     placeholder={t.playerN(i + 1)}
                     onChange={(e) => savePlayers(players.map((x, j) => (j === i ? e.target.value : x)))}
-                    className="min-w-0 flex-1 rounded-lg bg-transparent px-1 py-3 text-lg font-semibold outline-none placeholder:text-muted/60 focus-visible:bg-raised"
+                    className="min-w-0 flex-1 rounded-lg bg-transparent px-1 py-3 text-lg font-semibold outline-none placeholder:text-muted/60 focus-visible:bg-raised focus-visible:ring-2 focus-visible:ring-accent/30"
                     autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                   />
                   <AiNameButton
                     label={`${t.playerN(i + 1)}: ${t.aiName}`}
@@ -226,8 +228,8 @@ export default function Home() {
         {play === "online" && (
           <div key="online" className="enter flex flex-col gap-3">
             <div className="flex gap-2">
-          <input aria-label={t.yourName} className={`${field} min-w-0 flex-1 font-semibold`} value={name} onChange={(e) => setName(e.target.value)} placeholder={t.yourName} maxLength={24} autoComplete="nickname" />
-          <AiNameButton label={t.aiName} make={() => funnyName("player", lang, [name], t.funnyPlayers, null, name, t.namePrefixes)} onName={setName} className={`grid size-[3.4rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent ${press}`} />
+          <input aria-label={t.yourName} className={`${field} min-w-0 flex-1 font-semibold`} value={name} onChange={(e) => setName(e.target.value)} placeholder={t.yourName} maxLength={24} autoComplete="nickname" autoCorrect="off" spellCheck={false} />
+          <AiNameButton label={t.aiName} make={() => funnyName("player", lang, [name], t.funnyPlayers, null, name, t.namePrefixes)} onName={setName} className={fieldBtn} />
         </div>
 
 
@@ -268,7 +270,7 @@ export default function Home() {
         {/* fixed, not the shared sticky Cta: the home page's content above (install banner, many players) can run past
             one screen, and sticky-in-a-flex-column only stays glued to the bottom while everything still fits one
             viewport (it works fine on every in-game screen, which are all short); fixed always pins to the viewport */}
-        <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-canvas from-75% to-transparent pt-6 short:pt-3 tiny:pt-2">
+        <div className="fixed inset-x-0 bottom-0 z-20 cta-fade pt-9 short:pt-3 tiny:pt-2">
           <div className="mx-auto max-w-md px-4 pb-[max(0.9rem,env(safe-area-inset-bottom))]">
             <div className="flex flex-col gap-2">
               <button key={String(ready)} className={`${btn} ${ready ? "hop" : ""}`} disabled={!ready}>

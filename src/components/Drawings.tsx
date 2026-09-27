@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { RotateCcw, X } from "lucide-react";
 import type { Drawing, Stroke, View } from "@/lib/room";
 import type { Dict } from "@/lib/i18n";
-import { btn2, press } from "@/lib/ui";
+import { btn2, openSheet, press, round_btn } from "@/lib/ui";
 import { Replay } from "./DrawBoard";
 
 const fmt = (ms: number) => (ms / 1000).toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
@@ -69,11 +69,12 @@ function Big({ code, d, word, by, t, onClose }: { code: string; d: Drawing; word
   const strokes = useSheet(code, d.sheet, true);
   const [play, setPlay] = useState(1);
   useEffect(() => {
-    dialog.current?.showModal();
+    openSheet(dialog.current);
   }, []);
   return (
     <dialog
       ref={dialog}
+      tabIndex={-1}
       onClose={onClose}
       onClick={(e) => e.target === dialog.current && dialog.current.close()} // tap outside closes
       aria-label={t.drawingOf(word)}
@@ -87,7 +88,7 @@ function Big({ code, d, word, by, t, onClose }: { code: string; d: Drawing; word
               {t.drawnBy(by)}, {outcome(d, t)}
             </p>
           </div>
-          <button onClick={() => dialog.current?.close()} aria-label={t.close} className={`grid size-11 shrink-0 place-items-center rounded-full border border-line bg-raised ${press}`}>
+          <button onClick={() => dialog.current?.close()} aria-label={t.close} className={`${round_btn} shrink-0`}>
             <X className="size-5" aria-hidden />
           </button>
         </div>

@@ -170,7 +170,7 @@ export function Write({ v, send, busy }: P) {
               {(fix || r?.tooHard) && (
                 <div aria-live="polite" className="pop mt-2 flex flex-wrap items-center gap-2 text-sm">
                   {fix && (
-                    <button type="button" onClick={() => edit(i, { word: fix })} className={`flex items-center gap-1.5 rounded-2xl bg-raised px-3 py-1.5 text-left font-semibold ${press}`}>
+                    <button type="button" onClick={() => edit(i, { word: fix })} className={`flex min-h-11 items-center gap-1.5 rounded-2xl bg-raised px-3 text-left font-semibold ${press}`}>
                       <Sparkles className="size-4 text-accent" aria-hidden /> {t.didYouMean(fix)} <span className="text-accent">{t.useIt}</span>
                     </button>
                   )}
@@ -249,7 +249,7 @@ function Ideas({ lang, avoid, full, onPick }: { lang: string; avoid: string[]; f
       {ideas && ideas.length > 0 && (
         <div aria-live="polite" className="mt-3 flex flex-wrap gap-2">
           {ideas.map((w, i) => (
-            <button key={w} type="button" disabled={full} onClick={() => { onPick(w); setIdeas((xs) => xs && xs.filter((x) => x !== w)); }} aria-label={t.pickIdea(w)} className={`${press} disabled:opacity-50`}>
+            <button key={w} type="button" disabled={full} onClick={() => { onPick(w); setIdeas((xs) => xs && xs.filter((x) => x !== w)); }} aria-label={t.pickIdea(w)} className={`${press} disabled:opacity-40`}>
               <Slip tilt={i % 2 ? 2 : -2} className="pop px-3 pt-1 pb-1">
                 <span className="font-hand text-2xl font-bold">{w}</span>
               </Slip>

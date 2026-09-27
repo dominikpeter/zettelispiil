@@ -77,12 +77,12 @@ export function Account() {
           <p className="min-w-0 truncate text-sm text-muted">
             {t.signedInAs} <b className="truncate text-ink">{s.user.name || s.user.email}</b>
           </p>
-          <button type="button" onPointerDown={warmAuth} onClick={signOut} className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-raised hover:text-ink ${press}`}>
+          <button type="button" onPointerDown={warmAuth} onClick={signOut} className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-muted hover:bg-surface hover:text-ink ${press}`}>
             <LogOut className="size-4" aria-hidden /> {t.signOut}
           </button>
         </div>
         {/* App Review 5.1.1(v): an app that creates accounts lets people delete them in the app */}
-        <button type="button" onClick={() => setAsking(true)} className={`flex items-center gap-1.5 self-start rounded-xl px-2 py-1.5 text-xs font-semibold text-muted hover:text-ink ${press}`}>
+        <button type="button" onClick={() => setAsking(true)} className={`flex min-h-11 items-center gap-1.5 self-start rounded-xl px-3 text-sm font-semibold text-muted hover:bg-surface hover:text-ink ${press}`}>
           <Trash2 className="size-3.5" aria-hidden /> {t.deleteAccount}
         </button>
         {err && <p role="alert" className="enter text-sm font-medium text-hi">{err}</p>}
@@ -113,7 +113,7 @@ export function Account() {
   );
 }
 
-const option = `flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 font-semibold text-ink hover:bg-raised disabled:opacity-50 ${press}`;
+const option = `flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 font-semibold text-ink hover:bg-raised disabled:opacity-40 ${press}`;
 
 /** sign in without a provider: a six-digit code by email (a code, not a link: a link would open the browser, not this app) */
 function EmailCode() {
@@ -150,7 +150,7 @@ function EmailCode() {
       <p className="text-center text-sm text-muted">{t.orEmail}</p>
       {!sent ? (
         <>
-          <input type="email" required value={email} onPointerDown={warmAuth} onChange={(e) => setEmail(e.target.value)} placeholder={t.emailAddress} aria-label={t.emailAddress} autoComplete="email" className={field} />
+          <input type="email" required value={email} onPointerDown={warmAuth} onChange={(e) => setEmail(e.target.value)} placeholder={t.emailAddress} aria-label={t.emailAddress} autoComplete="email" spellCheck={false} autoCapitalize="none" className={field} />
           <button disabled={busy || !email.includes("@")} className={option}>
             <Mail className="size-5" aria-hidden /> {t.sendCode}
           </button>
@@ -170,7 +170,7 @@ function EmailCode() {
           <button disabled={busy || code.length !== 6} className={option}>
             {t.codeSignIn}
           </button>
-          <button type="button" onClick={() => (setSent(false), setCode(""), setErr(""))} className="self-center text-sm text-muted underline">
+          <button type="button" onClick={() => (setSent(false), setCode(""), setErr(""))} className={`min-h-11 self-center rounded-xl px-3 text-sm text-muted underline underline-offset-4 hover:text-ink ${press}`}>
             {t.otherEmail}
           </button>
         </>

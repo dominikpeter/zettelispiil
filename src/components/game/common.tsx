@@ -14,7 +14,8 @@ export type Send = (a: Action, as?: number) => Promise<void>;
 export type Live = { code: string; draw: (sheet: number, strokes: Stroke[]) => void };
 export type P = { v: View; send: Send; busy: boolean; mode: Mode; live?: Live };
 
-export const mini = `grid size-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-ink disabled:opacity-25 ${press}`;
+// 45px: kick, switch team, drag, remove a round: small icons, thumb-sized targets
+export const mini = `grid size-10 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-ink disabled:opacity-40 ${press}`;
 
 export function Waiting({ text }: { text: string }) {
   return (
@@ -26,7 +27,7 @@ export function Waiting({ text }: { text: string }) {
 
 export function Cta({ children }: { children: ReactNode }) {
   // own bottom padding: clears the iPhone home bar and leaves room for the button's 3D edge
-  return <div className="sticky bottom-0 z-20 -mx-4 mt-auto bg-gradient-to-t from-canvas from-75% to-transparent px-4 pt-6 pb-[max(0.9rem,env(safe-area-inset-bottom))] short:pt-3 tiny:pt-2">{children}</div>;
+  return <div className="sticky bottom-0 z-20 -mx-4 mt-auto cta-fade px-4 pt-9 pb-[max(0.9rem,env(safe-area-inset-bottom))] short:pt-3 tiny:pt-2">{children}</div>;
 }
 
 /** the rule of a round; with one phone, drawing happens on a flip chart or paper */

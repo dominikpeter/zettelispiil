@@ -5,7 +5,7 @@ import { ChevronLeft, Flame, Lightbulb, PenLine, SkipForward, Snail, Trophy, X, 
 import type { View } from "@/lib/room";
 import type { Dict } from "@/lib/i18n";
 import { awards, playerDetail, wordDetail, type Award, type Stats } from "@/lib/stats";
-import { RoundIcon, Slip, TEAM, press } from "@/lib/ui";
+import { openSheet, round_btn, RoundIcon, Slip, TEAM, press } from "@/lib/ui";
 
 export const CHART = ["var(--color-chart-a)", "var(--color-chart-b)", "var(--color-chart-c)", "var(--color-chart-d)"]; // one per team
 export const fmt = (ms: number) => (ms / 1000).toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: ms < 10_000 ? 1 : 0 });
@@ -56,7 +56,7 @@ function Tiles({ items }: { items: { value: string; label: string }[] }) {
   return (
     <dl className={`grid gap-2 ${items.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
       {items.map((x) => (
-        <div key={x.label} className="flex min-w-0 flex-col-reverse rounded-2xl bg-raised px-3 py-2">
+        <div key={x.label} className="flex min-w-0 flex-col-reverse justify-end rounded-2xl bg-raised px-3 py-2">
           <dt className="text-xs leading-tight text-muted">{x.label}</dt>
           <dd className="text-2xl font-extrabold tabular-nums">{x.value}</dd>
         </div>
@@ -235,7 +235,7 @@ export function StorySheet({ c, stack, onBack, onClose }: { c: Ctx; stack: Focus
   useEffect(() => {
     const d = dialog.current;
     if (!d) return;
-    if (top && !d.open) d.showModal();
+    if (top) openSheet(d);
     if (!top && d.open) d.close();
     d.scrollTop = 0; // every new story starts at its top
   }, [top]);
@@ -244,6 +244,7 @@ export function StorySheet({ c, stack, onBack, onClose }: { c: Ctx; stack: Focus
   return (
     <dialog
       ref={dialog}
+      tabIndex={-1}
       onClose={onClose}
       onClick={(e) => e.target === dialog.current && dialog.current.close()} // tap outside closes
       aria-label={title}
@@ -253,7 +254,7 @@ export function StorySheet({ c, stack, onBack, onClose }: { c: Ctx; stack: Focus
         <div key={stack.length} className="enter flex flex-col gap-4 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <div className="flex items-start gap-2">
             {stack.length > 1 && (
-              <button onClick={onBack} aria-label={t.back} className={`-ml-1 grid size-11 shrink-0 place-items-center rounded-full ${press}`}>
+              <button onClick={onBack} aria-label={t.back} className={`${round_btn} shrink-0`}>
                 <ChevronLeft className="size-6" aria-hidden />
               </button>
             )}
@@ -269,7 +270,7 @@ export function StorySheet({ c, stack, onBack, onClose }: { c: Ctx; stack: Focus
                 </h2>
               )}
             </div>
-            <button onClick={() => dialog.current?.close()} aria-label={t.close} className={`grid size-11 shrink-0 place-items-center rounded-full border border-line bg-raised ${press}`}>
+            <button onClick={() => dialog.current?.close()} aria-label={t.close} className={`${round_btn} shrink-0`}>
               <X className="size-5" aria-hidden />
             </button>
           </div>
