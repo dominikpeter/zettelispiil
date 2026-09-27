@@ -204,6 +204,7 @@ Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 - **Spendier mir einen Kaffee**: Zettelispiil ist gratis und ohne Werbung. Wer mag, spendiert einen kleinen (CHF 1), grossen (CHF 5) oder Deluxe-Kaffee (CHF 10) oder einen eigenen Betrag. Bezahlt wird bei Stripe (Karte, Apple Pay, Google Pay), danach kommst du zurück ins Spiel. In der iPhone-App gibt es die drei Kaffees als In-App-Kauf über den App Store (ohne eigenen Betrag). Muss ein Kauf erst noch bestätigt werden, zum Beispiel von den Eltern, steht das gleich darunter.
 - **Teilen**: **WhatsApp** oder **Link kopieren**, um Zettelispiil weiterzuempfehlen.
 - Ganz unten: **Problem mit der App? Hier melden** führt zu den GitHub-Issues, wo du Fehler melden kannst. **Datenschutz** zeigt, welche Daten wo und wie lange gespeichert werden.
+- **So geht's**: Auf der Startseite (unter dem kurzen Text) und in den Einstellungen ganz unten öffnet sich eine kleine Tour: Beim Scrollen spielt eine Szene rund um die Schüssel das Spiel in sieben Schritten durch, von den Teams bis zum Sieg. **Los geht's** führt zurück zur Startseite.
 - Führt ein Link ins Leere (eine Adresse, die es nicht gibt), steht dort «Diese Seite gibt es nicht.» mit dem Knopf **Zur Startseite**.
 
 ## Aufs Handy holen
