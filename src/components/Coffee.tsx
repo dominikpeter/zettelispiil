@@ -135,6 +135,7 @@ function AppCoffee() {
     try {
       const { status } = await (await coffeeIap()).buy({ id: iapId(c.id) });
       if (status === "purchased") setMsg({ ok: true, text: t.coffeeThanks });
+      if (status === "pending") setMsg({ ok: true, text: t.coffeePending }); // e.g. Ask to Buy: a parent still has to say yes
     } catch {
       setMsg({ ok: false, text: t.coffeeFailed });
     }
