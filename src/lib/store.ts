@@ -112,7 +112,8 @@ export function redisStore(redis: Redis, lease?: { key: string; token: string })
         return await fn(redisStore(redis, { key: lock, token }));
       } finally {
         // Never delete a newer owner's lease, even if this callback outlived its lease.
-        await redis.eval(RELEASE_LOCK, [lock], [token]);
+        try { await redis.eval(RELEASE_LOCK, [lock], [token]); }
+        catch { console.error("room lock release failed; the lease will expire"); }
       }
     },
     get: (k) => redis.get(k),

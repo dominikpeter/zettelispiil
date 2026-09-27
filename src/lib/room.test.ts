@@ -815,3 +815,24 @@ test("a room in use for more than a day keeps its players and the kept Zetteli (
   await as(0, { type: "start" });
   assert.deepEqual((await see(0)).myWrite?.words.map((s) => s.word), ["Matterhorn"]);
 });
+
+test("a queued action uses the time after acquiring the room lock", async (t) => {
+  const { db, host, all, as, see, now } = await setup();
+  await writeAll(as);
+  const { i } = await describerView(see);
+  await as(i, { type: "go" });
+  const w = (await see(i)).word!.id;
+  let clock = now() + 29_000;
+  t.mock.method(Date, "now", () => clock);
+  const queued = {
+    ...db,
+    withLock: async <T>(key: string, fn: (locked: typeof db) => Promise<T>) => {
+      clock += 4000; // the turn (including its grace period) expires while queued
+      return db.withLock(key, fn);
+    },
+  };
+  await act(queued, host.code, all[i].pid, all[i].token, { type: "got", w });
+  const v = await view(db, host.code, all[i].pid, all[i].token, clock);
+  assert.equal(v.phase, "ready");
+  assert.equal(v.scores[0].reduce((a, b) => a + b, 0), 0);
+});

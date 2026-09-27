@@ -16,6 +16,7 @@ export type UsageRedis = {
     hsetnx(key: string, field: string, v: unknown): unknown;
     hexpire(key: string, field: string, seconds: number): unknown;
     hexpireat(key: string, field: string, timestamp: number, option: "NX"): unknown;
+    hget(key: string, field: string): unknown;
     hgetall(key: string): unknown;
     hdel(key: string, ...fields: string[]): unknown;
     get(key: string): unknown;
@@ -64,7 +65,6 @@ export async function signedIn(user: { id: string; name?: string | null; email?:
   try {
     const p = r.pipeline();
     p.hset(K.who, { [user.id]: { id: user.id, name: user.name ?? "", email: user.email ?? "", provider, last: now } });
-    p.del(deletedKey(user.id)); // signed in again after deleting: a new account, rooms may lend its AI again
     p.hsetnx(K.first, user.id, now);
     p.hincrby(K.signins, user.id, 1);
     p.hincrby(dayKey(new Date(now)), "signins", 1);
@@ -76,7 +76,6 @@ export async function signedIn(user: { id: string; name?: string | null; email?:
   }
 }
 
-const deletedKey = (id: string) => `usage:deleted:${id}`;
 const revokedKey = (id: string) => `auth:revoked-before:${id}`;
 const SESSION_KEEP = 60 * 60 * 24 * 30;
 
@@ -86,18 +85,17 @@ export async function sessionRevoked(userId: string, createdAt: Date | string, s
   return before !== null && new Date(createdAt).getTime() <= before;
 }
 /**
- * a deleted account: its record and counters go (the daily totals stay, they name no one), and a marker stops rooms it
- * opened from lending its AI (rooms don't expire at once, and there's no list of them by host). false when Redis failed
+ * A deleted account loses its profile and counters (anonymous daily totals stay). Rooms may only lend AI while
+ * the host's profile exists, so even a continuously active room cannot outlive deletion. False when storage fails.
  */
 export async function forget(userId: string, r = client(), store: Store = db, now = Date.now()) {
   try {
     if (r) {
       const p = r.pipeline();
       for (const k of Object.values(K)) p.hdel(k, userId);
-      p.set(deletedKey(userId), 1, { ex: SESSION_KEEP }); // longer than any room stays alive
       await p.exec();
     }
-    // Separate from the room marker: signedIn clears that marker, but must never clear session revocation.
+    // A fresh sign-in restores the profile, but must never clear session revocation.
     // Auth rejects and removes revoked sessions on access, so they cannot renew past this retention period.
     // Purge first: when storage fails, the existing session must remain usable to retry deletion.
     await store.set(revokedKey(userId), now, { ex: SESSION_KEEP });
@@ -108,12 +106,13 @@ export async function forget(userId: string, r = client(), store: Store = db, no
   }
 }
 
-/** whether this account was deleted (and not signed in again since) */
+/** Missing, deleted or expired profiles cannot lend AI; a fresh sign-in restores access. */
 export async function deleted(userId: string, r = client()) {
   if (!r || !userId) return false;
   const p = r.pipeline();
-  p.get(deletedKey(userId));
-  return !!(await p.exec())[0];
+  p.hget(K.who, userId);
+  const account = (await p.exec())[0] as Pick<Account, "last"> | null;
+  return !account || account.last <= Date.now() - KEEP * 1000;
 }
 
 /** an AI call on this account (its own or, in a host's room, the host's) */

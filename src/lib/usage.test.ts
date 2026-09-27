@@ -25,6 +25,7 @@ function fakeRedis(): UsageRedis & { data: Map<string, Record<string, unknown>>;
             if (timestamp * 1000 <= Date.now()) delete h(k)[f];
           }
         }), p),
+        hget: (k: string, f: string) => (ops.push(() => data.get(k)?.[f] ?? null), p),
         hgetall: (k: string) => (ops.push(() => (data.has(k) ? { ...data.get(k) } : null)), p),
         hdel: (k: string, ...fs: string[]) => (ops.push(() => fs.forEach((f) => delete h(k)[f])), p),
         get: (k: string) => (ops.push(() => (data.has(k) ? data.get(k)!.v : null)), p),
@@ -135,4 +136,15 @@ test("usage field expiry is independent per account and report migrates old reco
   const result = await report(1, new Date(now), r);
   assert.deepEqual(result.accounts.map((a) => a.id).sort(), ["active", "other"]);
   for (const k of ["usage:accounts", "usage:first", "usage:signins", "usage:ai-by"]) assert.equal(r.data.get(k)?.old, undefined);
+});
+
+
+test("a deleted account cannot lend AI after its old tombstone expires", async () => {
+  const r = fakeRedis();
+  const id = "long-lived-room@example.ch";
+  await signedIn({ id }, "email", Date.now(), r);
+  await forget(id, r, memoryStore());
+  // Model expiry of the old 30-day tombstone while the room is still receiving daily writes.
+  r.data.delete(`usage:deleted:${id}`);
+  assert.equal(await deleted(id, r), true);
 });

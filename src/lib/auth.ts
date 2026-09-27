@@ -149,14 +149,19 @@ const make = () => betterAuth({
       // Better Auth IDs differ between independent sign-ins without a user database. Revoke by account and
       // creation time as well, including the public get-session route and its cookie-cache/refresh path.
       // Removing the token also stops a revoked session renewing until the 30-day watermark expires.
+      const s = ctx.context.newSession;
+      const signingIn = ctx.path.startsWith("/callback/") || ctx.path === "/sign-in/email-otp" || ctx.path === "/sign-in/social";
       const existing = ctx.context.session;
       if (existing && await sessionRevoked(accountOf(existing.user), existing.session.createdAt)) {
         await ctx.context.internalAdapter.deleteSession(existing.session.token);
-        deleteSessionCookie(ctx);
-        if (ctx.path === "/get-session") return ctx.json(null);
-        if (ctx.path !== "/revoke-sessions" && ctx.path !== "/sign-out") throw new APIError("UNAUTHORIZED");
+        // Keep the fresh cookie when a completed sign-in replaces the revoked session. A get-session refresh
+        // is not a sign-in and must still be rejected, even when Better Auth populated newSession for it.
+        if (!(s && signingIn)) {
+          deleteSessionCookie(ctx);
+          if (ctx.path === "/get-session") return ctx.json(null);
+          if (ctx.path !== "/revoke-sessions" && ctx.path !== "/sign-out") throw new APIError("UNAUTHORIZED");
+        }
       }
-      const s = ctx.context.newSession;
       if (!s) return;
       const user = { ...s.user, id: accountOf(s.user) };
       if (ctx.path.startsWith("/callback/")) await signedIn(user, ctx.path.slice("/callback/".length));

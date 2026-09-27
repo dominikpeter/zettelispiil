@@ -336,8 +336,8 @@ async function claimAiUnlocked(db: Store, code: string, pid: unknown, token: unk
   await save(db, room);
 }
 
-export async function act(db: Store, code: string, pid: unknown, token: unknown, a: Action, now = Date.now()) {
-  return db.withLock(k(code).room, (locked) => actUnlocked(locked, code, pid, token, a, now));
+export async function act(db: Store, code: string, pid: unknown, token: unknown, a: Action, now?: number) {
+  return db.withLock(k(code).room, (locked) => actUnlocked(locked, code, pid, token, a, now ?? Date.now()));
 }
 
 async function actUnlocked(db: Store, code: string, pid: unknown, token: unknown, a: Action, now: number) {

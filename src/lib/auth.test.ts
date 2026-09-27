@@ -20,9 +20,9 @@ test("account deletion rejects independent and cached sessions after a fresh sig
     headers: { "content-type": "application/json", origin: "http://localhost:3001", cookie, "x-real-ip": "127.0.0.1" },
     ...(body ? { body: JSON.stringify(body) } : {}),
   }));
-  const login = async (server = auth) => {
-    assert.equal((await call("/email-otp/send-verification-otp", "", { email, type: "sign-in" }, server)).status, 200);
-    const response = await call("/sign-in/email-otp", "", { email, otp: "123456" }, server);
+  const login = async (server = auth, cookie = "") => {
+    assert.equal((await call("/email-otp/send-verification-otp", cookie, { email, type: "sign-in" }, server)).status, 200);
+    const response = await call("/sign-in/email-otp", cookie, { email, otp: "123456" }, server);
     assert.equal(response.status, 200);
     return response.headers.getSetCookie().map((c) => c.split(";", 1)[0]).join("; ");
   };
@@ -42,7 +42,7 @@ test("account deletion rejects independent and cached sessions after a fresh sig
   assert.equal(await otherSession(), null);
   // Exercise the public cookie-cache/refresh path too, not just the application's authoritative lookup.
   assert.equal(await (await call("/get-session", second, undefined, otherServer)).json(), null);
-  const fresh = await login();
+  const fresh = await login(auth, second); // another device still sends its old, revoked cookie
   assert.equal((await user(fresh))?.email, email);
   assert.equal(await user(first), null);
   assert.equal(await otherSession(), null);
