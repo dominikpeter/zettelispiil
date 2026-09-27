@@ -1,0 +1,85 @@
+# App Store listing
+
+What goes into App Store Connect for Zettelispiil (app 6816618404, bundle `ch.zettelispiil.app`). Copy the fields as
+they are; the limits in brackets are Apple's.
+
+## Version page (iOS App → 1.0 Prepare for Submission)
+
+**Promotional Text** (170)
+
+> Das Schweizer Partyspiel mit Zetteli: schreiben, falten, erraten. Mit einem Handy zum Herumreichen oder jede:r mit dem eigenen. Gratis und ohne Werbung.
+
+**Description** (4000)
+
+> Zettelispiil ist das Partyspiel mit Zetteli, direkt im Handy. Alle schreiben Begriffe auf Zetteli: Personen, Orte, Dinge, Filme, alles, was sich erklären lässt. Zwei bis vier Teams erraten sie in bis zu fünf Runden, und jede Runde wird es schwieriger.
+>
+> SO GEHT'S
+> • Umschreiben: Erklär den Begriff mit so vielen Worten, wie du willst.
+> • Pantomime: Kein Wort, kein Laut, nur Hände, Füsse und Mimik.
+> • Ein Wort: Genau ein Wort als Hinweis.
+> • Geräusch: Nur Töne und Geräusche.
+> • Zeichnen: Live auf dem Handy, die anderen schauen zu.
+> Es bleiben immer dieselben Begriffe, aber die Regeln werden strenger. Wer sich merkt, was gekommen ist, hat einen Vorteil.
+>
+> MIT EINEM ODER MIT MEHREREN HANDYS
+> • Ein Handy: Ihr reicht es herum. Wer schreibt, schreibt heimlich, wer erklärt, wischt: nach rechts erraten, nach links passen.
+> • Mehrere Handys: Einer erstellt einen Raum, alle anderen kommen per Code, QR oder Link dazu. Jede:r schreibt auf dem eigenen Handy, gezeichnet wird live.
+>
+> ALLES DABEI
+> • Teams mit lustigen Namen, per Fingertipp oder Ziehen zusammengestellt
+> • Sekunden pro Zug, Passen pro Zug, Runden und Reihenfolge nach Lust
+> • Stören: Die anderen Teams dürfen die Erklärerin ablenken (mit mehreren Handys)
+> • Statistik am Schluss: Auszeichnungen, wer am schnellsten erklärt hat, welche Zetteli am schwierigsten waren, zum Antippen für jede Person und jedes Zetteli
+> • Auf Wunsch KI-Hilfe: Rechtschreibung, Hinweise für die Erklärerin, Ideen, wenn niemandem etwas einfällt, oder gleich alle Zetteli von der KI
+> • Deutsch, Englisch und Französisch, Schweizer Schreibweise
+> • Hell, dunkel und neun Farbwelten
+>
+> Gratis, ohne Werbung, ohne Tracking. Spielen geht ohne Konto.
+
+**Keywords** (100, comma-separated, no spaces needed)
+
+> partyspiel,zettel,begriffe,erraten,pantomime,activity,tabu,gruppenspiel,familie,schweiz,trinkspiel,team
+
+**Support URL**: `https://github.com/dominikpeter/zettelispiil/issues`
+**Marketing URL**: `https://zettelispiil.ch`
+**Copyright**: `2026 Dominik Peter`
+**Version**: `1.0` (the build carries the app's own version; this is the store's label)
+
+**Screenshots**: 6.5" iPhone, 1284 × 2778, up to 10, the first three show on the install sheet. Made with
+`scripts/store-screenshots` (see below) in this order: home, lobby, a turn, round end, stats.
+
+## App Review Information
+
+- **Sign-in required**: no. Everything can be tried without an account; sign-in only unlocks the optional AI help.
+- **Notes** (4000):
+
+> Zettelispiil is a party game (salad bowl / fishbowl) for a group in one room. To try it alone: tap "Neues Spiel" (one phone), then "Spiel starten", write a word for each player ("Ich bin …" → type → "In die Schüssel"), then "Los, Zetteli ziehen" and swipe the word right (guessed) or left (skip). The game runs through up to five rounds and ends with statistics.
+> "Mehrere Handys" lets several phones play together in a room (6-character code, QR code or link).
+> AI help is optional and needs a sign-in with a code sent by e-mail; playing never needs an account. There are no in-app purchases and no ads.
+
+- **Contact**: Dominik Peter, info@zettelispiil.ch
+
+## App Information
+
+- **Subtitle** (30): `Das Partyspiel mit Zetteli`
+- **Category**: Games → Word (secondary: Games → Family)
+- **Privacy Policy URL**: `https://zettelispiil.ch/datenschutz`
+- **Age Rating**: all "None" / "No"; no unrestricted web access (the app shows only zettelispiil.ch), no user-generated
+  content shared publicly (Zetteli stay in the game's room and are deleted after a day). Result: 4+.
+- **Content Rights**: no third-party content.
+
+## App Privacy (Trust & Safety → App Privacy)
+
+- **Data collection**: yes, only when someone signs in for AI help:
+  - **Contact Info → Email Address** and **Name**: used for App Functionality (sign-in), linked to the user, not used for
+    tracking.
+  - **Identifiers → User ID**: App Functionality, linked, not used for tracking.
+  - **Usage Data → Product Interaction**: counts of sign-ins and AI requests per account, App Functionality / Analytics,
+    linked, not used for tracking.
+  - **User Content → Other User Content**: the words written for a game (sent to the AI for spelling and hints, kept in a
+    room for a day), App Functionality, not linked, not used for tracking.
+- **Tracking**: no. No data is used to track people across apps or websites.
+
+## Pricing and Availability
+
+Free, all countries (or Switzerland, Germany, Austria, France, … if you prefer to start small).
