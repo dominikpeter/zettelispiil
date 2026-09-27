@@ -126,6 +126,8 @@ keeps Stripe. `ios/App/App/Coffee.swift` sells them; the settings show them once
    | Grosser Kaffee | `ch.zettelispiil.coffee.big` | CHF 5.00 | Grosser Kaffee | Ein grosser Kaffee für Zettelispiil |
    | Deluxe-Kaffee | `ch.zettelispiil.coffee.deluxe` | CHF 10.00 | Deluxe-Kaffee | Ein Deluxe-Kaffee für Zettelispiil |
 
-   Each needs a review screenshot (the coffee section in the app's settings) and availability in all countries.
+   Each needs a localization (display name + description, from the table; add English too: "Small coffee" / "A small
+   coffee for Zettelispiil", and so on), a review screenshot and availability in all countries. Review screenshot, the
+   same for all three: `assets/app-store/iap/iap-review-de.png` (or `-en`), the coffee section in the app's settings.
 3. The first In-App Purchases go to review together with an app version: on the version page, under
    **In-App Purchases and Subscriptions**, add all three before **Add for Review**.
