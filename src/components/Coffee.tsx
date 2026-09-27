@@ -3,7 +3,7 @@
 import { Coffee as Cup } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { COFFEES, MAX_CHF, iapId } from "@/lib/coffee";
-import { coffeeIap, hasCoffeeIap, isNative } from "@/lib/native";
+import { buyCoffee, coffeeProducts, hasCoffeeIap, isNative } from "@/lib/native";
 import { langPref, useT } from "@/lib/prefs";
 import { field, press } from "@/lib/ui";
 
@@ -123,9 +123,8 @@ function AppCoffee() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => {
-    coffeeIap()
-      .then((p) => p.products({ ids: COFFEES.map((c) => iapId(c.id)) }))
-      .then(({ products }) => setPrices(Object.fromEntries(products.map((p) => [p.id, p.price]))))
+    coffeeProducts(COFFEES.map((c) => iapId(c.id)))
+      .then((products) => setPrices(Object.fromEntries(products.map((p) => [p.id, p.price]))))
       .catch(() => setPrices({}));
   }, []);
   if (!prices || COFFEES.some((c) => !prices[iapId(c.id)])) return null; // not (yet) approved in App Store Connect
@@ -133,7 +132,7 @@ function AppCoffee() {
     setBusy(true);
     setMsg(null);
     try {
-      const { status } = await (await coffeeIap()).buy({ id: iapId(c.id) });
+      const status = await buyCoffee(iapId(c.id));
       if (status === "purchased") setMsg({ ok: true, text: t.coffeeThanks });
       if (status === "pending") setMsg({ ok: true, text: t.coffeePending }); // e.g. Ask to Buy: a parent still has to say yes
     } catch {

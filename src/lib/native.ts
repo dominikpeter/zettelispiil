@@ -73,11 +73,17 @@ type AppleSignIn = { authorize(o: { nonce: string }): Promise<{ identityToken: s
 export const hasAppleSignIn = () =>
   isNative() && !!(window as { Capacitor?: { isPluginAvailable?: (n: string) => boolean } }).Capacitor?.isPluginAvailable?.("AppleSignIn");
 
+// the app's own native plugins (ios/App/App/*.swift), registered once. Kept in an object: a Capacitor plugin answers every
+// property, `then` too: returned from a promise it looks like one and the call fails, so it's only ever used inside `use`
+const own = <T,>(name: string) => {
+  let loaded: Promise<{ plugin: T }> | undefined;
+  return <R,>(use: (plugin: T) => Promise<R>) =>
+    (loaded ??= import("@capacitor/core").then(({ registerPlugin }) => ({ plugin: registerPlugin<T>(name) }))).then(({ plugin }) => use(plugin));
+};
+const appleSignIn = own<AppleSignIn>("AppleSignIn");
+
 /** Apple's own sign-in sheet (Face ID), no web page: resolves with Apple's signed token, rejects when cancelled */
-export async function appleIdToken(nonce: string) {
-  const { registerPlugin } = await import("@capacitor/core");
-  return registerPlugin<AppleSignIn>("AppleSignIn").authorize({ nonce });
-}
+export const appleIdToken = (nonce: string) => appleSignIn((p) => p.authorize({ nonce }));
 
 type CoffeeIap = {
   products(o: { ids: string[] }): Promise<{ products: { id: string; price: string }[] }>;
@@ -86,4 +92,6 @@ type CoffeeIap = {
 /** whether this app build can take a coffee through In-App Purchase (ios/App/App/Coffee.swift); older builds can't */
 export const hasCoffeeIap = () =>
   isNative() && !!(window as { Capacitor?: { isPluginAvailable?: (n: string) => boolean } }).Capacitor?.isPluginAvailable?.("Coffee");
-export const coffeeIap = async () => (await import("@capacitor/core")).registerPlugin<CoffeeIap>("Coffee");
+const coffee = own<CoffeeIap>("Coffee");
+export const coffeeProducts = async (ids: string[]) => (await coffee((p) => p.products({ ids }))).products;
+export const buyCoffee = async (id: string) => (await coffee((p) => p.buy({ id }))).status;
