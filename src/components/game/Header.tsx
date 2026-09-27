@@ -6,7 +6,7 @@ import { useT } from "@/lib/prefs";
 import { type View } from "@/lib/room";
 import { btn, btn2, ghost, pill, pillBtn, TEAM } from "@/lib/ui";
 import { SettingsPanel } from "../TopControls";
-import { Confirm, Waiting, type Mode, type Send } from "./common";
+import { Confirm, Modal, Waiting, type Mode, type Send } from "./common";
 
 export function Score({ v }: { v: View }) {
   const tot = v.teamNames.map((_, t) => v.scores.reduce((s, r) => s + (r[t] ?? 0), 0));
@@ -106,55 +106,61 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
         </button>
       </div>
       {(open || paused) && (
-        <div role="dialog" aria-modal="true" aria-label={t.paused} className="enter fixed inset-0 z-50 flex flex-col overflow-y-auto overscroll-contain bg-canvas px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
-          <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 py-6 text-center">
-            <span className="pop grid size-24 place-items-center rounded-4xl bg-raised text-accent">
-              <Pause className="size-12" strokeWidth={1.75} aria-hidden />
-            </span>
-            <h2 className="mt-2 text-5xl font-extrabold tracking-tight">{t.paused}</h2>
-            {paused && <p className="max-w-[30ch] text-muted">{canPause ? t.pausedTurn : t.pausedBy}</p>}
-            {turn && !paused && !canPause && <p className="max-w-[30ch] text-muted">{t.menuRunning}</p>}
-          </div>
-          <details className="mx-auto mb-4 w-full max-w-md rounded-3xl bg-surface p-4 [&[open]>summary>svg]:rotate-180">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-semibold [&::-webkit-details-marker]:hidden">
-              {t.settings}
-              <ChevronDown className="size-5 transition-transform" aria-hidden />
-            </summary>
-            <div className="mt-4 flex flex-col gap-5">
-              <SettingsPanel />
-            </div>
-          </details>
-          <div className="mx-auto flex w-full max-w-md flex-col gap-2">
-            {(!paused || canPause) && (
-              <button onClick={resume} className={btn}>
-                <Play className="size-5" aria-hidden /> {t.resumeTurn}
-              </button>
-            )}
-            {!canPause && paused && <Waiting text={t.pausedBy} />}
-            {canCancel && v.beforePlay && (
-              <button onClick={toSettings} className={`${btn2} flex-col gap-0 py-2`}>
-                <span className="flex items-center gap-2">
-                  <Settings2 className="size-5" aria-hidden /> {t.backToSettings}
-                </span>
-                <span className="text-sm font-normal text-muted">{t.backToSettingsNote}</span>
-              </button>
-            )}
-            {canCancel && (
-              <button onClick={() => setAsking(true)} className={`${btn2} flex-col gap-0 py-2`}>
-                <span className="flex items-center gap-2">
-                  <X className="size-5" aria-hidden /> {t.cancelGame}
-                </span>
-                <span className="text-sm font-normal text-muted">{t.cancelNote}</span>
-              </button>
-            )}
-            <button onClick={onLeave} className={`${ghost} flex w-full flex-col items-center justify-center gap-0 py-1`}>
-              <span className="flex items-center gap-2">
-                <Home className="size-4" aria-hidden /> {t.leaveGame}
+        <Modal
+          label={t.paused}
+          onCancel={() => (!paused || canPause) && resume()} // Escape: back to the game, where this phone may resume it
+          className="enter m-0 h-dvh max-h-none w-full max-w-none overflow-y-auto overscroll-contain bg-canvas p-0 text-ink"
+        >
+          <div className="flex min-h-full flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 py-6 text-center">
+              <span className="pop grid size-24 place-items-center rounded-4xl bg-raised text-accent">
+                <Pause className="size-12" strokeWidth={1.75} aria-hidden />
               </span>
-              <span className="text-sm font-normal">{local ? t.leaveNoteLocal : t.leaveNote}</span>
-            </button>
+              <h2 className="mt-2 text-5xl font-extrabold tracking-tight">{t.paused}</h2>
+              {paused && <p className="max-w-[30ch] text-muted">{canPause ? t.pausedTurn : t.pausedBy}</p>}
+              {turn && !paused && !canPause && <p className="max-w-[30ch] text-muted">{t.menuRunning}</p>}
+            </div>
+            <details className="mx-auto mb-4 w-full max-w-md rounded-3xl bg-surface p-4 [&[open]>summary>svg]:rotate-180">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-semibold [&::-webkit-details-marker]:hidden">
+                {t.settings}
+                <ChevronDown className="size-5 transition-transform" aria-hidden />
+              </summary>
+              <div className="mt-4 flex flex-col gap-5">
+                <SettingsPanel />
+              </div>
+            </details>
+            <div className="mx-auto flex w-full max-w-md flex-col gap-2">
+              {(!paused || canPause) && (
+                <button onClick={resume} className={btn}>
+                  <Play className="size-5" aria-hidden /> {t.resumeTurn}
+                </button>
+              )}
+              {!canPause && paused && <Waiting text={t.pausedBy} />}
+              {canCancel && v.beforePlay && (
+                <button onClick={toSettings} className={`${btn2} flex-col gap-0 py-2`}>
+                  <span className="flex items-center gap-2">
+                    <Settings2 className="size-5" aria-hidden /> {t.backToSettings}
+                  </span>
+                  <span className="text-sm font-normal text-muted">{t.backToSettingsNote}</span>
+                </button>
+              )}
+              {canCancel && (
+                <button onClick={() => setAsking(true)} className={`${btn2} flex-col gap-0 py-2`}>
+                  <span className="flex items-center gap-2">
+                    <X className="size-5" aria-hidden /> {t.cancelGame}
+                  </span>
+                  <span className="text-sm font-normal text-muted">{t.cancelNote}</span>
+                </button>
+              )}
+              <button onClick={onLeave} className={`${ghost} flex w-full flex-col items-center justify-center gap-0 py-1`}>
+                <span className="flex items-center gap-2">
+                  <Home className="size-4" aria-hidden /> {t.leaveGame}
+                </span>
+                <span className="text-sm font-normal">{local ? t.leaveNoteLocal : t.leaveNote}</span>
+              </button>
+            </div>
           </div>
-        </div>
+        </Modal>
       )}
       {asking && <Confirm text={t.cancelConfirm} yes={t.cancelGame} no={t.resumeTurn} onYes={cancel} onNo={() => setAsking(false)} />}
     </>

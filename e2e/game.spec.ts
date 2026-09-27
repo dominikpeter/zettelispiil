@@ -767,6 +767,30 @@ test("heckle auto: over several turns the team that falls behind gets a bonus; i
 // feedback: "Zurück" and "Spiel abbrechen" did nothing. They asked with the browser's confirm(), which in-app browsers
 // (a link from WhatsApp), the phone apps and previews answer "no" without showing it. Every way out of a game, in every
 // phase, is pressed here and must do what it says; a native dialog fails the test (see localGame)
+test("pause menu and confirmations are real dialogs: Escape means \"no\" / \"resume\", the page behind can't be reached", async ({ page }) => {
+  await localGame(page);
+  await page.getByRole("button", { name: "Los, Zetteli ziehen" }).click();
+  await expect(page.getByTestId("word")).toBeVisible();
+  await page.getByRole("button", { name: "Pause" }).click();
+  const menu = page.getByRole("dialog", { name: "Pause" });
+  await expect(menu).toBeVisible();
+  await expect(menu).toBeFocused(); // the dialog itself: no button starts with a focus ring
+  // the game behind is out of reach: a tap where "Erraten" is lands in the menu
+  const box = (await page.getByRole("button", { name: "Erraten" }).boundingBox())!;
+  expect(await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest("dialog[open]"), [box.x + box.width / 2, box.y + box.height / 2])).toBe(true);
+  // cancelling asks; Escape there is "no", and the menu is still open
+  await menu.getByRole("button", { name: "Spiel abbrechen" }).click();
+  const ask = page.getByRole("alertdialog");
+  await expect(ask).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(ask).toHaveCount(0);
+  await expect(menu).toBeVisible();
+  // Escape in the menu: back to the turn
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(page.getByTestId("word")).toBeVisible();
+});
+
 test("every phase: back and each pause-menu button work (asked in the app, never a browser dialog)", async ({ page }) => {
   test.setTimeout(120_000);
   const ask = page.getByRole("alertdialog");

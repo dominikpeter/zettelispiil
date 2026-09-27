@@ -723,7 +723,7 @@ button { user-select: none; }
 }
 dialog.sheet[open] { animation: sheet 0.3s var(--ease-out) both; }
 /* the sheet itself holds the focus when it opens (openSheet): no ring around the whole sheet */
-dialog.sheet:focus { outline: none; }
+dialog:focus { outline: none; }
 dialog.sheet[open]::backdrop { animation: fade-in 0.3s ease-out both; }
 @keyframes fade-in { from { opacity: 0; } }
 
