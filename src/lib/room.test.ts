@@ -771,3 +771,19 @@ test("back to the settings: cancel or a new game after the end forgets what was 
   await as(0, { type: "start" });
   assert.equal((await see(0)).myWrite, null);
 });
+
+test("a room in use for more than a day keeps its players and the kept Zetteli (back to the settings)", async (t) => {
+  if (persistent) return t.skip("uses the memory store's clock");
+  t.mock.timers.enable({ apis: ["Date"], now: 0 });
+  const { as, see } = await setup();
+  await as(0, { type: "start" });
+  await as(0, { type: "words", words: ["Matterhorn"] }); // written now, the Zetteli's own TTL starts here
+  await as(0, { type: "toSettings" });
+  for (let h = 0; h < 3; h++) {
+    t.mock.timers.tick(20 * 60 * 60 * 1000); // 20 h, 60 h in all: well past a day since the Zetteli was written
+    await as(0, { type: "settings", settings: { seconds: 40 + h * 5 } }); // the room is still used, so it stays
+  }
+  assert.equal((await see(0)).kept, 1);
+  await as(0, { type: "start" });
+  assert.deepEqual((await see(0)).myWrite?.words.map((s) => s.word), ["Matterhorn"]);
+});
