@@ -11,8 +11,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#f5f1e8",
-    theme_color: "#f5f1e8",
+    background_color: "#fafaf8", // the default palette's canvas (Post-it), like layout.tsx's theme colour
+    theme_color: "#fafaf8",
     lang: "de-CH",
     categories: ["games", "entertainment"],
     icons: [
