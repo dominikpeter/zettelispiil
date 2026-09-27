@@ -96,8 +96,8 @@ export default function Guide() {
       setStep(i);
       const h = pinned.current?.offsetHeight ?? 0;
       setPad(h);
-      // the scene as big as fits: nearly edge to edge, up to 58% of the screen's height
-      setZoom(Math.min(((pinned.current?.clientWidth ?? STAGE_W + 16) - 16) / STAGE_W, (innerHeight * 0.58) / STAGE_H));
+      // the drawing scaled to its CSS-sized frame
+      setZoom((pinned.current?.querySelector<HTMLElement>("[data-stage]")?.clientWidth ?? STAGE_W) / STAGE_W);
       const last = sections.current[n - 1];
       if (last && end.current) setTail(Math.max(0, innerHeight - h - 8 - last.offsetHeight - end.current.offsetHeight));
     };
@@ -189,7 +189,14 @@ function Stage({ step, zoom }: { step: number; zoom: number }) {
   const t = useT();
   const scene = SCENES[step];
   return (
-    <div aria-hidden className="mx-auto" style={{ width: STAGE_W * zoom, height: STAGE_H * zoom }}>
+    // the frame is sized by CSS (nearly edge to edge, at most 58% of the screen's height), so nothing jumps when the
+    // drawing inside is scaled to it after the first paint
+    <div
+      aria-hidden
+      data-stage
+      className="mx-auto overflow-hidden rounded-4xl"
+      style={{ width: `min(100%, calc(58svh * ${STAGE_W / STAGE_H}))`, aspectRatio: `${STAGE_W} / ${STAGE_H}` }}
+    >
       <div
         className={`relative origin-top-left overflow-hidden rounded-4xl ${TINT[step]} transition-colors duration-500 ${styles.stage}`}
         style={{ width: STAGE_W, height: STAGE_H, scale: String(zoom) }}
