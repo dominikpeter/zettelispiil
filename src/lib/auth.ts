@@ -174,7 +174,8 @@ export const accountOf = (u: { id: string; email?: string | null }) => (u.email 
 export async function currentUser(req: Request) {
   if (!authEnabled()) return null;
   try {
-    const u = (await getAuth()!.api.getSession({ headers: req.headers }))?.user;
+    // from the session store, not the day-long cookie cache: a signed-out or deleted account is out at once
+    const u = (await getAuth()!.api.getSession({ headers: req.headers, query: { disableCookieCache: true } }))?.user;
     return u ? { ...u, id: accountOf(u) } : null;
   } catch {
     return null;

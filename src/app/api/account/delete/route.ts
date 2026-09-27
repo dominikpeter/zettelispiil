@@ -11,8 +11,12 @@ export async function POST(req: Request) {
   if (typeof appleCode === "string" && appleCode && !(await revokeApple(appleCode).catch(() => false)))
     return Response.json({ error: "apple refused" }, { status: 502 });
   if (!(await forget(user.id))) return Response.json({ error: "not deleted" }, { status: 503 });
-  // ponytail: sessions end in Redis, but the encrypted session cookie is trusted for up to a day (auth.ts cookieCache);
-  // the client's sign-out deletes it on this phone, so only a copied cookie would outlive this, for at most a day
-  await getAuth()!.api.revokeSessions({ headers: req.headers }).catch(() => {});
+  // then its sessions: the server checks them in the store, not the cookie (currentUser), so every copy is out at once.
+  // If this fails, say so: the phone is still signed in and can try again (forgetting twice is harmless)
+  try {
+    await getAuth()!.api.revokeSessions({ headers: req.headers });
+  } catch {
+    return Response.json({ error: "sessions not ended" }, { status: 503 });
+  }
   return Response.json({ ok: true });
 }

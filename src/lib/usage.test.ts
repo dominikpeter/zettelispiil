@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { aiUsedBy, count, forget, report, signedIn, type UsageRedis } from "./usage.ts";
+import { aiUsedBy, count, deleted, forget, report, signedIn, type UsageRedis } from "./usage.ts";
 
 // an in-memory stand-in for the few Redis hash commands usage.ts uses
 function fakeRedis(): UsageRedis & { data: Map<string, Record<string, unknown>> } {
@@ -16,6 +16,9 @@ function fakeRedis(): UsageRedis & { data: Map<string, Record<string, unknown>> 
         hsetnx: (k: string, f: string, v: unknown) => (ops.push(() => (f in h(k) ? 0 : ((h(k)[f] = v), 1))), p),
         hgetall: (k: string) => (ops.push(() => (data.has(k) ? { ...data.get(k) } : null)), p),
         hdel: (k: string, ...fs: string[]) => (ops.push(() => fs.forEach((f) => delete h(k)[f])), p),
+        get: (k: string) => (ops.push(() => (data.has(k) ? data.get(k)!.v : null)), p),
+        set: (k: string, v: unknown) => (ops.push(() => data.set(k, { v })), p),
+        del: (k: string) => (ops.push(() => data.delete(k)), p),
         expire: () => (ops.push(() => 1), p),
         exec: async () => ops.map((o) => o()),
       };
@@ -56,6 +59,10 @@ test("usage: a deleted account leaves no trace on the admin page, other accounts
   assert.deepEqual(rep.accounts.map((a) => a.id), ["tim@example.ch"]);
   for (const k of ["usage:accounts", "usage:first", "usage:signins", "usage:ai-by"]) assert.ok(!("lisa@example.ch" in (r.data.get(k) ?? {})), k);
   assert.equal(rep.days[0].signins, 2); // today's count names no one: it stays
+  assert.equal(await deleted("lisa@example.ch", r), true); // rooms Lisa opened no longer lend her AI
+  assert.equal(await deleted("tim@example.ch", r), false);
+  await signedIn({ id: "lisa@example.ch", name: "Lisa", email: "lisa@example.ch" }, "email", now.getTime(), r);
+  assert.equal(await deleted("lisa@example.ch", r), false); // back with a new account
 });
 
 test("usage: without Redis nothing is counted and the report says so", async () => {
