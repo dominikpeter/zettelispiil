@@ -56,9 +56,13 @@ jobs:
           # the export below only re-signs what it finds: the app shipped without them and Apple's sign-in sheet failed.
           # Sign it ad hoc with them (nested frameworks first, plain); the export keeps them when it signs for real
           app="$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
-          find "$app/Frameworks" -maxdepth 1 \( -name "*.framework" -o -name "*.dylib" \) -exec codesign --force --sign - {} \; 2>/dev/null || true
+          if [ -d "$app/Frameworks" ]; then
+            find "$app/Frameworks" -maxdepth 1 \( -name "*.framework" -o -name "*.dylib" \) -exec codesign --force --sign - {} \;
+          fi
           codesign --force --sign - --entitlements App/App.entitlements "$app"
-          codesign -d --entitlements - "$app" # in the log: the entitlements the app goes out with
+          # in the log, and a hard stop when it's missing: an app without it can't open Apple's sign-in sheet
+          codesign -d --entitlements - --xml "$app" | tee "$RUNNER_TEMP/entitlements.plist"
+          grep -q "com.apple.developer.applesignin" "$RUNNER_TEMP/entitlements.plist" || { echo "::error::the app lacks the Sign in with Apple entitlement"; exit 1; }
 
       # the version players see is package.json's; every upload needs a new build number: this workflow's run number
       - name: Export and upload to TestFlight
