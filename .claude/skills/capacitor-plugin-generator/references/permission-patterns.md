@@ -629,7 +629,7 @@ async function accessLocation() {
                 if granted {
                     self.openCamera(call)
                 } else {
-                    call.reject("PERMISSION_DENIED", "Camera permission denied")
+                    call.reject("Camera permission denied", "PERMISSION_DENIED")
                 }
             }
         }
@@ -637,14 +637,14 @@ async function accessLocation() {
     case .denied, .restricted:
         // Previously denied - prompt to settings
         call.reject(
+            "Camera permission denied. Please enable in Settings.", // message first
             "PERMISSION_DENIED",
-            "Camera permission denied. Please enable in Settings.",
             nil,
             ["openSettings": true]
         )
 
     @unknown default:
-        call.reject("PERMISSION_ERROR", "Unknown permission status")
+        call.reject("Unknown permission status", "PERMISSION_ERROR")
     }
 }
 ```

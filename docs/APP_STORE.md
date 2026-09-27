@@ -70,15 +70,21 @@ they are; the limits in brackets are Apple's.
 
 ## App Privacy (Trust & Safety → App Privacy)
 
-- **Data collection**: yes, only when someone signs in for AI help:
-  - **Contact Info → Email Address** and **Name**: used for App Functionality (sign-in), linked to the user, not used for
-    tracking.
-  - **Identifiers → User ID**: App Functionality, linked, not used for tracking.
-  - **Usage Data → Product Interaction**: counts of sign-ins and AI requests per account, App Functionality / Analytics,
-    linked, not used for tracking.
-  - **User Content → Other User Content**: the words written for a game (sent to the AI for spelling and hints, kept in a
-    room for a day), App Functionality, not linked, not used for tracking.
+- **Data collection**: yes. Two cases, answer both:
+  - **Playing on several phones (no account needed)**: the room keeps what the players enter so every phone sees the
+    same game, deleted a day after the last activity.
+    - **User Content → Other User Content**: player names (nicknames), the Zetteli, drawings, scores. App Functionality,
+      **not linked** to the user, not used for tracking.
+  - **Signing in for AI help (optional)**:
+    - **Contact Info → Email Address** and **Name**: App Functionality (sign-in), linked to the user, not used for
+      tracking.
+    - **Identifiers → User ID**: App Functionality, linked, not used for tracking.
+    - **Usage Data → Product Interaction**: counts of sign-ins and AI requests per account, App Functionality / Analytics,
+      linked, not used for tracking.
+  - With AI help on, the words written for a game (and, for the funny-name button, a name already typed) go to the AI
+    service; that is the same **Other User Content** as above, not linked, not used for tracking.
 - **Tracking**: no. No data is used to track people across apps or websites.
+- A one-phone game without sign-in keeps everything on the phone.
 
 ## Pricing and Availability
 

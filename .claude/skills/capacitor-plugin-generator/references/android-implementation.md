@@ -342,13 +342,13 @@ fun listFiles(call: PluginCall) {
 @PluginMethod
 fun riskyMethod(call: PluginCall) {
     val param = call.getString("param") ?: run {
-        call.reject("INVALID_PARAMETER", "param is required")
+        call.reject("param is required", "INVALID_PARAMETER")
         return
     }
 
     // Check availability
     if (!isFeatureAvailable()) {
-        call.reject("UNAVAILABLE", "Feature not available on this device")
+        call.reject("Feature not available on this device", "UNAVAILABLE")
         return
     }
 
@@ -357,7 +357,7 @@ fun riskyMethod(call: PluginCall) {
         val result = performOperation(param)
         call.resolve(JSObject().put("result", result))
     } catch (e: Exception) {
-        call.reject("OPERATION_FAILED", e.message, e)
+        call.reject(e.message, "OPERATION_FAILED", e)
     }
 }
 ```
@@ -373,8 +373,8 @@ fun authenticate(call: PluginCall) {
 
         if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
             call.reject(
+                "Biometric authentication not available", // message first, then the code
                 "BIOMETRIC_UNAVAILABLE",
-                "Biometric authentication not available",
                 Exception("Error code: $canAuthenticate")
             )
             return
@@ -382,7 +382,7 @@ fun authenticate(call: PluginCall) {
 
         // Proceed with authentication
     } catch (e: Exception) {
-        call.reject("SETUP_FAILED", e.message, e)
+        call.reject(e.message, "SETUP_FAILED", e)
     }
 }
 ```
@@ -635,7 +635,7 @@ private val activityLauncher = activity.registerForActivityResult(
         val data = result.data?.getStringExtra("result")
         call.resolve(JSObject().put("result", data))
     } else {
-        call.reject("CANCELLED", "Operation cancelled")
+        call.reject("Operation cancelled", "CANCELLED")
     }
 }
 
@@ -664,7 +664,7 @@ private val pickFileLauncher = activity.registerForActivityResult(
         ret.put("path", getRealPath(uri))
         call.resolve(ret)
     } else {
-        call.reject("CANCELLED", "File selection cancelled")
+        call.reject("File selection cancelled", "CANCELLED")
     }
 }
 
@@ -750,7 +750,7 @@ fun readFile(call: PluginCall) {
     val file = File(context.filesDir, path)
 
     if (!file.exists()) {
-        call.reject("FILE_NOT_FOUND", "File does not exist")
+        call.reject("File does not exist", "FILE_NOT_FOUND")
         return
     }
 
@@ -766,7 +766,7 @@ fun readFile(call: PluginCall) {
         ret.put("data", data)
         call.resolve(ret)
     } catch (e: Exception) {
-        call.reject("READ_FAILED", e.message, e)
+        call.reject(e.message, "READ_FAILED", e)
     }
 }
 ```
@@ -798,7 +798,7 @@ fun writeFile(call: PluginCall) {
 
         call.resolve()
     } catch (e: Exception) {
-        call.reject("WRITE_FAILED", e.message, e)
+        call.reject(e.message, "WRITE_FAILED", e)
     }
 }
 ```

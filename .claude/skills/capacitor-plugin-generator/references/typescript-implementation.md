@@ -326,13 +326,9 @@ export class BatteryPluginWeb extends WebPlugin implements BatteryPluginPlugin {
   private async startMonitoring(): Promise<void> {
     const battery = await this.getBatteryManager();
 
-    const handler = async () => {
-      const info = await this.getBatteryStatus();
-      this.notifyListeners('batteryChange', info);
-    };
-
-    battery.addEventListener('levelchange', handler);
-    battery.addEventListener('chargingchange', handler);
+    // the same function object stopMonitoring() removes: a local handler here would never come off again
+    battery.addEventListener('levelchange', this.handleBatteryChange);
+    battery.addEventListener('chargingchange', this.handleBatteryChange);
   }
 
   private async stopMonitoring(): Promise<void> {

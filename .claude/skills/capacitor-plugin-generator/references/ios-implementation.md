@@ -446,7 +446,7 @@ import AVFoundation
 ```swift
 @objc func riskyOperation(_ call: CAPPluginCall) {
     guard let param = call.getString("param") else {
-        call.reject("INVALID_PARAMETER", "param is required")
+        call.reject("param is required", "INVALID_PARAMETER") // message first, then the code
         return
     }
 
@@ -454,7 +454,7 @@ import AVFoundation
         let result = try implementation.performOperation(param)
         call.resolve(["result": result])
     } catch {
-        call.reject("OPERATION_FAILED", error.localizedDescription, error)
+        call.reject(error.localizedDescription, "OPERATION_FAILED", error)
     }
 }
 ```
@@ -469,7 +469,7 @@ enum PluginError: String, Error {
     case operationFailed = "OPERATION_FAILED"
 
     func reject(_ call: CAPPluginCall, message: String) {
-        call.reject(self.rawValue, message)
+        call.reject(message, self.rawValue) // Capacitor: reject(message, code, error, data)
     }
 }
 
