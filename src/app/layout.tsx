@@ -23,8 +23,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f1e8" },
-    { media: "(prefers-color-scheme: dark)", color: "#1f1d1a" },
+    // the default palette's canvas (Post-it), so the browser bar and the page are one colour
+    { media: "(prefers-color-scheme: light)", color: "#fafaf8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f0f11" },
   ],
 };
 

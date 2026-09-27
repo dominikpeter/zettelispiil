@@ -518,13 +518,23 @@ main {
   overflow: clip;
 }
 
-button, input, label { touch-action: manipulation; }
+button, input, label, a, summary, [role="button"] { touch-action: manipulation; }
+/* headings break evenly (no lone word on the last line), running text avoids a lonely last word */
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
 button { user-select: none; }
 
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }
+
+/* behind the sticky bottom buttons: solid behind everything in the bar, fading out only across its top padding, so what
+   scrolls underneath neither shows through the buttons nor looks cut off at their edge. The fade matches the padding
+   (pt-9, short:pt-3, tiny:pt-2) */
+.cta-fade { --fade: 2.25rem; background: linear-gradient(to top, var(--color-canvas) calc(100% - var(--fade)), transparent); }
+@media (max-height: 760px) { .cta-fade { --fade: 0.75rem; } }
+@media (max-height: 620px) { .cta-fade { --fade: 0.5rem; } }
 
 @layer components {
 /* ---- the Zetteli: a lemon paper slip with a torn bottom edge ---- */
@@ -712,6 +722,8 @@ button { user-select: none; }
   from { transform: translateY(100%); }
 }
 dialog.sheet[open] { animation: sheet 0.3s var(--ease-out) both; }
+/* the sheet itself holds the focus when it opens (openSheet): no ring around the whole sheet */
+dialog.sheet:focus { outline: none; }
 dialog.sheet[open]::backdrop { animation: fade-in 0.3s ease-out both; }
 @keyframes fade-in { from { opacity: 0; } }
 
@@ -756,5 +768,6 @@ dialog.sheet[open]::backdrop { animation: fade-in 0.3s ease-out both; }
   .unfold, .unfold.sway, .drop-in, .hop, .twinkle, .toss, .back, .fling-r, .fling-l, .into-bowl, .catch, dialog.sheet[open], .enter, .pop, .bump, .throb, .shake, .fall-in, .grow, .growx, .draw { animation: none; }
   .confetti { display: none; }
   .heckle-fx { animation-name: heckle-calm; animation-timing-function: ease-out; } /* no jitter, the blur just fades; duration stays inline */
-  * { transition-duration: 0.01ms !important; }
+  .animate-pulse, .animate-spin, dialog.sheet[open]::backdrop { animation: none; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
 }

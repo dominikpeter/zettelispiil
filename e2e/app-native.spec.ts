@@ -75,3 +75,25 @@ test("in the app: deleting an Apple account asks Apple once more, so the server 
   await expect.poll(() => deleted?.appleCode).toBe("apple-code"); // Apple's fresh code went to the server
   await expect(page.getByRole("button", { name: "Mit Apple anmelden" })).toBeVisible(); // and the phone is signed out
 });
+
+for (const [what, code, message] of [
+  ["closed by the player", "CANCELLED", false],
+  ["refused by Apple (e.g. the app build lacks the entitlement)", "", true],
+] as const) {
+  test(`in the app: Apple's sheet ${what}: ${message ? "it says so" : "nothing to report"}`, async ({ page }) => {
+    await page.addInitScript((code) => {
+      const cap = (window as unknown as { Capacitor: { nativePromise: (p: string, m: string, o: unknown) => Promise<unknown> } }).Capacitor;
+      const real = cap.nativePromise;
+      cap.nativePromise = (p, m, o) => (p === "AppleSignIn" ? Promise.reject(Object.assign(new Error("The operation couldn't be completed."), code ? { code } : {})) : real(p, m, o));
+    }, code);
+    await page.route("**/api/ai/status", (r) => r.fulfill({ json: { ai: true, login: true, providers: ["apple", "email"], user: null } }));
+    let asked = 0;
+    await page.route("**/api/auth/sign-in/social", (r) => (asked++, r.fulfill({ status: 500 })));
+    await page.goto("/");
+    await page.getByRole("button", { name: "Einstellungen", exact: true }).first().click();
+    await page.getByRole("button", { name: "Mit Apple anmelden" }).click();
+    await page.waitForTimeout(800);
+    expect(asked).toBe(0); // no token, nothing sent to the server
+    await expect(page.getByText("Anmelden hat nicht geklappt. Versuch es nochmals.")).toHaveCount(message ? 1 : 0);
+  });
+}

@@ -1,15 +1,14 @@
 "use client";
 
 import { Check, Copy, Heart, Moon, Settings, Sparkles, Sun, SunMoon, X } from "lucide-react";
+import Link from "next/link";
 import { Account } from "./Account";
 import { Coffee, CoffeeThanks } from "./Coffee";
 import { aiAllowed, useAiRoom, useAiStatus } from "@/lib/aiAccess";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LANGS } from "@/lib/i18n";
 import { aiPref, hintPref, langPref, palettePref, PALETTES, themePref, THEMES, useT } from "@/lib/prefs";
-import { pill, pillBtn, press, WhatsAppIcon, whatsappHref } from "@/lib/ui";
-
-const round = `grid size-11 place-items-center rounded-full border border-line bg-surface text-ink ${press}`;
+import { btn2, openSheet, pill, pillBtn, press, round_btn, WhatsAppIcon, whatsappHref } from "@/lib/ui";
 
 /** segmented control with a sliding indicator (transform only) */
 export function Segmented<T extends string>({ options, value, onChange }: { options: { id: T; label: ReactNode }[]; value: T; onChange: (v: T) => void }) {
@@ -24,9 +23,10 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
       {options.map((o) => (
         <button
           key={o.id}
+          type="button"
           onClick={() => onChange(o.id)}
           aria-pressed={o.id === value}
-          className={`relative z-10 flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 transition-colors duration-300 ${o.id === value ? "text-canvas" : "text-muted hover:text-ink"}`}
+          className={`relative z-10 flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 active:scale-[0.96] transition-[color,scale] duration-300 ${o.id === value ? "text-canvas" : "text-muted hover:text-ink"}`}
         >
           {o.label}
         </button>
@@ -151,7 +151,7 @@ export function SettingsPanel() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label={t.shareApp}
-          className={`flex min-h-12 flex-auto items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 font-semibold whitespace-nowrap text-ink ${press}`}
+          className={`${btn2} w-auto! flex-auto px-3! whitespace-nowrap`}
         >
           {/* the brand name alone (same in every language): "Per WhatsApp teilen" wrapped onto two lines in half a row */}
           <WhatsAppIcon className="size-5 shrink-0 text-whatsapp" /> WhatsApp
@@ -159,7 +159,7 @@ export function SettingsPanel() {
         <button
           type="button"
           onClick={copyLink}
-          className={`flex min-h-12 flex-auto items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 font-semibold whitespace-nowrap text-ink ${press}`}
+          className={`${btn2} w-auto! flex-auto px-3! whitespace-nowrap`}
         >
           <span key={String(copied)} className="pop flex items-center gap-2">
             {copied ? <Check className="size-5 shrink-0 text-accent" aria-hidden /> : <Copy className="size-5 shrink-0" aria-hidden />}
@@ -169,20 +169,20 @@ export function SettingsPanel() {
       </div>
       <footer className="flex flex-col items-center gap-1 pt-2 text-center text-sm text-muted">
         <span className="flex items-center gap-1.5">
-          {t.madeWith} <Heart className="size-4 fill-accent text-accent" aria-label="♥" /> {t.madeBy("Dominik")}
+          {t.madeWith} <Heart className="size-4 fill-accent text-accent" aria-hidden /> {t.madeBy("Dominik")}
         </span>
         <span className="flex items-center gap-1.5">
-          <a href="https://github.com/dominikpeter/zettelispiil" target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline-offset-4 hover:underline">
+          <a href="https://github.com/dominikpeter/zettelispiil" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">
             GitHub
           </a>
           <span className="tabular-nums">· v{process.env.NEXT_PUBLIC_VERSION}</span>
         </span>
-        <a href="https://github.com/dominikpeter/zettelispiil/issues" target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">
+        <a href="https://github.com/dominikpeter/zettelispiil/issues" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">
           {t.reportProblem}
         </a>
-        <a href="/datenschutz" className="underline-offset-4 hover:underline">
+        <Link href="/datenschutz" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">
           {t.privacy}
-        </a>
+        </Link>
       </footer>
     </>
   );
@@ -198,7 +198,7 @@ export function TopControls() {
   // so the player lands back where they tapped instead of wondering where their sign-in went
   useEffect(() => {
     if (!location.search.includes("login=1")) return;
-    sheet.current?.showModal();
+    openSheet(sheet.current);
     const u = new URL(location.href);
     u.searchParams.delete("login");
     history.replaceState(history.state, "", u);
@@ -209,21 +209,23 @@ export function TopControls() {
       {/* fixed, but not inside the pill: its backdrop-blur would become the containing block and trap this at pill size */}
       <CoffeeThanks />
       <div className={`${pill} pointer-events-auto`}>
-        <button onClick={() => sheet.current?.showModal()} aria-label={t.settings} className={pillBtn}>
+        <button onClick={() => openSheet(sheet.current)} aria-label={t.settings} className={pillBtn}>
           <Settings className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />
         </button>
 
         <dialog
           ref={sheet}
+          tabIndex={-1}
+          aria-labelledby="settings-title"
           onClick={(e) => e.target === sheet.current && sheet.current.close()} // tap outside closes
           className="sheet mx-auto mt-auto mb-0 max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-surface p-0 text-ink backdrop:bg-black/60 sm:mb-auto sm:rounded-3xl"
         >
           <div className="flex flex-col gap-5 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <div className="flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight">
+              <h2 id="settings-title" className="flex items-center gap-2 text-2xl font-extrabold tracking-tight">
                 <Settings className="size-6 text-accent" aria-hidden /> {t.settings}
               </h2>
-              <button onClick={() => sheet.current?.close()} aria-label={t.close} className={round}>
+              <button onClick={() => sheet.current?.close()} aria-label={t.close} className={round_btn}>
                 <X className="size-5" aria-hidden />
               </button>
             </div>

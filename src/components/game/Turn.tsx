@@ -143,7 +143,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   const [wipes, setWipes] = useState(0);
 
   const topBar = (
-    <div className="sticky top-0 z-10 -mx-4 flex items-center justify-between gap-3 bg-canvas/90 px-4 py-2 backdrop-blur">
+    <div className="sticky top-[env(safe-area-inset-top)] z-10 -mx-4 flex items-center justify-between gap-3 bg-canvas/90 px-4 py-2 backdrop-blur">
       <TimerRing left={shownLeft} total={total} size={76} label={t.secondsLeft} />
       <div className="text-center">
         <p className="text-sm text-muted">{t.thisTurn}</p>
@@ -316,10 +316,10 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
                 disabled={up || !!fling}
                 onClick={() => v.word && send({ type: "back", w: v.word.id, to: h.id }, d)}
                 aria-label={t.swapBack(h.text)}
-                className={`${press} disabled:opacity-50`}
+                className={`${press} max-w-full disabled:opacity-40`}
               >
                 <Slip tilt={i % 2 ? 2 : -3} className="unfold px-2.5 pt-0.5 pb-0.5">
-                  <span className="font-hand text-xl font-bold">{h.text}</span>
+                  <span className="font-hand text-xl font-bold break-words">{h.text}</span>
                 </Slip>
               </button>
             ))}

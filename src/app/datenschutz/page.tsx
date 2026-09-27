@@ -66,11 +66,13 @@ const TEXT: Record<Lang, { title: string; intro: string; updated: string; back: 
 export default function Privacy() {
   const c = TEXT[langPref.use()];
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-12">
-      <Link href="/" className={`${ghost} -ml-3 inline-flex items-center gap-1.5`}>
-        <ArrowLeft className="size-5" aria-hidden /> {c.back}
-      </Link>
-      <h1 className="mt-4 text-4xl font-extrabold tracking-tight">{c.title}</h1>
+    <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-3 pb-12">
+      <header className="mb-4 flex min-h-[calc(2.75rem+2px)] items-center">
+        <Link href="/" className={`${ghost} -ml-3 inline-flex items-center gap-1.5`}>
+          <ArrowLeft className="size-5" aria-hidden /> {c.back}
+        </Link>
+      </header>
+      <h1 className=" text-4xl font-extrabold tracking-tight">{c.title}</h1>
       <p className="mt-3 text-lg text-muted">{c.intro}</p>
       {c.sections.map((s) => (
         <section key={s.h} className="mt-8">

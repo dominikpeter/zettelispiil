@@ -13,7 +13,7 @@ export function Score({ v }: { v: View }) {
   const label = v.teamNames.map((n, t) => `${n} ${tot[t]}`).join(", ");
   if (tot.length === 2)
     return (
-      <div className="flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-lg font-bold tabular-nums" aria-label={label}>
+      <div className="flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-lg font-bold tabular-nums" role="img" aria-label={label}>
         <span className="size-2.5 rounded-full bg-team-a" />
         <span key={`a${tot[0]}`} className="bump text-team-a">
           {tot[0]}
@@ -27,7 +27,7 @@ export function Score({ v }: { v: View }) {
     );
   // three or more teams: a dot and a number each, tight enough for the smallest phones
   return (
-    <div className="flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-lg font-bold tabular-nums max-xs:gap-1.5 max-xs:px-2.5 max-xs:text-base" aria-label={label}>
+    <div className="flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-lg font-bold tabular-nums max-xs:gap-1.5 max-xs:px-2.5 max-xs:text-base" role="img" aria-label={label}>
       {tot.map((n, t) => (
         <span key={t} className="flex items-center gap-1">
           <span className={`size-2.5 rounded-full ${TEAM[t].bg}`} />
@@ -106,7 +106,7 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
         </button>
       </div>
       {(open || paused) && (
-        <div role="dialog" aria-modal="true" aria-label={t.paused} className="enter fixed inset-0 z-50 flex flex-col overflow-y-auto overscroll-contain bg-canvas/95 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
+        <div role="dialog" aria-modal="true" aria-label={t.paused} className="enter fixed inset-0 z-50 flex flex-col overflow-y-auto overscroll-contain bg-canvas px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
           <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 py-6 text-center">
             <span className="pop grid size-24 place-items-center rounded-4xl bg-raised text-accent">
               <Pause className="size-12" strokeWidth={1.75} aria-hidden />
@@ -116,7 +116,7 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
             {turn && !paused && !canPause && <p className="max-w-[30ch] text-muted">{t.menuRunning}</p>}
           </div>
           <details className="mx-auto mb-4 w-full max-w-md rounded-3xl bg-surface p-4 [&[open]>summary>svg]:rotate-180">
-            <summary className="flex cursor-pointer list-none items-center justify-between font-semibold">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-semibold [&::-webkit-details-marker]:hidden">
               {t.settings}
               <ChevronDown className="size-5 transition-transform" aria-hidden />
             </summary>

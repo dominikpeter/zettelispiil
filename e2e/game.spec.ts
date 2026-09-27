@@ -135,8 +135,8 @@ for (const teams of [3, 4]) {
     await expect(page.getByRole("button", { name: "Jedes Team braucht 2 Leute" })).toBeDisabled(); // the new teams are still empty
     const extra = ["Mia", "Jan", "Eva", "Luc"].slice(0, (teams - 2) * 2);
     for (const n of extra) {
-      await page.getByLabel("Spieler hinzufügen").fill(n);
-      await page.getByRole("button", { name: "+", exact: true }).click();
+      await page.getByRole("textbox", { name: "Spieler hinzufügen" }).fill(n);
+      await page.getByRole("button", { name: "Spieler hinzufügen" }).click();
       await expect(page.getByText(n, { exact: true })).toBeVisible();
     }
     expect(await sideways()).toBe(0);
@@ -369,6 +369,33 @@ test("language and theme live in the settings sheet", async ({ page }) => {
   await page.getByRole("button", { name: "Français" }).click();
   await page.reload();
   await expect(page.getByText(/Chacun écrit des mots/)).toBeVisible(); // remembered
+});
+
+test("an address that leads nowhere: our own page, in the game's language, with the way home", async ({ page }) => {
+  const r = await page.goto("/gibt-es-nicht");
+  expect(r?.status()).toBe(404);
+  await expect(page.getByRole("heading", { name: "Diese Seite gibt es nicht." })).toBeVisible();
+  await page.getByRole("link", { name: "Zur Startseite" }).click();
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("button", { name: "Neues Spiel" })).toBeVisible();
+});
+
+test("closing the QR scanner only closes it: the join form around it is not sent", async ({ page }) => {
+  let joins = 0;
+  await page.route("**/api/rooms/**", (r) => (joins++, r.continue()));
+  await page.goto("/");
+  await page.getByRole("button", { name: /Mehrere Handys/ }).click();
+  await page.getByLabel("Dein Name").fill("Lisa");
+  await page.getByRole("button", { name: /^Raum beitreten/ }).click();
+  await page.getByLabel("Raumcode").fill("ABCD23"); // name and code: a submit would join right away
+  await page.getByRole("button", { name: "QR-Code scannen" }).click();
+  const scanner = page.getByRole("dialog", { name: "QR-Code scannen" });
+  await expect(scanner).toBeVisible();
+  await scanner.getByRole("button", { name: "Schliessen" }).click();
+  await expect(scanner).toBeHidden();
+  await page.waitForTimeout(1000);
+  expect(joins).toBe(0); // no join request went out
+  await expect(page).toHaveURL("/");
 });
 
 test("unknown room code says so and offers the way back", async ({ page }) => {

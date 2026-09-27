@@ -11,7 +11,7 @@ import { Segmented } from "../TopControls";
 import { funnyName } from "@/lib/roomClient";
 import { MAX_TEAMS, ROUND_TYPES, secondsFor, type Settings, type Team } from "@/lib/room";
 import { TOPIC_IDS, TOPICS, topicById, type TopicIcon } from "@/lib/topics";
-import { btn, btn2, field, ghost, panel, press, round_btn, RoundIcon, TEAM, WhatsAppIcon, whatsappHref } from "@/lib/ui";
+import { btn, btn2, field, fieldBtn, ghost, panel, press, round_btn, RoundIcon, scrollBehavior, TEAM, WhatsAppIcon, whatsappHref } from "@/lib/ui";
 import { mini, Waiting, Cta, AiNameButton, type P } from "./common";
 import { RoundRowView, useDnd } from "./RoundRow";
 
@@ -21,7 +21,7 @@ function EditableName({ value, label, onSave, className = "" }: { value: string;
   const [draft, setDraft] = useState<string | null>(null);
   if (draft === null)
     return (
-      <button onClick={() => setDraft(value)} aria-label={`${label}: ${t.rename}`} className={`group flex min-w-0 items-center gap-1.5 text-left ${className}`}>
+      <button onClick={() => setDraft(value)} aria-label={`${label}: ${t.rename}`} className={`group flex min-h-10 min-w-0 items-center gap-1.5 text-left ${className}`}>
         <span className="min-w-0 break-words">{value}</span>
         <Pencil className="size-3.5 shrink-0 opacity-50 group-hover:opacity-100" aria-hidden />
       </button>
@@ -255,14 +255,14 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
             addPlayer();
           }}
         >
-          <input value={adding} onChange={(e) => setAdding(e.target.value)} maxLength={24} placeholder={t.addPlayer} aria-label={t.addPlayer} className={`${field} min-w-0 flex-1 py-2.5 font-semibold`} />
+          <input value={adding} onChange={(e) => setAdding(e.target.value)} maxLength={24} autoComplete="off" autoCorrect="off" spellCheck={false} placeholder={t.addPlayer} aria-label={t.addPlayer} className={`${field} min-w-0 flex-1 py-2.5 font-semibold`} />
           <AiNameButton
             label={t.aiName}
             make={() => funnyName("player", s.lang, v.players.map((p) => p.name), t.funnyPlayers, aiRoom, adding, t.namePrefixes)}
             onName={setAdding}
-            className={`grid size-[3.2rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent ${press}`}
+            className={fieldBtn}
           />
-          <button disabled={busy || !adding.trim() || v.players.length >= 20} aria-label="+" className={`${btn2} w-auto! shrink-0 px-4`}>
+          <button disabled={busy || !adding.trim() || v.players.length >= 20} aria-label={t.addPlayer} className={`${btn2} w-auto! shrink-0 px-4`}>
             <UserPlus className="size-5" aria-hidden />
           </button>
         </form>
@@ -390,7 +390,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
       <Cta>
         {v.kept > 0 && <p className="text-center text-sm text-muted">{t.keptWords(v.kept)}</p>}
         {v.isHost && (
-          <button onClick={() => settingsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} className={`${ghost} -mt-2 mb-1 min-h-9! w-full text-sm`}>
+          <button onClick={() => settingsRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "start" })} className={`${ghost} -mt-2 w-full text-sm`}>
             {t.settingsLine(s.perPlayer, secondsLabel, s.rounds.length)}
           </button>
         )}

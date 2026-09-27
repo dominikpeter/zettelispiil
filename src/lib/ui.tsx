@@ -5,12 +5,12 @@ import { Brush, MessageSquareText, PersonStanding, Volume2, WholeWord, type Luci
 import type { RoundType } from "./room";
 
 export const press = "transition duration-200 ease-spring active:scale-[0.96]";
-export const btn = `flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-cta px-6 text-lg font-bold text-cta-ink shadow-[0_6px_0_var(--color-cta-edge)] active:translate-y-1 active:shadow-[0_2px_0_var(--color-cta-edge)] disabled:opacity-40 disabled:shadow-none disabled:active:translate-y-0 ${press}`;
+export const btn = `flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-cta px-6 text-lg font-bold text-cta-ink hover:brightness-105 disabled:hover:brightness-100 shadow-[0_6px_0_var(--color-cta-edge)] active:translate-y-1 active:shadow-[0_2px_0_var(--color-cta-edge)] disabled:opacity-40 disabled:shadow-none disabled:active:translate-y-0 ${press}`;
 export const btn2 = `flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-5 font-semibold text-ink hover:bg-raised disabled:opacity-40 ${press}`;
-export const ghost = `min-h-11 rounded-xl px-3 font-medium text-muted hover:text-ink hover:bg-surface ${press}`;
+export const ghost = `min-h-11 rounded-xl px-3 font-medium text-muted hover:text-ink hover:bg-surface disabled:opacity-40 disabled:hover:bg-transparent ${press}`;
 export const panel = "rounded-3xl bg-surface p-5";
 export const field =
-  "w-full rounded-2xl border border-line bg-surface px-4 py-3 text-lg outline-none transition placeholder:text-muted/60 focus:border-accent focus-visible:outline-none";
+  "w-full rounded-2xl border border-line bg-surface px-4 py-3 text-lg outline-none transition placeholder:text-muted/60 focus:border-accent focus-visible:ring-2 focus-visible:ring-accent/30";
 /** handwritten word that always fits one line: shrinks with its length (needs an `@container` ancestor) */
 export const fitLine = (text: string, max = "3.75rem"): CSSProperties => ({
   fontSize: `min(${max}, calc(100cqi / ${(Math.max(4, [...text].length) * 0.5).toFixed(2)}))`,
@@ -18,9 +18,12 @@ export const fitLine = (text: string, max = "3.75rem"): CSSProperties => ({
 });
 
 // header controls: one frosted pill holding quiet icon buttons
-export const pill = "flex items-center gap-0.5 rounded-full border border-line/70 bg-surface/70 p-1 shadow-sm backdrop-blur-md";
-export const pillBtn = `grid size-9 place-items-center rounded-full text-muted hover:bg-raised hover:text-ink ${press}`;
-export const round_btn = `grid size-11 place-items-center rounded-full border border-line bg-raised text-2xl leading-none text-ink disabled:opacity-30 ${press}`;
+export const pill = "flex items-center gap-0.5 rounded-full border border-line/70 bg-surface/70 p-0.5 shadow-sm backdrop-blur-md";
+// 45px: a thumb-sized target (the root font is 18px)
+export const pillBtn = `grid size-10 place-items-center rounded-full text-muted hover:bg-raised hover:text-ink ${press}`;
+export const round_btn = `grid size-11 place-items-center rounded-full border border-line bg-raised text-2xl leading-none text-ink hover:bg-surface disabled:opacity-40 ${press}`;
+/** the square button next to a text field (invent a name, scan a code): one size, level with the field */
+export const fieldBtn = `grid size-[3.4rem] shrink-0 place-items-center rounded-2xl border border-line bg-surface text-accent hover:bg-raised disabled:opacity-40 ${press}`;
 
 // team colors; the names come from the room
 export const TEAM = [
@@ -165,3 +168,16 @@ export function Confetti({ n = 60 }: { n?: number }) {
 }
 
 export const buzz = (p: number | number[]) => feel(p); // real haptics in the phone apps, navigator.vibrate on the web
+
+/**
+ * open a sheet (native <dialog>) with the focus on the sheet itself, not its first button: showModal() focuses the ✕,
+ * and iPhones then draw its focus ring as if a keyboard had put it there. The dialog needs tabIndex={-1}
+ */
+export function openSheet(d: HTMLDialogElement | null | undefined) {
+  if (!d || d.open) return;
+  d.showModal();
+  d.focus();
+}
+
+/** smooth scrolling, unless the phone asks for less motion */
+export const scrollBehavior = (): ScrollBehavior => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
