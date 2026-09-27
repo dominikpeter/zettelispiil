@@ -371,6 +371,30 @@ test("language and theme live in the settings sheet", async ({ page }) => {
   await expect(page.getByText(/Chacun écrit des mots/)).toBeVisible(); // remembered
 });
 
+test("the tour: from the home page, ten chapters, each step lands on its own, and back to play", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "So geht's: kurze Tour" }).click();
+  await expect(page).toHaveURL("/anleitung");
+  await expect(page.getByRole("heading", { name: "So geht's" })).toBeVisible();
+  const current = page.locator("[aria-current=step]");
+  await expect(current).toHaveAttribute("aria-label", "Alle zusammen");
+  // every dot jumps to its own chapter, not a neighbour; the scene follows
+  const dots = page.getByRole("navigation", { name: "So geht's" }).getByRole("button");
+  await expect(dots).toHaveCount(10);
+  for (const name of await dots.evaluateAll((bs) => bs.map((b) => b.getAttribute("aria-label")))) {
+    await page.getByRole("button", { name: name!, exact: true }).click();
+    await expect(current).toHaveAttribute("aria-label", name!);
+  }
+  await page.getByRole("button", { name: "Passen" }).click();
+  await expect(current).toHaveAttribute("aria-label", "Passen");
+  await expect(page.locator("[class*=guide-swipe]")).toHaveCount(1); // exactly one slip in play, none left over
+  await page.getByRole("button", { name: "Gewinnen" }).click();
+  await expect(current).toHaveAttribute("aria-label", "Gewinnen");
+  await expect(page.locator("[class*=guide-swipe]")).toHaveCount(0);
+  await page.getByRole("link", { name: "Los geht's" }).click();
+  await expect(page).toHaveURL("/");
+});
+
 test("an address that leads nowhere: our own page, in the game's language, with the way home", async ({ page }) => {
   const r = await page.goto("/gibt-es-nicht");
   expect(r?.status()).toBe(404);
@@ -767,6 +791,30 @@ test("heckle auto: over several turns the team that falls behind gets a bonus; i
 // feedback: "Zurück" and "Spiel abbrechen" did nothing. They asked with the browser's confirm(), which in-app browsers
 // (a link from WhatsApp), the phone apps and previews answer "no" without showing it. Every way out of a game, in every
 // phase, is pressed here and must do what it says; a native dialog fails the test (see localGame)
+test("pause menu and confirmations are real dialogs: Escape means \"no\" / \"resume\", the page behind can't be reached", async ({ page }) => {
+  await localGame(page);
+  await page.getByRole("button", { name: "Los, Zetteli ziehen" }).click();
+  await expect(page.getByTestId("word")).toBeVisible();
+  await page.getByRole("button", { name: "Pause" }).click();
+  const menu = page.getByRole("dialog", { name: "Pause" });
+  await expect(menu).toBeVisible();
+  await expect(menu).toBeFocused(); // the dialog itself: no button starts with a focus ring
+  // the game behind is out of reach: a tap where "Erraten" is lands in the menu
+  const box = (await page.getByRole("button", { name: "Erraten" }).boundingBox())!;
+  expect(await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest("dialog[open]"), [box.x + box.width / 2, box.y + box.height / 2])).toBe(true);
+  // cancelling asks; Escape there is "no", and the menu is still open
+  await menu.getByRole("button", { name: "Spiel abbrechen" }).click();
+  const ask = page.getByRole("alertdialog");
+  await expect(ask).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(ask).toHaveCount(0);
+  await expect(menu).toBeVisible();
+  // Escape in the menu: back to the turn
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(page.getByTestId("word")).toBeVisible();
+});
+
 test("every phase: back and each pause-menu button work (asked in the app, never a browser dialog)", async ({ page }) => {
   test.setTimeout(120_000);
   const ask = page.getByRole("alertdialog");

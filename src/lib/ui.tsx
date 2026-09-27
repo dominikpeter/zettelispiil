@@ -74,7 +74,7 @@ export function Bowl({ count, className = "w-24", pile = true }: { count?: numbe
       <svg viewBox="0 0 120 80" className="w-full" aria-hidden>
         {pile &&
           PILE.slice(0, Math.min(count ?? 3, PILE.length)).map((p, i) => (
-            <rect key={i} x={p.x} y={p.y} width={p.w} height={p.h} rx="2" fill={p.fill} transform={`rotate(${p.rot.toFixed(1)} ${p.cx.toFixed(1)} 40)`} />
+            <rect key={i} className="pile-slip" x={p.x} y={p.y} width={p.w} height={p.h} rx="2" fill={p.fill} transform={`rotate(${p.rot.toFixed(1)} ${p.cx.toFixed(1)} 40)`} />
           ))}
         {/* follows the color theme: a deeper shade of its accent, with the accent as rim */}
         <path d="M6 34h108c0 24-24 42-54 42S6 58 6 34z" style={{ fill: "color-mix(in oklab, var(--color-accent) 55%, #0c0014)" }} />

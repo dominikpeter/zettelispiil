@@ -1,11 +1,11 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAiOn } from "@/lib/aiAccess";
 import { useT } from "@/lib/prefs";
 import { type Action, type RoundType, type Stroke, type View } from "@/lib/room";
-import { btn, btn2, panel, press, RoundIcon } from "@/lib/ui";
+import { btn, btn2, openSheet, panel, press, RoundIcon } from "@/lib/ui";
 
 export type Mode = "online" | "local";
 /** `as`: in one-phone games, act as that player; online always acts as this phone's player */
@@ -82,18 +82,17 @@ export function AiNameButton({ label, make, onName, disabled, className = mini }
  */
 export function Confirm({ text, yes, no, onYes, onNo }: { text: string; yes: string; no: string; onYes: () => void; onNo: () => void }) {
   return (
-    <div
+    <Modal
+      label={text}
       role="alertdialog"
-      aria-modal="true"
-      aria-label={text}
-      onClick={onNo}
-      onKeyDown={(e) => e.key === "Escape" && onNo()}
-      className="enter fixed inset-0 z-[60] flex items-end justify-center bg-canvas/70 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm"
+      onCancel={onNo}
+      onBackdrop={onNo}
+      className="enter mx-auto mt-auto mb-[max(1rem,env(safe-area-inset-bottom))] w-[calc(100%-2rem)] max-w-md rounded-3xl bg-surface p-0 text-ink shadow-lg backdrop:bg-canvas/70 backdrop:backdrop-blur-sm"
     >
-      <div onClick={(e) => e.stopPropagation()} className="mb-2 w-full max-w-md rounded-3xl bg-surface p-5 shadow-lg">
+      <div className="p-5">
         <p className="text-lg leading-snug font-semibold">{text}</p>
         <div className="mt-4 flex flex-col gap-2">
-          <button autoFocus onClick={onNo} className={btn}>
+          <button onClick={onNo} className={btn}>
             {no}
           </button>
           <button onClick={onYes} className={btn2}>
@@ -101,6 +100,32 @@ export function Confirm({ text, yes, no, onYes, onNo }: { text: string; yes: str
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
+  );
+}
+
+/**
+ * a native modal <dialog>, open for as long as it's mounted: the browser keeps the focus inside, the page behind can't
+ * be reached, Escape asks `onCancel`. The focus starts on the dialog itself (openSheet), so no button shows a ring
+ * before anyone used a keyboard
+ */
+export function Modal({ label, role, onCancel, onBackdrop, className, children }: { label: string; role?: "alertdialog"; onCancel?: () => void; onBackdrop?: () => void; className: string; children: ReactNode }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => openSheet(ref.current), []);
+  return (
+    <dialog
+      ref={ref}
+      tabIndex={-1}
+      role={role}
+      aria-label={label}
+      onCancel={(e) => {
+        e.preventDefault(); // Escape: the caller decides, the dialog stays until it's unmounted
+        onCancel?.();
+      }}
+      onClick={(e) => e.target === e.currentTarget && onBackdrop?.()} // a tap on the backdrop lands on the dialog itself
+      className={className}
+    >
+      {children}
+    </dialog>
   );
 }

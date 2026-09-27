@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus, Smartphone, Users, X } from "lucide-react";
+import { Play, Plus, Smartphone, Users, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ScanCode } from "@/components/ScanCode";
@@ -153,6 +154,13 @@ export default function Home() {
 
       <h1 translate="no" className="mt-3 text-[2.75rem] leading-[0.95] font-extrabold tracking-tight text-hi">Zettelispiil</h1>
       <p className="mt-2 max-w-[36ch] text-muted">{t.tagline}</p>
+      {/* first time here? the game in seven scrolled scenes */}
+      <Link href="/anleitung" className={`mt-3 inline-flex min-h-11 items-center gap-2 self-start rounded-full bg-surface pr-4 pl-1.5 font-semibold text-ink shadow-sm hover:bg-raised ${press}`}>
+        <span className="grid size-8 place-items-center rounded-full bg-accent text-canvas">
+          <Play className="size-4 fill-current" aria-hidden />
+        </span>
+        {t.tour}
+      </Link>
       <div className="mt-4 empty:hidden">
         <InstallHint />
       </div>
