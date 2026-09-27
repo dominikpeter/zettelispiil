@@ -139,3 +139,7 @@ secret-gh name:
 # app icons and splash screens for Android and iOS from assets/*.png
 app-icons:
     npx @capacitor/assets generate --iconBackgroundColor '#25003d' --splashBackgroundColor '#f5f1e8' --splashBackgroundColorDark '#1f1d1a'
+
+# App Store screenshots for iPhone and iPad into assets/app-store (needs `just dev` running)
+store-shots url="http://localhost:3000":
+    BASE_URL={{url}} npx tsx scripts/store-screenshots.mts
