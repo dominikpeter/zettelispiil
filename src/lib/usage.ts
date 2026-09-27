@@ -16,6 +16,9 @@ export type UsageRedis = {
     hsetnx(key: string, field: string, v: unknown): unknown;
     hgetall(key: string): unknown;
     hdel(key: string, ...fields: string[]): unknown;
+    get(key: string): unknown;
+    set(key: string, v: unknown, o: { ex: number }): unknown;
+    del(key: string): unknown;
     expire(key: string, s: number): unknown;
     exec(): Promise<unknown[]>;
   };
@@ -59,6 +62,7 @@ export async function signedIn(user: { id: string; name?: string | null; email?:
   try {
     const p = r.pipeline();
     p.hset(K.who, { [user.id]: { id: user.id, name: user.name ?? "", email: user.email ?? "", provider, last: now } });
+    p.del(deletedKey(user.id)); // signed in again after deleting: a new account, rooms may lend its AI again
     p.hsetnx(K.first, user.id, now);
     p.hincrby(K.signins, user.id, 1);
     p.hincrby(dayKey(new Date(now)), "signins", 1);
@@ -69,18 +73,31 @@ export async function signedIn(user: { id: string; name?: string | null; email?:
   }
 }
 
-/** a deleted account: its record and counters go (the daily totals stay, they name no one). false when Redis failed */
+const deletedKey = (id: string) => `usage:deleted:${id}`;
+/**
+ * a deleted account: its record and counters go (the daily totals stay, they name no one), and a marker stops rooms it
+ * opened from lending its AI (rooms don't expire at once, and there's no list of them by host). false when Redis failed
+ */
 export async function forget(userId: string, r = client()) {
   if (!r) return true;
   try {
     const p = r.pipeline();
     for (const k of Object.values(K)) p.hdel(k, userId);
+    p.set(deletedKey(userId), 1, { ex: 60 * 60 * 24 * 30 }); // longer than any room stays alive
     await p.exec();
     return true;
   } catch (e) {
     console.error("usage forget failed", e);
     return false;
   }
+}
+
+/** whether this account was deleted (and not signed in again since) */
+export async function deleted(userId: string, r = client()) {
+  if (!r || !userId) return false;
+  const p = r.pipeline();
+  p.get(deletedKey(userId));
+  return !!(await p.exec())[0];
 }
 
 /** an AI call on this account (its own or, in a host's room, the host's) */

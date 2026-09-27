@@ -2,7 +2,7 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { authEnabled, currentUser } from "@/lib/auth";
 import { roomAi } from "@/lib/room";
 import { db, ipOf, redis } from "@/lib/store";
-import { aiUsedBy } from "@/lib/usage";
+import { aiUsedBy, deleted } from "@/lib/usage";
 import { after } from "next/server";
 
 // every AI call costs money. Signed in: 60 per minute and 300 per day per account.
@@ -24,7 +24,8 @@ const perDay = limit(5000, "1 d", "ratelimit:ai-day");
  */
 export async function refused(req: Request, room?: { code?: unknown; pid?: unknown; token?: unknown }, weight = 1): Promise<null | "login" | "rate_limited"> {
   const user = authEnabled() ? await currentUser(req) : null;
-  const host = !user && authEnabled() && room ? await roomAi(db, room.code, room.pid, room.token) : "";
+  const lender = !user && authEnabled() && room ? await roomAi(db, room.code, room.pid, room.token) : "";
+  const host = lender && !(await deleted(lender).catch(() => true)) ? lender : ""; // a deleted account lends nothing; unsure (Redis down): nothing either
   if (authEnabled() && !user && !host) return "login";
   if (!perUserMin || !perUserDay || !perRoomMin || !perRoomDay || !perHostDay || !perIp || !perDay) return process.env.VERCEL ? "rate_limited" : null; // no Redis: fine on a dev machine, closed when deployed
   try {

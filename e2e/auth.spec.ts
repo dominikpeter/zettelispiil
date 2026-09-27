@@ -160,7 +160,7 @@ test("sign in with a code by email: wrong code refused, right code signs in, sig
   await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible();
 });
 
-test("delete the account: asked first inside the app, then signed out, also after a reload", async ({ page }) => {
+test("delete the account: asked first inside the app, then signed out, and even a copied cookie is out", async ({ page, request }) => {
   test.skip(!!process.env.BASE_URL, "needs the local e2e server's fixed code");
   await page.goto("/");
   await openSettings(page);
@@ -169,6 +169,7 @@ test("delete the account: asked first inside the app, then signed out, also afte
   await page.getByLabel("Code aus der E-Mail").fill("123456");
   await page.getByRole("button", { name: "Anmelden", exact: true }).click();
   await expect(page.getByText("delete-me@example.com", { exact: true })).toBeVisible();
+  const copied = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join("; ");
 
   await page.getByRole("button", { name: "Konto löschen" }).click();
   await page.getByRole("button", { name: "Behalten" }).click(); // changed my mind: nothing happens
@@ -180,6 +181,9 @@ test("delete the account: asked first inside the app, then signed out, also afte
   await openSettings(page);
   await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible();
   await expect(page.getByText("delete-me@example.com", { exact: true })).toHaveCount(0);
+  // a copy of the old cookie (another tab, another device) signs no one in: the session ended on the server
+  const status = await (await request.get("/api/ai/status", { headers: { cookie: copied } })).json();
+  expect(status.user).toBeNull();
 });
 
 test("live: a code mail really goes out through Resend", async ({ page }) => {
