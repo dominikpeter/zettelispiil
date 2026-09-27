@@ -98,6 +98,9 @@ async function load(db: Store, code: string) {
 const save = (db: Store, room: Room) =>
   Promise.all([
     db.set(k(room.code).room, room, { ex: TTL }),
+    // its players live as long as the room: without this a room in use for more than a day lost them, and every tap
+    // came back "forbidden"
+    db.expire(k(room.code).members, TTL),
     // Zetteli kept from before going back to the settings live as long as the room, however long it sits in the lobby
     room.kept && db.expire(`room:${room.code}:words:${room.kept.writeNo}`, TTL),
   ]);
