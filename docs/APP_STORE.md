@@ -75,7 +75,7 @@ install sheet. `just store-shots` makes both sets again (with `just dev` running
 - **Data collection**: yes. Two cases, answer both:
   - **Playing on several phones (no account needed)**: the room keeps what the players enter so every phone sees the
     same game, deleted a day after the last activity.
-    - **User Content → Other User Content**: player names (nicknames), the Zetteli, drawings, scores. App Functionality,
+    - **User Content → Gameplay Content**: player names (nicknames), the Zetteli, drawings, scores. App Functionality,
       not used for tracking. **Linked** to the user: when the host is signed in, the room keeps the host's account id
       (so AI help runs on that account), which ties the room's content to that account. Without sign-in nothing
       identifies anyone, but Apple asks for the strictest case.
@@ -89,7 +89,7 @@ install sheet. `just store-shots` makes both sets again (with `just dev` running
     - **Usage Data → Product Interaction**: counts of sign-ins and AI requests per account, App Functionality / Analytics,
       linked, not used for tracking.
   - With AI help on, the words written for a game (and, for the funny-name button, a name already typed) go to the AI
-    service; that is the same **Other User Content** as above, not linked, not used for tracking.
+    service; that is the same **Gameplay Content** as above, not linked, not used for tracking.
 - **Tracking**: no. No data is used to track people across apps or websites.
 - A one-phone game without sign-in keeps everything on the phone.
 
