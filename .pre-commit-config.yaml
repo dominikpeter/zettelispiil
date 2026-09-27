@@ -1,5 +1,14 @@
 # prek (https://github.com/j178/prek) runs these on every commit. Install once: `just setup`.
+default_install_hook_types: [pre-commit, commit-msg]
 repos:
+  - repo: builtin
+    hooks:
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1500] # store screenshots are ~1 MB; anything bigger is likely a mistake (a video, a build)
+      - id: check-json
+        exclude: ^tsconfig\.json$ # comments allowed there
+      - id: check-yaml
   - repo: local
     hooks:
       - id: no-secrets
@@ -24,6 +33,16 @@ repos:
         language: system
         pass_filenames: false
         files: ^src/
+      - id: swiss-spelling
+        name: Swiss spelling (no ß)
+        entry: bash -c 'if grep -n "ß" "$@"; then echo "Swiss German writes ss, never ß"; exit 1; fi' --
+        language: system
+        files: ^(src/lib/i18n\.ts|docs/MANUAL\.md)$
+      - id: conventional-commit
+        name: "commit message: type(scope): summary"
+        entry: bash scripts/commit-msg.sh
+        language: system
+        stages: [commit-msg]
       - id: version
         name: version matches the release
         entry: bash scripts/check-version.sh
