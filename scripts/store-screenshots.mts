@@ -1,11 +1,11 @@
 // App Store screenshots: plays a short one-phone game and saves the screens Apple asks for, for iPhone (6.5") and
-// iPad (13"). Run `just store-shots` with the dev server up; the PNGs land in assets/app-store/{iphone,ipad}.
+// iPad (13"). Run `just store-shots` with the dev server up; the JPEGs land in assets/app-store/{iphone,ipad}.
 import { webkit } from "@playwright/test";
 
 const base = process.env.BASE_URL ?? "http://localhost:3000";
 const DEVICES = {
   iphone: { viewport: { width: 428, height: 926 }, deviceScaleFactor: 3 }, // 1284 × 2778
-  ipad: { viewport: { width: 1032, height: 1376 }, deviceScaleFactor: 2 }, // 2064 × 2752
+  ipad: { viewport: { width: 1024, height: 1366 }, deviceScaleFactor: 2 }, // 2048 × 2732
 };
 
 const browser = await webkit.launch();
@@ -20,7 +20,7 @@ for (const [name, size] of Object.entries(DEVICES)) {
   const shot = async (n: string) => {
     await page.addStyleTag({ content: "nextjs-portal{display:none!important}" }); // the dev server's badge
     await page.waitForTimeout(1300);
-    await page.screenshot({ path: `${out}/${n}.png` });
+    await page.screenshot({ path: `${out}/${n}.jpg`, type: "jpeg", quality: 92 });
     console.log(name, n);
   };
   const btn = (label: string | RegExp, exact = false) => page.getByRole("button", { name: label, exact });

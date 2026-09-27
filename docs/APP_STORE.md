@@ -47,7 +47,7 @@ they are; the limits in brackets are Apple's.
 App Store Connect only accepts a build whose version matches the version record, so create the record with that number.
 
 **Screenshots**: `assets/app-store/iphone` (6.5" iPhone, 1284 × 2778) and `assets/app-store/ipad` (13" iPad,
-2064 × 2752, needed because the app also runs on iPad). Upload them in file-name order; the first three show on the
+2048 × 2732, needed because the app also runs on iPad). JPEG, since Apple rejects images with transparency. Upload them in file-name order; the first three show on the
 install sheet. `just store-shots` makes both sets again (with `just dev` running).
 
 ## App Review Information
