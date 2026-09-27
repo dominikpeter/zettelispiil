@@ -89,7 +89,7 @@ install sheet. `just store-shots` makes both sets again (with `just dev` running
     - **Usage Data → Product Interaction**: counts of sign-ins and AI requests per account, App Functionality / Analytics,
       linked, not used for tracking.
   - With AI help on, the words written for a game (and, for the funny-name button, a name already typed) go to the AI
-    service; that is the same **Gameplay Content** as above, not linked, not used for tracking.
+    service; that is the same **Gameplay Content** as above, nothing extra to declare.
 - **Tracking**: no. No data is used to track people across apps or websites.
 - A one-phone game without sign-in keeps everything on the phone.
 
