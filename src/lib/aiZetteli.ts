@@ -12,7 +12,7 @@ const DAY = 86_400; // seconds
 const RECENT_MS = 30 * DAY * 1000;
 const POOL_MAX = 200; // per language and topic
 const POOL_KEEP = 30 * DAY;
-const AVOID_MAX = 60; // recent words of a topic the model is told to skip
+const AVOID_MAX = 120; // recent words of a topic the model is told to skip
 const ASK_MAX = 80; // words per model call
 
 /** the Redis commands this needs; the real client (@upstash/redis) or a stand-in in tests */
@@ -110,7 +110,8 @@ export async function supplyZetteli({ lang, topics, count, write, now = Date.now
     short.map(async ([topic, n]) => {
       const avoid = (recentOf.get(topic) ?? []).slice(-AVOID_MAX);
       try {
-        return { topic, ok: true, slips: shuffle(await write(topic, lang, Math.min(ASK_MAX, n + Math.max(8, Math.ceil(n * 0.3))), avoid)) };
+        // about twice what this game needs: filtering out the recent ones still leaves plenty, the rest fills the pool with variety
+        return { topic, ok: true, slips: shuffle(await write(topic, lang, Math.min(ASK_MAX, n * 2 + 10), avoid)) };
       } catch (e) {
         console.error("ai zetteli failed", topic, e);
         return { topic, ok: false, slips: [] as Slip[] };

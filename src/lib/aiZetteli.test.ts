@@ -108,3 +108,16 @@ test("a request for AI Zetteli is kept in bounds: 1…120 words, known topics on
 test("the model failing for every topic is an error the host can see", async () => {
   await assert.rejects(supplyZetteli({ lang: "de", topics: ["music"], count: 2, write: async () => { throw new Error("down"); }, now: DAY, r: fakeRedis() }));
 });
+
+test("variety: the model is asked for about twice what the game needs, and told up to 120 words used lately", async () => {
+  const r = fakeRedis();
+  const now = 1_000 * DAY;
+  // 130 words of the topic served lately (in earlier games)
+  const old = Array.from({ length: 130 }, (_, i) => `Alt${i}`);
+  const first = model({ animals: old });
+  await supplyZetteli({ lang: "de", topics: ["animals"], count: 130, write: first.write, now, r });
+  const m = model({ animals: ["Hund", "Katze", "Kuh", "Esel"] });
+  await supplyZetteli({ lang: "de", topics: ["animals"], count: 4, write: m.write, now: now + DAY, r });
+  assert.equal(m.calls[0].n, 4 * 2 + 10); // the extras fill the pool for later games
+  assert.equal(m.calls[0].avoid.length, 120);
+});

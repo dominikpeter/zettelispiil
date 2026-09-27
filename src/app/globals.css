@@ -753,7 +753,7 @@ dialog.sheet[open]::backdrop { animation: fade-in 0.3s ease-out both; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .unfold, .drop-in, .hop, .twinkle, .toss, .back, .fling-r, .fling-l, .into-bowl, .catch, dialog.sheet[open], .enter, .pop, .bump, .throb, .shake, .fall-in, .grow, .growx, .draw { animation: none; }
+  .unfold, .unfold.sway, .drop-in, .hop, .twinkle, .toss, .back, .fling-r, .fling-l, .into-bowl, .catch, dialog.sheet[open], .enter, .pop, .bump, .throb, .shake, .fall-in, .grow, .growx, .draw { animation: none; }
   .confetti { display: none; }
   .heckle-fx { animation-name: heckle-calm; animation-timing-function: ease-out; } /* no jitter, the blur just fades; duration stays inline */
   * { transition-duration: 0.01ms !important; }

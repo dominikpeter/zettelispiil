@@ -101,7 +101,7 @@ test("one phone: default players, write, swipe through every round, stats at the
   // a player's story: tiles, rounds, and the Zetteli they wrote
   await page.getByLabel(/^Lisa: \d+ Zetteli$/).click();
   await expect(story).toHaveAccessibleName("Lisa");
-  await expect(story.getByText("übersprungen", { exact: true })).toBeVisible();
+  await expect(story.getByText("gepasst", { exact: true })).toBeVisible();
   await expect(story.getByRole("heading", { name: "Selbst geschrieben" })).toBeVisible();
   await story.getByRole("button", { name: "Schliessen" }).click();
   await expect(story).toBeHidden();

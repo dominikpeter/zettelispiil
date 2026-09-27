@@ -52,9 +52,9 @@ Die Spielleitung legt mit Plus und Minus fest:
 - **Sekunden pro Zug**: 10 bis 120 in 5er-Schritten, Standard 30.
   - **Pro Runde festlegen**: Schalter. Ist er an, bekommt jede Runde ihre eigenen Sekunden, zum Beispiel mehr Zeit fürs Zeichnen.
 - **Passen pro Zug**: 0 bis 5 oder unbegrenzt (∞), Standard 1.
-  - Übersprungene Zetteli werden beiseitegelegt. Solange etwas beiseiteliegt, kannst du es antippen und gegen das aktuelle Zetteli zurücktauschen («Beiseitegelegt, tippen zum Zurücktauschen»). Das Zurücktauschen kostet kein Überspringen.
-  - Mit einer Grenze von 1 kannst du also hin- und hertauschen, aber kein zweites Zetteli überspringen.
-  - Bei ∞ darfst du beliebig oft überspringen.
+  - Zetteli, bei denen du passt, werden beiseitegelegt. Solange etwas beiseiteliegt, kannst du es antippen und gegen das aktuelle Zetteli zurücktauschen («Beiseitegelegt, tippen zum Zurücktauschen»). Das Zurücktauschen kostet kein Passen.
+  - Mit einer Grenze von 1 kannst du also hin- und hertauschen, aber bei keinem zweiten Zetteli passen.
+  - Bei ∞ darfst du beliebig oft passen.
   - Am Ende des Zugs kommen beiseitegelegte Zetteli zurück in die Schüssel.
 - **Störmodus** (nur mit mehreren Handys): Schalter, standardmässig aus. Ist er an, dürfen die anderen Teams die erklärende Person ablenken (siehe «Stören» unten).
   - **Auto** (Standard) oder **Fix**: Bei «Auto» bekommt ein Team, das zurückliegt, manchmal einen Stör-Bonus (siehe unten). Bei «Fix» darf jede Person der anderen Teams gleich oft stören.
@@ -172,18 +172,18 @@ Der Pause-Knopf oben öffnet das Spielmenü:
 
 ## Am Schluss
 
-Das Spiel zeigt, wer gewonnen hat (oder «Unentschieden»), mit den Spielern des Siegerteams, dem Endstand und einer Übersicht: wie viele Zetteli, Züge und wie oft übersprungen wurde.
+Das Spiel zeigt, wer gewonnen hat (oder «Unentschieden»), mit den Spielern des Siegerteams, dem Endstand und einer Übersicht: wie viele Zetteli, Züge und wie oft gepasst wurde.
 
-- **Auszeichnungen**: kleine Pokale für die Stars des Spiels. **Meiste Zetteli erklärt**, **Schnellste Erklärer:in** (die wenigsten Sekunden pro Zetteli, ab 2 erratenen), **Bester Zug** (die meisten Zetteli in einem einzigen Zug), **Überspring-Profi** (am meisten übersprungen) und **Kniffligste Zetteli** (wessen Begriffe am längsten gedauert haben; KI-Zetteli zählen nicht). Eine Auszeichnung erscheint nur, wenn sie etwas aussagt.
+- **Auszeichnungen**: kleine Pokale für die Stars des Spiels. **Meiste Zetteli erklärt**, **Schnellste Erklärer:in** (die wenigsten Sekunden pro Zetteli, ab 2 erratenen), **Bester Zug** (die meisten Zetteli in einem einzigen Zug), **Pass-Profi** (am meisten gepasst) und **Kniffligste Zetteli** (wessen Begriffe am längsten gedauert haben; KI-Zetteli zählen nicht). Eine Auszeichnung erscheint nur, wenn sie etwas aussagt.
 - **Spielverlauf**: Punktestand nach jedem Zug. Tippen und ziehen, um einzelne Züge nachzulesen.
 - **Punkte pro Runde** für jedes Team.
 - **Tempo**: durchschnittliche Sekunden, bis ein Zetteli erraten war, pro Runde.
 - **Spieler**: erratene Zetteli beim Erklären und Sekunden pro Zetteli.
-- **Die Zetteli**: am schnellsten erraten, am längsten gedauert, am meisten übersprungen und die schwierigsten Begriffe über alle Runden. Bei den schwierigsten und in der Liste aller Zetteli steht, wer sie geschrieben hat («von KI», wenn es die KI war).
+- **Die Zetteli**: am schnellsten erraten, am längsten gedauert, am meisten gepasst und die schwierigsten Begriffe über alle Runden. Bei den schwierigsten und in der Liste aller Zetteli steht, wer sie geschrieben hat («von KI», wenn es die KI war).
 - **Zeichnungen** (nur mit mehreren Handys und der Runde Zeichnen): alle Zeichnungen des Spiels als kleine Bilder, mit Begriff, wer gezeichnet hat und wie schnell es erraten wurde (oder «nicht erraten»). Tippe auf eine Zeichnung, und sie entsteht nochmal Strich für Strich; **Nochmal abspielen** zeigt es erneut. Hast du mit **Alles löschen** neu angefangen, zeigt die Zeichnung den letzten Versuch. Leere Blätter erscheinen nicht.
 - **Die ganze Geschichte**: Tippe auf einen Spieler, eine Auszeichnung oder ein Zetteli (überall, wo eines steht), und ein Blatt geht von unten auf.
-  - **Spieler**: Team und Platz, erratene Zetteli, Sekunden pro Zetteli, wie oft übersprungen, wie viele Züge, der beste Zug und wie oft gestört wurde. Darunter **Erklärte Zetteli**: pro Runde jedes Zetteli, das erraten wurde, mit den Sekunden bis erraten (ein Blitz markiert das schnellste, eine Schnecke das langsamste). Unter **Selbst geschrieben** stehen die eigenen Begriffe und wie lange die anderen daran hatten.
-  - **Zetteli**: wer es geschrieben hat («KI», wenn es die KI war), der Hinweis (falls es einen gab), die Sekunden total, wie oft übersprungen und der wievielt-schwierigste Begriff es war. **Runde für Runde**: wer es erklärt hat, wie lange es gedauert hat und wer es übersprungen hat.
+  - **Spieler**: Team und Platz, erratene Zetteli, Sekunden pro Zetteli, wie oft gepasst, wie viele Züge, der beste Zug und wie oft gestört wurde. Darunter **Erklärte Zetteli**: pro Runde jedes Zetteli, das erraten wurde, mit den Sekunden bis erraten (ein Blitz markiert das schnellste, eine Schnecke das langsamste). Unter **Selbst geschrieben** stehen die eigenen Begriffe und wie lange die anderen daran hatten.
+  - **Zetteli**: wer es geschrieben hat («KI», wenn es die KI war), der Hinweis (falls es einen gab), die Sekunden total, wie oft gepasst und der wievielt-schwierigste Begriff es war. **Runde für Runde**: wer es erklärt hat, wie lange es gedauert hat und wer dabei gepasst hat.
   - Namen und Zetteli im Blatt lassen sich wieder antippen, so springst du vom Zetteli zum Spieler und weiter. Der Pfeil nach links geht einen Schritt zurück, das X oder ein Tippen daneben schliesst das Blatt.
 
 Mit **Nochmal spielen** startet die Spielleitung eine neue Partie.
@@ -199,10 +199,10 @@ Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 - **Farben**: Post-it (Standard, ruhige App, Zetteli in Stapel-Post-it-Farben), Klassisch (das ursprüngliche knallige Gelb-Pink-Blau), Nacht, Tinte, Gold, Abendrot, Ozean, Arosa (Blau und Sonnengelb) oder Aarau (Schwarz, Rot, Weiss).
 - **KI-Hilfe**: An oder Aus. Prüft Rechtschreibung und Schwierigkeit, schlägt Hinweise und lustige Namen vor.
 - **Hinweise beim Erklären**: An oder Aus. Zeigt den KI-Hinweis klein unter dem Zetteli. Braucht KI-Hilfe.
-- **Konto**: Für die KI-Hilfe meldest du dich mit Google, GitHub oder einem Code per E-Mail an. Spielen geht auch ohne Konto.
+- **Konto**: Für die KI-Hilfe meldest du dich mit Google, GitHub oder einem Code per E-Mail an (in den Handy-Apps mit dem Code per E-Mail). Spielen geht auch ohne Konto.
 - **Spendier mir einen Kaffee**: Zettelispiil ist gratis und ohne Werbung. Wer mag, spendiert einen kleinen (CHF 1), grossen (CHF 5) oder Deluxe-Kaffee (CHF 10) oder einen eigenen Betrag. Bezahlt wird bei Stripe (Karte, Apple Pay, Google Pay), danach kommst du zurück ins Spiel. In den Handy-Apps gibt es den Knopf nicht.
 - **Teilen**: **WhatsApp** oder **Link kopieren**, um Zettelispiil weiterzuempfehlen.
-- Ganz unten: **Problem mit der App? Hier melden** führt zu den GitHub-Issues, wo du Fehler melden kannst.
+- Ganz unten: **Problem mit der App? Hier melden** führt zu den GitHub-Issues, wo du Fehler melden kannst. **Datenschutz** zeigt, welche Daten wo und wie lange gespeichert werden.
 
 ## Aufs Handy holen
 

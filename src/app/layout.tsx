@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Caveat } from "next/font/google";
+import { NativeShell } from "@/components/NativeShell";
 import "./globals.css";
 
 // `subsets` only picks what is preloaded: latin covers DE/EN/FR; the latin-ext files still load on demand when a word needs them
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="flex min-h-full flex-col font-sans pt-[env(safe-area-inset-top)]">
         {children}
+        <NativeShell />
       </body>
     </html>
   );

@@ -124,3 +124,11 @@ test("awards: nothing to hand out in an empty game; the AI never wins the writer
   assert.deepEqual(awards([], [], [], 4), []);
   assert.equal(awards(log, turns, [-1, 0], 2).find((x) => x.kind === "writer"), undefined); // only one human writer: no comparison
 });
+
+test("awards: the skip champion only with a clear lead (a tie would crown whoever came first)", () => {
+  const skip = (w: number, p: number): Ev => ({ w, r: 0, p, ms: 500, res: "skip" });
+  const tied = awards([skip(1, 0), skip(2, 1)], [], [], 2);
+  assert.equal(tied.find((x) => x.kind === "skips"), undefined);
+  const clear = awards([skip(1, 0), skip(2, 1), skip(3, 1)], [], [], 2);
+  assert.deepEqual(clear.find((x) => x.kind === "skips"), { kind: "skips", p: 1, n: 2 });
+});

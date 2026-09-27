@@ -104,8 +104,9 @@ export function awards(log: Ev[], turns: TurnLog[], authors: number[], players: 
   const bt = bestTurnOf(turns);
   if (bt && bt.got >= 2) out.push({ kind: "turn", p: bt.p, got: bt.got, r: bt.r });
 
-  const [sk] = [...who].sort((x, y) => y.skips - x.skips);
-  if (sk?.skips) out.push({ kind: "skips", p: sk.p, n: sk.skips });
+  // only a clear leader: with a tie (two with one skip each) the award would go to whoever came first in the list
+  const [sk, next] = [...who].sort((x, y) => y.skips - x.skips);
+  if (sk?.skips && sk.skips > (next?.skips ?? 0)) out.push({ kind: "skips", p: sk.p, n: sk.skips });
 
   // per author: average time a Zetteli of theirs was in hands until guessed, per round; the AI (-1) doesn't compete
   const guessed = hands(log);

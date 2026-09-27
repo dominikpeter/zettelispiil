@@ -48,3 +48,22 @@ export function stayAwake(): () => void {
     lock?.release().catch(() => {});
   };
 }
+
+/** the status bar (clock, battery) readable on either theme: light text on dark, dark on light; follows the theme picked
+ * in the settings and, on "Auto", the system. Returns the cleanup. Only in the phone apps */
+export function syncStatusBar(): () => void {
+  const root = document.documentElement;
+  const media = matchMedia("(prefers-color-scheme: dark)");
+  const apply = () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : media.matches;
+    import("@capacitor/status-bar").then(({ StatusBar, Style }) => StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light })).catch(() => {});
+  };
+  apply();
+  const watch = new MutationObserver(apply);
+  watch.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  media.addEventListener("change", apply);
+  return () => {
+    watch.disconnect();
+    media.removeEventListener("change", apply);
+  };
+}

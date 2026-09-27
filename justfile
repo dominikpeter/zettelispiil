@@ -57,6 +57,10 @@ deploy:
 vercel-ci-setup:
     bash scripts/setup-vercel-ci.sh
 
+# one-time: App Store Connect API key (.p8) + ids as GitHub secrets for signed TestFlight builds; reads the file itself
+ios-ci-setup *key:
+    bash scripts/setup-ios-ci.sh {{key}}
+
 # push the current branch (dev) and open its pull request into main, or show the one that's open
 pr:
     #!/usr/bin/env bash

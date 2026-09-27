@@ -180,6 +180,9 @@ export function SettingsPanel() {
         <a href="https://github.com/dominikpeter/zettelispiil/issues" target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">
           {t.reportProblem}
         </a>
+        <a href="/datenschutz" className="underline-offset-4 hover:underline">
+          {t.privacy}
+        </a>
       </footer>
     </>
   );
