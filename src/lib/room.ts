@@ -95,7 +95,12 @@ async function load(db: Store, code: string) {
   return { room, members };
 }
 
-const save = (db: Store, room: Room) => db.set(k(room.code).room, room, { ex: TTL });
+const save = (db: Store, room: Room) =>
+  Promise.all([
+    db.set(k(room.code).room, room, { ex: TTL }),
+    // Zetteli kept from before going back to the settings live as long as the room, however long it sits in the lobby
+    room.kept && db.expire(`room:${room.code}:words:${room.kept.writeNo}`, TTL),
+  ]);
 
 /** the team with the fewest players (the first of them on a tie) */
 const smallest = (members: Member[], teams: number) => {
@@ -423,6 +428,11 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       await db.hset(key, String(idx), mine, TTL);
       const now2 = await db.hgetall<WriteEntry>(key);
       if (!room.ids.every((_, i) => now2[String(i)]?.words.length === n)) return; // others still writing; room itself unchanged
+      // the room as loaded may be stale by now: the host went back to the settings while this was on its way. Filling the
+      // bowl from it would undo that, so only a room still in this round of writing gets its bowl
+      // ponytail: re-read narrows the race to milliseconds; a revision check on save would close it for every action
+      const latest = await db.get<Room>(k(code).room);
+      if (latest?.phase !== "write" || latest.writeNo !== room.writeNo) return;
       // ponytail: two last writers racing both build the same bowl from the same hash, so the double write is harmless
       const entries = room.ids.map((_, i) => now2[String(i)].words);
       fillBowl(room, entries.flat(), entries.flatMap((ws, i) => ws.map(() => i)));
