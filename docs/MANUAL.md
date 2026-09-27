@@ -165,9 +165,10 @@ Ist die Schüssel leer, ist die Runde durch. Bleiben dabei noch mindestens 5 Sek
 Der Pause-Knopf oben öffnet das Spielmenü:
 
 - **Pause**: Erklärer:in oder Spielleitung (bei einem Handy alle) halten die Zeit an. Die Uhr steht auf allen Handys still, das Zetteli bleibt verdeckt. Mit **Weiterspielen** geht's weiter. Öffnen andere das Menü, läuft die Zeit weiter.
+- **Zurück zu den Einstellungen** (Spielleitung, bei einem Handy alle): Solange noch niemand erklärt hat, also beim Schreiben oder bei «Los, Zetteli ziehen», geht's zurück in die Lobby, etwa um Runden, Zeit oder Teams zu ändern. Die schon geschriebenen Zetteli bleiben: Die Lobby zeigt, wie viele es sind, und nach **Spiel starten** schreibt nur noch, wem etwas fehlt. Mehr Zetteli pro Person: Die geschriebenen stehen schon da, nur die neuen kommen dazu. Weniger: Es bleiben die ersten.
 - **Spiel abbrechen** (Spielleitung): Alle kommen zurück in die Lobby. Spieler, Teams und Einstellungen bleiben, Punkte und Zetteli sind weg. Das Spiel fragt vorher nach.
 - **Zur Startseite**: Du verlässt das Spiel. Bei mehreren Handys kommst du über den Link wieder zurück, bei einem Handy mit **Weiterspielen** auf der Startseite.
-- Der Pfeil oben links fragt ebenfalls nach, bevor du ein laufendes Spiel verlässt.
+- Der Pfeil oben links fragt ebenfalls nach, bevor du ein laufendes Spiel verlässt. Vor dem ersten Zug führt er für die Spielleitung (bei einem Handy für alle) stattdessen einen Schritt zurück zu den Einstellungen, ohne Nachfrage, weil nichts verloren geht.
 - Auch die Einstellungen (siehe unten) lassen sich hier öffnen.
 
 ## Am Schluss
