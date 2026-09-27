@@ -145,7 +145,7 @@ export default function Room() {
       )}
       <header className="mb-4 flex min-h-[calc(2.75rem+2px)] items-center justify-between gap-2">
         {/* the code only in the lobby: mid-game the header needs its room (score, pause) on small phones */}
-        <BackButton v={v} onLeave={() => router.push("/")} label={!v || v.phase === "lobby" ? code : undefined} />
+        <BackButton v={v} onLeave={() => router.push("/")} onSettings={v?.isHost ? () => send({ type: "toSettings" }) : undefined} label={!v || v.phase === "lobby" ? code : undefined} />
         {inGame && (
           <div className="flex items-center gap-2">
             {playing && <Score v={v} />}

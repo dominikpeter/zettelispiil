@@ -68,6 +68,7 @@ type Room = Heckles & {
   writeNo: number;
   turnNo: number;
   aiBy?: string; // user id of a host who was signed in when creating the room: AI is on for everyone in it, on that host's budget
+  kept?: { writeNo: number; ids: string[] }; // back to the settings before the first turn: whose Zetteli, written in which round of writing
 };
 
 export class RoomError extends Error {
@@ -288,7 +289,7 @@ function settle(room: Room, now: number) {
 }
 
 export type Action =
-  | { type: "start" | "go" | "nextRound" | "pass" | "lobby" | "shuffle" | "pause" | "resume" | "cancel" | "heckle" | "selfWrite" }
+  | { type: "start" | "go" | "nextRound" | "pass" | "lobby" | "shuffle" | "pause" | "resume" | "cancel" | "heckle" | "selfWrite" | "toSettings" }
   | { type: "settings"; settings: Partial<Settings> }
   | { type: "team"; team: Team }
   | { type: "rename"; name: string }
@@ -379,13 +380,28 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       need(host && room.phase === "lobby");
       const n = room.teamNames.length;
       if (room.teamNames.some((_, t) => members.filter((m) => m.team === t).length < 2)) throw new RoomError("teams");
+      const kept = room.kept;
       Object.assign(room, {
         ids: members.map((m) => m.id), teams: members.map((m) => m.team), words: [], authors: [], bowl: [],
         current: null, held: [], pausedAt: 0, round: 0, team: pick(n), next: Array(n).fill(0), carryMs: 0, scores: [], log: [], turns: [], drawings: [], heckleLog: [], bonusGot: [],
-        phase: "write", writeNo: room.writeNo + 1,
+        phase: "write", writeNo: room.writeNo + 1, kept: undefined,
       } satisfies Partial<Room>);
+      // back from the settings: everyone still in the game keeps what they wrote (up to the new count per player), so
+      // only the missing Zetteli are written; when nothing is missing, the bowl is full at once
+      if (kept && room.settings.source !== "ai") {
+        const old = await db.hgetall<WriteEntry>(`room:${code}:words:${kept.writeNo}`);
+        const per = room.settings.perPlayer;
+        const carried = room.ids.map((id) => old[String(kept.ids.indexOf(id))]?.words.slice(0, per) ?? []);
+        const key = `room:${code}:words:${room.writeNo}`;
+        await Promise.all(carried.flatMap((words, i) => (words.length ? [db.hset(key, String(i), { words, cancelled: [] } satisfies WriteEntry, TTL)] : [])));
+        if (carried.every((ws) => ws.length === per)) fillBowl(room, carried.flat(), carried.flatMap((ws, i) => ws.map(() => i)));
+      }
       break;
     }
+    case "toSettings": // before the first turn: back to the lobby to change something, the Zetteli written so far stay
+      need(host && (room.phase === "write" || (room.phase === "ready" && !room.log.length && !room.turns.length)));
+      Object.assign(room, { phase: "lobby", current: null, held: [], kept: { writeNo: room.writeNo, ids: room.ids } } satisfies Partial<Room>);
+      break;
     case "words": {
       need(room.phase === "write" && idx >= 0 && room.settings.source !== "ai");
       const slips = (Array.isArray(a.words) ? a.words : []).map(cleanSlip);
@@ -458,7 +474,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
       break;
     case "cancel": // stop the game, keep players, teams and settings
       need(host && room.phase !== "lobby");
-      Object.assign(room, { phase: "lobby", current: null, held: [], pausedAt: 0, carryMs: 0 } satisfies Partial<Room>);
+      Object.assign(room, { phase: "lobby", current: null, held: [], pausedAt: 0, carryMs: 0, kept: undefined } satisfies Partial<Room>);
       break;
     case "teamGot":
       if (room.phase !== "turn" || room.pausedAt || room.current === null || a.seen !== room.turnGot || now > room.endsAt + GRACE) return; // someone was faster
@@ -514,6 +530,7 @@ export async function act(db: Store, code: string, pid: unknown, token: unknown,
     case "lobby":
       need(host && room.phase === "end");
       room.phase = "lobby";
+      room.kept = undefined;
       break;
     default:
       throw new RoomError("bad_request");
@@ -555,6 +572,8 @@ export type View = {
   heckleGranted: number; // auto mode: the bonus my team got for this turn (0: no button)
   scores: number[][];
   lastTurn: TurnLog | null;
+  beforePlay: boolean; // writing, or ready with no turn played yet: the host may go back to the settings, Zetteli stay
+  kept: number; // lobby, back from writing: Zetteli written so far that stay in the game
   done: number; // players who wrote their words
   iDone: boolean;
   turnNo: number;
@@ -582,6 +601,11 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
   let done = 0;
   let iDone = false;
   let myWrite: WriteEntry | null = null;
+  let kept = 0;
+  if (lobby && room.kept && room.settings.source !== "ai") {
+    const h = await db.hgetall<WriteEntry>(`room:${code}:words:${room.kept.writeNo}`);
+    kept = room.kept.ids.reduce((s, id, i) => s + (members.some((m) => m.id === id) ? Math.min(h[String(i)]?.words.length ?? 0, room.settings.perPlayer) : 0), 0);
+  }
   if (room.phase === "write") {
     const h = await db.hgetall<WriteEntry>(`room:${code}:words:${room.writeNo}`);
     done = Object.values(h).filter((e) => e.words.length === room.settings.perPlayer).length;
@@ -617,6 +641,8 @@ export async function view(db: Store, code: string, pid: unknown, token: unknown
     ...heckleView(room, idx),
     scores: room.scores,
     lastTurn: room.turns.at(-1) ?? null,
+    beforePlay: room.phase === "write" || (room.phase === "ready" && !room.log.length && !room.turns.length),
+    kept,
     done,
     iDone,
     myWrite,

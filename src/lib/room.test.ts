@@ -719,3 +719,55 @@ test("team names: plenty of variety (not the same two every game), two different
     for (const n of [...d.funnyTeams, ...d.teamA.flatMap((a) => d.teamB.map((b) => d.teamCombo(a, b)))]) assert.ok(n.length <= 18, `${lang}: "${n}" is too long`);
   }
 });
+
+test("back to the settings before the first turn: the Zetteli written so far stay, only missing ones are written", async () => {
+  const { as, see } = await setup();
+  await as(0, { type: "settings", settings: { perPlayer: 2 } });
+  await as(0, { type: "start" });
+  await as(0, { type: "words", words: ["Matterhorn", "Rösti"] });
+  await as(1, { type: "words", words: ["Velo", "Aare"] });
+  await assert.rejects(as(1, { type: "toSettings" }), RoomError); // only the host
+  await as(0, { type: "toSettings" });
+  let v = await see(2);
+  assert.equal(v.phase, "lobby");
+  assert.equal(v.kept, 4); // Lisa's and Nora's two each
+
+  // three per player now: the two already written come back prefilled, one is missing
+  await as(0, { type: "settings", settings: { perPlayer: 3 } });
+  await as(0, { type: "start" });
+  v = await see(0);
+  assert.equal(v.phase, "write");
+  assert.deepEqual(v.myWrite?.words.map((s) => s.word), ["Matterhorn", "Rösti"]);
+  assert.equal(v.iDone, false);
+
+  // back once more and down to one each: everyone who wrote is done at once, Tim and Beni write theirs
+  await as(0, { type: "toSettings" });
+  await as(0, { type: "settings", settings: { perPlayer: 1 } });
+  await as(0, { type: "start" });
+  assert.equal((await see(0)).iDone, true);
+  assert.equal((await see(1)).iDone, true);
+  await as(2, { type: "words", words: ["Gipfeli"] });
+  await as(3, { type: "words", words: ["Schoggi"] });
+  v = await see(0);
+  assert.equal(v.phase, "ready");
+  assert.equal(v.total, 4);
+  assert.equal(v.beforePlay, true); // still no turn played: back is still possible
+
+  // once a turn was played there's no going back without losing the game
+  const d = v.active!;
+  await as(d, { type: "go" });
+  await assert.rejects(as(0, { type: "toSettings" }), RoomError);
+});
+
+test("back to the settings: cancel or a new game after the end forgets what was kept", async () => {
+  const { as, see } = await setup();
+  await as(0, { type: "start" });
+  await as(0, { type: "words", words: ["Matterhorn"] });
+  await as(0, { type: "toSettings" });
+  assert.equal((await see(0)).kept, 1);
+  await as(0, { type: "start" });
+  await as(0, { type: "cancel" }); // "Spiel abbrechen": Zetteli are gone, as it says
+  assert.equal((await see(0)).kept, 0);
+  await as(0, { type: "start" });
+  assert.equal((await see(0)).myWrite, null);
+});

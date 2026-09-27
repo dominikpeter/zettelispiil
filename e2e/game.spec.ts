@@ -175,6 +175,41 @@ for (const teams of [3, 4]) {
   });
 }
 
+test("one phone: back to the settings while writing and before the first turn keeps every Zetteli written", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Neues Spiel" }).click();
+  await page.waitForURL(/\/local$/);
+  for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Zetteli pro Person weniger" }).click();
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  for (const [who, w] of [["Lisa", "Schoggi"], ["Nora", "Matterhorn"]]) {
+    await page.getByRole("button", { name: `Ich bin ${who}` }).click();
+    await page.getByLabel("Zetteli 1", { exact: true }).fill(w);
+    await page.getByRole("button", { name: "In die Schüssel" }).click();
+  }
+  await expect(page.getByRole("button", { name: "Ich bin Nelly" })).toBeVisible(); // Nora's Zetteli has landed in the bowl
+
+  // the back arrow goes one step back, to the settings, without asking: nothing is lost
+  await page.getByRole("button", { name: "Zurück zu den Einstellungen" }).click();
+  await expect(page.getByText("2 Zetteli sind schon geschrieben, sie bleiben im Spiel.")).toBeVisible();
+  await page.getByRole("button", { name: "Pantomime weglassen" }).click(); // what one came back for
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  // Lisa and Nora are done: the phone goes to Nelly and Tim only
+  for (const [who, w] of [["Nelly", "Velo"], ["Tim", "Raclette"]]) {
+    await page.getByRole("button", { name: `Ich bin ${who}` }).click();
+    await page.getByLabel("Zetteli 1", { exact: true }).fill(w);
+    await page.getByRole("button", { name: "In die Schüssel" }).click();
+  }
+  await expect(page.getByRole("button", { name: "Los, Zetteli ziehen" })).toBeVisible();
+
+  // all written, no turn yet: the pause menu offers the settings too, and coming back the bowl is full at once
+  await page.getByRole("button", { name: "Pause" }).click();
+  await page.getByRole("dialog", { name: "Pause" }).getByRole("button", { name: /Zurück zu den Einstellungen/ }).click();
+  await expect(page.getByText("4 Zetteli sind schon geschrieben, sie bleiben im Spiel.")).toBeVisible();
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  await expect(page.getByRole("button", { name: "Los, Zetteli ziehen" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Ich bin / })).toHaveCount(0); // nobody writes again
+});
+
 test("every phone: only the describer sees the Zetteli, one skip with swap back, time up hands over", async ({ browser }) => {
   const host = await phone(browser);
   await host.goto("/");
@@ -716,17 +751,26 @@ test("every phase: back and each pause-menu button work (asked in the app, never
     const paused = page.getByRole("dialog", { name: "Pause" });
     if (await paused.isVisible()) await paused.getByRole("button", { name: "Weiterspielen" }).click();
   };
-  const escapes = async (phase: string, here: () => Promise<void>) => {
-    // back: "no" keeps you in the game, "yes" goes home, and the game waits there
-    await page.getByRole("button", { name: "Zurück" }).click();
-    await expect(ask, `${phase}: back asks`).toBeVisible();
-    await ask.getByRole("button", { name: "Weiterspielen" }).click();
-    await expect(ask).toHaveCount(0);
-    await here();
-    await page.getByRole("button", { name: "Zurück" }).click();
-    await ask.getByRole("button", { name: "Zur Startseite" }).click();
-    await home();
-    await here();
+  const escapes = async (phase: string, here: () => Promise<void>, beforePlay = false) => {
+    if (beforePlay) {
+      // before the first turn, back is one step back: to the settings, and since nothing written is lost, no asking
+      await here(); // the last Zetteli has landed
+      await page.getByRole("button", { name: "Zurück zu den Einstellungen" }).click();
+      await expect(ask).toHaveCount(0);
+      await page.getByRole("button", { name: "Spiel starten" }).click();
+      await here();
+    } else {
+      // back: "no" keeps you in the game, "yes" goes home, and the game waits there
+      await page.getByRole("button", { name: "Zurück" }).click();
+      await expect(ask, `${phase}: back asks`).toBeVisible();
+      await ask.getByRole("button", { name: "Weiterspielen" }).click();
+      await expect(ask).toHaveCount(0);
+      await here();
+      await page.getByRole("button", { name: "Zurück" }).click();
+      await ask.getByRole("button", { name: "Zur Startseite" }).click();
+      await home();
+      await here();
+    }
     // pause menu: resume, and to the start page
     await page.getByRole("button", { name: "Pause" }).click();
     const menu = page.getByRole("dialog", { name: "Pause" });
@@ -747,7 +791,7 @@ test("every phase: back and each pause-menu button work (asked in the app, never
   };
 
   await localGame(page, (i) => `Wort${i}`); // everyone has written: the first team is up
-  await escapes("before a turn", () => expect(page.getByRole("button", { name: "Los, Zetteli ziehen" })).toBeVisible());
+  await escapes("before a turn", () => expect(page.getByRole("button", { name: "Los, Zetteli ziehen" })).toBeVisible(), true);
   await page.getByRole("button", { name: "Los, Zetteli ziehen" }).click();
   await escapes("during a turn", () => expect(page.getByTestId("word")).toBeVisible());
 
@@ -762,7 +806,7 @@ test("every phase: back and each pause-menu button work (asked in the app, never
     const iAm = page.getByRole("button", { name: /^Ich bin / });
     if (await iAm.isVisible()) await iAm.click();
     await expect(page.getByRole("button", { name: "In die Schüssel" })).toBeVisible();
-  });
+  }, true);
   // finally cancel for real: back in the lobby, where back needs no asking
   await page.getByRole("button", { name: "Pause" }).click();
   await page.getByRole("dialog", { name: "Pause" }).getByRole("button", { name: "Spiel abbrechen" }).click();

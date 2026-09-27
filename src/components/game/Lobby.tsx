@@ -388,6 +388,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
       </section>
 
       <Cta>
+        {v.kept > 0 && <p className="text-center text-sm text-muted">{t.keptWords(v.kept)}</p>}
         {v.isHost && (
           <button onClick={() => settingsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} className={`${ghost} -mt-2 mb-1 min-h-9! w-full text-sm`}>
             {t.settingsLine(s.perPlayer, secondsLabel, s.rounds.length)}

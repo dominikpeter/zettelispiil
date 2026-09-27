@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Home, Pause, Play, ChevronDown, X } from "lucide-react";
+import { ArrowLeft, Home, Pause, Play, ChevronDown, Settings2, X } from "lucide-react";
 import { useState } from "react";
 import { useT } from "@/lib/prefs";
 import { type View } from "@/lib/room";
@@ -40,14 +40,22 @@ export function Score({ v }: { v: View }) {
   );
 }
 
-/** back arrow for the header: straight home outside a game, after a confirm inside one */
-export function BackButton({ v, onLeave, label, local = false }: { v: View | null; onLeave: () => void; label?: string; local?: boolean }) {
+/**
+ * back arrow for the header: straight home outside a game, after a confirm inside one. Before the first turn, whoever may
+ * (host, or anyone on one phone: `onSettings`) goes back one step instead: to the settings, nothing written is lost
+ */
+export function BackButton({ v, onLeave, onSettings, label, local = false }: { v: View | null; onLeave: () => void; onSettings?: () => void; label?: string; local?: boolean }) {
   const t = useT();
   const [asking, setAsking] = useState(false);
   const safe = !v || v.me < 0 || v.phase === "lobby" || v.phase === "end";
+  const toSettings = !!v?.beforePlay && !!onSettings;
   return (
     <>
-      <button onClick={() => (safe ? onLeave() : setAsking(true))} aria-label={t.back} className={`${ghost} -ml-3 flex items-center gap-1.5`}>
+      <button
+        onClick={() => (safe ? onLeave() : toSettings ? onSettings!() : setAsking(true))}
+        aria-label={toSettings ? t.backToSettings : t.back}
+        className={`${ghost} -ml-3 flex items-center gap-1.5`}
+      >
         <ArrowLeft className="size-5" aria-hidden />
         {label && (
           <span translate="no" className="font-bold tracking-[0.2em] text-ink">
@@ -85,6 +93,10 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
     setOpen(false);
     await send({ type: "cancel" }, 0);
   };
+  const toSettings = async () => {
+    setOpen(false);
+    await send({ type: "toSettings" }, 0);
+  };
 
   return (
     <>
@@ -119,6 +131,14 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
               </button>
             )}
             {!canPause && paused && <Waiting text={t.pausedBy} />}
+            {canCancel && v.beforePlay && (
+              <button onClick={toSettings} className={`${btn2} flex-col gap-0 py-2`}>
+                <span className="flex items-center gap-2">
+                  <Settings2 className="size-5" aria-hidden /> {t.backToSettings}
+                </span>
+                <span className="text-sm font-normal text-muted">{t.backToSettingsNote}</span>
+              </button>
+            )}
             {canCancel && (
               <button onClick={() => setAsking(true)} className={`${btn2} flex-col gap-0 py-2`}>
                 <span className="flex items-center gap-2">
