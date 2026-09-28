@@ -11,8 +11,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const user = await currentUser(req);
   if (!user) return Response.json({ error: "not signed in" }, { status: 401 });
-  const body = await req.json().catch(() => ({}));
-  const about = cleanAbout(body?.about);
+  const body = await req.json().catch(() => null);
+  // a cut-off or odd request is refused, never read as "clear it"
+  if (typeof body?.about !== "string") return Response.json({ error: "about must be text" }, { status: 400 });
+  const about = cleanAbout(body.about);
   try {
     await setAbout(user.id, about);
   } catch {

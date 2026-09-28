@@ -125,8 +125,8 @@ async function askIdeas(topic: string, lang: Lang, about = ""): Promise<string[]
     system:
       `You suggest words for Zettelispiil, a party guessing game (describe, charades, one word, sounds, drawing), in ${LANG_NAME[lang]}. ` +
       "Pick things most friends at a party know: people, places, things, films, animals. 1-3 words each, short (at most 20 characters), no explanations.",
-    // 9: the next players with this topic get theirs from the cache (personal ones aren't cached, 9 still gives room to pick)
-    prompt: `Topic: ${topic || "anything"}. Give 9 different words.${about ? ` ${aboutPrompt(about)} Let a few of the words hint at their hobbies or quirks, so their friends grin when they draw them.` : ""}`,
+    // 9: the next players with this topic get theirs from the cache; personal ones aren't cached, so only a few spare
+    prompt: `Topic: ${topic || "anything"}. Give ${about ? 5 : 9} different words.${about ? ` ${aboutPrompt(about)} Let a few of the words hint at their hobbies or quirks, so their friends grin when they draw them.` : ""}`,
   });
   await meter("ideas", usage);
   return output.words.map((w) => ss(w.trim().slice(0, 40))).filter(Boolean).slice(0, 9);
@@ -215,7 +215,7 @@ async function askNames(kind: "player" | "team", lang: Lang, base: string, about
     providerOptions: fast,
     output: Output.object({ schema: Names }),
     system: `You invent short, funny, friendly ${kind === "team" ? "team names (1-3 words)" : "player nicknames (1-2 words)"}, at most ${nameMax(kind, base)} characters each, for a Swiss party game, in ${LANG_NAME[lang]}. No offensive words. Be surprising: vary the style, never reuse a word stem twice.`,
-    prompt: `Give 6 different names, ${them ? "about this player" : `loosely inspired by ${pick(THEMES)}`}.${around}${them}`,
+    prompt: `Give ${them ? 3 : 6} different names, ${them ? "about this player" : `loosely inspired by ${pick(THEMES)}`}.${around}${them}`,
   });
   await meter("names", usage);
   const names = output.names

@@ -11,12 +11,14 @@ export async function POST(req: Request) {
   const { appleCode } = ((await req.json().catch(() => ({}))) ?? {}) as { appleCode?: unknown };
   if (typeof appleCode === "string" && appleCode && !(await revokeApple(appleCode).catch(() => false)))
     return Response.json({ error: "apple refused" }, { status: 502 });
-  if (!(await forget(user.id))) return Response.json({ error: "not deleted" }, { status: 503 });
+  // what they wrote about themselves goes first: forget() signs the account out everywhere, so a failure after it could
+  // no longer be retried
   try {
-    await setAbout(user.id, ""); // what they wrote about themselves goes with the account
+    await setAbout(user.id, "");
   } catch {
     return Response.json({ error: "not deleted" }, { status: 503 });
   }
+  if (!(await forget(user.id))) return Response.json({ error: "not deleted" }, { status: 503 });
   // then its sessions: the server checks them in the store, not the cookie (currentUser), so every copy is out at once.
   // If this fails, say so: the phone is still signed in and can try again (forgetting twice is harmless)
   try {

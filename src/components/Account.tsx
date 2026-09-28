@@ -61,8 +61,9 @@ function AboutMe() {
       .then((r) => (r.ok ? r.json() : { about: "" }))
       .then((r: { about?: string }) => {
         if (!on) return;
-        setSaved(r.about ?? "");
-        setText(r.about ?? "");
+        const about = typeof r.about === "string" ? r.about : "";
+        setSaved(about);
+        setText(about);
       })
       .catch(() => on && setSaved(""));
     return () => void (on = false);
@@ -101,6 +102,7 @@ function AboutMe() {
         autoComplete="off"
         value={text}
         disabled={saved === null}
+        readOnly={state === "busy"} // typing on while it saves would be overwritten by the saved text
         maxLength={ABOUT_MAX}
         rows={3}
         placeholder={t.aboutMePh}

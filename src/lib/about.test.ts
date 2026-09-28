@@ -8,6 +8,17 @@ test("about you: one line, Swiss spelling, at most 200 characters, anything that
   assert.equal(cleanAbout("x".repeat(500)).length, ABOUT_MAX);
   assert.equal(cleanAbout(undefined), "");
   assert.equal(cleanAbout(null), "");
+  assert.equal(cleanAbout(42), "");
+  assert.equal(cleanAbout({}), "");
+});
+
+test("about you: a text that looks like JSON (\"42\", \"true\") comes back as text, even from a store that parses JSON like Redis", async () => {
+  const mem = memoryStore();
+  const parsing = { ...mem, get: async <T,>(k: string) => JSON.parse(JSON.stringify(await mem.get<T>(k))) as T } as typeof mem; // what @upstash/redis hands back
+  await setAbout("a", "42", parsing);
+  assert.equal(await getAbout("a", parsing), "42");
+  await setAbout("a", "true", parsing);
+  assert.equal(await getAbout("a", parsing), "true");
 });
 
 test("about you: saved per account, read back, cleared by an empty text, and never mixed between accounts", async () => {

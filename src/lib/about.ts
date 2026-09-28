@@ -8,19 +8,24 @@ export const ABOUT_MAX = 200;
 const KEEP = 60 * 60 * 24 * 400; // seconds, like the account's own record
 const key = (userId: string) => `about:${userId}`;
 
-/** trimmed, one paragraph, at most ABOUT_MAX characters, Swiss spelling */
+/** trimmed, one paragraph, at most ABOUT_MAX characters, Swiss spelling; anything that isn't text is empty */
 export const cleanAbout = (s: unknown) =>
-  String(s ?? "")
-    .replace(/\s+/g, " ")
-    .replace(/ß/g, "ss")
-    .trim()
-    .slice(0, ABOUT_MAX);
+  typeof s !== "string"
+    ? ""
+    : s
+        .replace(/\s+/g, " ")
+        .replace(/ß/g, "ss")
+        .trim()
+        .slice(0, ABOUT_MAX);
 
+// kept wrapped in an object: the Redis client parses stored text as JSON on read, so a bare "42" would come back as a number
 export async function getAbout(userId: string, store: Store = db) {
-  return (await store.get<string>(key(userId))) ?? "";
+  const v = await store.get<{ text?: unknown }>(key(userId));
+  return typeof v?.text === "string" ? v.text : "";
 }
 
 /** saves it; an empty text clears it */
 export async function setAbout(userId: string, text: string, store: Store = db) {
-  await store.set(key(userId), cleanAbout(text), { ex: cleanAbout(text) ? KEEP : 1 });
+  const clean = cleanAbout(text);
+  await store.set(key(userId), { text: clean }, { ex: clean ? KEEP : 1 });
 }
