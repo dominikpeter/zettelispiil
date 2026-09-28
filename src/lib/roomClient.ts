@@ -62,12 +62,13 @@ const recent: string[] = []; // names this phone was already offered: asked agai
 const builtOn = new Map<string, string>(); // suggestion → the typed name it was built on: pressing again restarts from "Beni", not "Alphornbläser-Beni"
 const MAX_NAME = 24;
 
-/** a funny name from the AI; with `base` (a name typed already) it builds on that name, e.g. "Beni" → "Alphornbläser-Beni" */
-export async function funnyName(kind: "player" | "team", lang: string, avoid: string[], fallback: string[], room?: AiRoom | null, base = "", prefixes: string[] = []) {
+/** a funny name from the AI; with `base` (a name typed already) it builds on that name, e.g. "Beni" → "Alphornbläser-Beni".
+ *  `me`: the phone's own player, so a signed-in player's "about me" can shape it */
+export async function funnyName(kind: "player" | "team", lang: string, avoid: string[], fallback: string[], room?: AiRoom | null, base = "", prefixes: string[] = [], me = false) {
   base = builtOn.get(base.trim()) ?? base.trim();
   try {
     if (aiPref.get() === "off") throw 0; // AI help switched off on this phone
-    const r = await fetch("/api/ai/names", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, lang, n: 1, avoid: [...avoid, ...recent].slice(-40), room, base }) }).then((x) => x.json());
+    const r = await fetch("/api/ai/names", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, lang, n: 1, avoid: [...avoid, ...recent].slice(-40), room, base, me }) }).then((x) => x.json());
     if (r?.ai && r.names?.[0]) {
       const name = String(r.names[0]);
       if (base) builtOn.set(name, base);

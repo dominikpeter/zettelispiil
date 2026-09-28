@@ -237,7 +237,7 @@ export default function Home() {
           <div key="online" className="enter flex flex-col gap-3">
             <div className="flex gap-2">
           <input aria-label={t.yourName} className={`${field} min-w-0 flex-1 font-semibold`} value={name} onChange={(e) => setName(e.target.value)} placeholder={t.yourName} maxLength={24} autoComplete="nickname" autoCorrect="off" spellCheck={false} />
-          <AiNameButton label={t.aiName} make={() => funnyName("player", lang, [name], t.funnyPlayers, null, name, t.namePrefixes)} onName={setName} className={fieldBtn} />
+          <AiNameButton label={t.aiName} make={() => funnyName("player", lang, [name], t.funnyPlayers, null, name, t.namePrefixes, true)} onName={setName} className={fieldBtn} />
         </div>
 
 

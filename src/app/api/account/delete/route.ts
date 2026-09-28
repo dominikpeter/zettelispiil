@@ -1,3 +1,4 @@
+import { setAbout } from "@/lib/about";
 import { currentUser, getAuth, revokeApple } from "@/lib/auth";
 import { forget } from "@/lib/usage";
 
@@ -11,6 +12,11 @@ export async function POST(req: Request) {
   if (typeof appleCode === "string" && appleCode && !(await revokeApple(appleCode).catch(() => false)))
     return Response.json({ error: "apple refused" }, { status: 502 });
   if (!(await forget(user.id))) return Response.json({ error: "not deleted" }, { status: 503 });
+  try {
+    await setAbout(user.id, ""); // what they wrote about themselves goes with the account
+  } catch {
+    return Response.json({ error: "not deleted" }, { status: 503 });
+  }
   // then its sessions: the server checks them in the store, not the cookie (currentUser), so every copy is out at once.
   // If this fails, say so: the phone is still signed in and can try again (forgetting twice is harmless)
   try {

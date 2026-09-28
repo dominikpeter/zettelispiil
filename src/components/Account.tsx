@@ -1,7 +1,7 @@
 "use client";
 
-import { LogOut, Mail, Trash2 } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { Check, LogOut, Mail, Sparkles, Trash2 } from "lucide-react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useT } from "@/lib/prefs";
 import { deleteAccount, sendCode, signIn, signInWithCode, signOut, useAiStatus, warmAuth, type Provider } from "@/lib/aiAccess";
 import { Confirm } from "@/components/game/common";
@@ -47,6 +47,85 @@ const NAME: Record<Social, string> = { apple: "Apple", google: "Google", github:
 
 /** sign-in buttons, or who is signed in; renders nothing when sign-in isn't set up */
 const noop = () => () => {};
+const ABOUT_MAX = 200; // the server keeps at most this much (lib/about.ts)
+
+/** signed in: a few words about yourself, for the AI to build your nickname and Zetteli ideas on */
+function AboutMe() {
+  const t = useT();
+  const [saved, setSaved] = useState<string | null>(null); // null: still loading
+  const [text, setText] = useState("");
+  const [state, setState] = useState<"" | "busy" | "ok" | "err">("");
+  useEffect(() => {
+    let on = true;
+    fetch("/api/account/about", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { about: "" }))
+      .then((r: { about?: string }) => {
+        if (!on) return;
+        setSaved(r.about ?? "");
+        setText(r.about ?? "");
+      })
+      .catch(() => on && setSaved(""));
+    return () => void (on = false);
+  }, []);
+  const save = async () => {
+    setState("busy");
+    try {
+      const r = await fetch("/api/account/about", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ about: text }) });
+      if (!r.ok) throw new Error(String(r.status));
+      const { about } = (await r.json()) as { about: string };
+      setSaved(about);
+      setText(about);
+      setState("ok");
+    } catch {
+      setState("err");
+    }
+  };
+  const dirty = saved !== null && text.trim() !== saved;
+  return (
+    <form
+      className="flex flex-col gap-1.5 pt-1"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (dirty) void save();
+      }}
+    >
+      <label htmlFor="about-me" className="flex items-center gap-2 text-sm font-semibold">
+        <Sparkles className="size-4 text-accent" aria-hidden /> {t.aboutMe}
+      </label>
+      <p id="about-me-help" className="text-xs leading-snug text-muted">
+        {t.aboutMeHelp}
+      </p>
+      <textarea
+        id="about-me"
+        value={text}
+        disabled={saved === null}
+        maxLength={ABOUT_MAX}
+        rows={3}
+        placeholder={t.aboutMePh}
+        aria-describedby="about-me-help"
+        onChange={(e) => {
+          setText(e.target.value);
+          setState("");
+        }}
+        className={`${field} h-auto resize-none py-2.5 text-base leading-snug`}
+      />
+      <div className="flex items-center justify-between gap-3">
+        <p role="status" className="text-sm font-medium">
+          {state === "ok" && !dirty && (
+            <span className="enter inline-flex items-center gap-1 text-accent">
+              <Check className="size-4" aria-hidden /> {t.aboutSaved}
+            </span>
+          )}
+          {state === "err" && <span className="enter text-hi">{t.aboutFailed}</span>}
+          {!state && <span className="text-xs text-muted tabular-nums">{text.length} / {ABOUT_MAX}</span>}
+        </p>
+        <button type="submit" disabled={!dirty || state === "busy"} className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-accent px-4 text-sm font-semibold text-canvas disabled:opacity-40 ${press}`}>
+          {t.aboutSave}
+        </button>
+      </div>
+    </form>
+  );
+}
 
 export function Account() {
   const t = useT();
@@ -81,6 +160,7 @@ export function Account() {
             <LogOut className="size-4" aria-hidden /> {t.signOut}
           </button>
         </div>
+        <AboutMe />
         {/* App Review 5.1.1(v): an app that creates accounts lets people delete them in the app */}
         <button type="button" onClick={() => setAsking(true)} className={`flex min-h-11 items-center gap-1.5 self-start rounded-xl px-3 text-sm font-semibold text-muted hover:bg-surface hover:text-ink ${press}`}>
           <Trash2 className="size-3.5" aria-hidden /> {t.deleteAccount}
