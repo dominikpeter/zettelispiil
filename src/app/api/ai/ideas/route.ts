@@ -1,3 +1,4 @@
+import { logSafe } from "@/lib/logSafe";
 import { aiLive, suggestWords } from "@/lib/ai";
 import { aboutMe, lang, refusal, refused } from "../guard";
 
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
   try {
     return Response.json({ ai: true, words: await suggestWords(topic, lang(body?.lang), avoid, await aboutMe(req, body?.me)) });
   } catch (e) {
-    console.error("ai ideas failed", e);
+    console.error("ai ideas failed", logSafe(e));
     return Response.json({ ai: false, error: "ai_failed" });
   }
 }

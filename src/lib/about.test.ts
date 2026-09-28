@@ -12,6 +12,17 @@ test("about you: one line, Swiss spelling, at most 200 characters, anything that
   assert.equal(cleanAbout({}), "");
 });
 
+test("about you: stored under a hash of the account, never under the readable address", async () => {
+  const mem = memoryStore();
+  const keys: string[] = [];
+  const spy = { ...mem, set: async (k: string, v: unknown, o: { ex: number; nx?: boolean }) => (keys.push(k), mem.set(k, v, o)) } as typeof mem;
+  await setAbout("lisa@example.ch", "liebt Rösti", spy);
+  assert.equal(keys.length, 1);
+  assert.match(keys[0], /^about:[0-9a-f]{64}$/);
+  assert.ok(!keys[0].includes("lisa"));
+  assert.equal(await getAbout("lisa@example.ch", spy), "liebt Rösti");
+});
+
 test("about you: a text that looks like JSON (\"42\", \"true\") comes back as text, even from a store that parses JSON like Redis", async () => {
   const mem = memoryStore();
   const parsing = { ...mem, get: async <T,>(k: string) => JSON.parse(JSON.stringify(await mem.get<T>(k))) as T } as typeof mem; // what @upstash/redis hands back

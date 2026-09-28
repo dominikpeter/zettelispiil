@@ -2,11 +2,13 @@
 // own nickname and word ideas around it. One short text per account in the store (Redis; memory without it), kept
 // about a year after the last change, gone with the account. It only ever goes into that player's own AI calls, never
 // into the shared name and idea pools
+import { createHash } from "node:crypto";
 import { db, type Store } from "./store";
 
 export const ABOUT_MAX = 200;
 const KEEP = 60 * 60 * 24 * 400; // seconds, like the account's own record
-const key = (userId: string) => `about:${userId}`;
+// the account id is the e-mail address: hashed, so the text isn't stored under a readable address
+const key = (userId: string) => `about:${createHash("sha256").update(userId.toLowerCase()).digest("hex")}`;
 
 /** trimmed, one paragraph, at most ABOUT_MAX characters, Swiss spelling; anything that isn't text is empty */
 export const cleanAbout = (s: unknown) =>

@@ -11,6 +11,7 @@ import { cachedEach, fromPool, ideasFor, key, shuffle } from "./aiCache";
 import { supplyZetteli } from "./aiZetteli";
 import { norm, type Slip } from "./room";
 import { topicById } from "./topics";
+import { logSafe } from "./logSafe";
 
 const env = process.env;
 export const aiEnabled = () => !!(env.OPENROUTER_API_KEY || env.OPENAI_API_KEY);
@@ -35,7 +36,7 @@ const generate = (async (args: Parameters<typeof generateText>[0]) => {
     return await generateText({ maxRetries: fallback ? 1 : 2, ...args });
   } catch (e) {
     if (!fallback) throw e;
-    console.warn("AI: first model failed, trying the fallback", e instanceof Error ? e.message : e);
+    console.warn("AI: first model failed, trying the fallback", logSafe(e));
     return generateText({ ...args, model: fallback() });
   }
 }) as typeof generateText;

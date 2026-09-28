@@ -1,3 +1,4 @@
+import { logSafe } from "@/lib/logSafe";
 import { aiLive, funnyNames } from "@/lib/ai";
 import { aboutMe, lang, refusal, refused } from "../guard";
 
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
     const about = kind === "player" ? await aboutMe(req, body?.me) : "";
     return Response.json({ ai: true, names: await funnyNames(kind, lang(body?.lang), n, avoid, base, about) });
   } catch (e) {
-    console.error("ai names failed", e);
+    console.error("ai names failed", logSafe(e));
     return Response.json({ ai: false, error: "ai_failed" });
   }
 }

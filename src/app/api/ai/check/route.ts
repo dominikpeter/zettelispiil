@@ -1,3 +1,4 @@
+import { logSafe } from "@/lib/logSafe";
 import { aiLive, checkWords } from "@/lib/ai";
 import { lang, refusal, refused } from "../guard";
 
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
   try {
     return Response.json({ ai: true, results: await checkWords(words, lang(body?.lang)) });
   } catch (e) {
-    console.error("ai check failed", e);
+    console.error("ai check failed", logSafe(e));
     return Response.json({ ai: false, error: "ai_failed" }); // the game goes on without it
   }
 }

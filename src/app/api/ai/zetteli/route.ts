@@ -1,3 +1,4 @@
+import { logSafe } from "@/lib/logSafe";
 import { aiLive, aiZetteli } from "@/lib/ai";
 import { zetteliRequest } from "@/lib/aiZetteli";
 import { refusal, refused } from "../guard";
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
   try {
     return Response.json({ ai: true, words: await aiZetteli(count, topics, lang) });
   } catch (e) {
-    console.error("ai zetteli failed", e);
+    console.error("ai zetteli failed", logSafe(e));
     return Response.json({ ai: false, error: "ai_failed" }); // the host can switch to writing them
   }
 }
