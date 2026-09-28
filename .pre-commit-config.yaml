@@ -1,5 +1,6 @@
 # prek (https://github.com/j178/prek) runs these on every commit. Install once: `just setup`.
 default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit] # the checks run once, on the files; the commit-msg stage only checks the message
 repos:
   - repo: builtin
     hooks:
