@@ -42,11 +42,12 @@ Run `just` to list recipes. Prefer them over raw commands so everyone runs the s
 
 - New tasks go in the `justfile` as a thin recipe with a one-line `#` comment (it shows in `just --list`). Logic longer than a few lines goes in `scripts/*.sh` (`set -euo pipefail`, run from repo root) and the recipe calls it.
 - Scripts that need secrets prompt with `read -rs` and never echo them. Agents never type, paste, or commit secrets; the user runs such scripts.
-- Git hooks are managed by prek (`.pre-commit-config.yaml`): secret scan, eslint, tsc, unit tests. Don't bypass with `--no-verify`.
+- Git hooks are managed by prek (`.pre-commit-config.yaml`): secret scan, merge markers, big files, JSON/YAML, eslint, tsc, unit tests, Swiss spelling (no "ß" in `i18n.ts` and the manual), and on the message: `type(scope): summary` (feat, fix, docs, perf, refactor, test, ci, build, chore, style, revert, release). Don't bypass with `--no-verify`.
+- Claude hooks (`.claude/settings.json`): before a command, `--no-verify`, pushes to `main` and force-pushes are refused, and a push to `dev` asks first while a release pull request is open; after an edit, the file is linted and errors come straight back; after a commit, a reminder if the manual or the tour may need an update.
 
 ## Conventions
 
 - UI strings live in `src/lib/i18n.ts` in DE (default, Swiss spelling: "ss", never "ß"), EN and FR. Add all three.
 - Icons from lucide-react, no emojis. Colours only through theme tokens (`@shadcn/lint` rejects raw colours and unknown classes).
 - Mobile first: check the WebKit iPhone layout tests (`e2e/layout.spec.ts`) when changing play screens.
-- Player-facing changes: update `docs/MANUAL.md` in the same commit (a Claude hook reminds you after each commit).
+- Player-facing changes: update `docs/MANUAL.md` in the same commit, and the tour (`/anleitung`, `guide` in `i18n.ts`) if it no longer matches (a Claude hook reminds you after each commit).

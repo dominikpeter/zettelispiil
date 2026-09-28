@@ -93,7 +93,10 @@ const encoded = (v: unknown) => typeof v === "string" ? v : JSON.stringify(v);
 
 export function redisStore(redis: Redis, lease?: { key: string; token: string }): Store {
   const write = async (commands: (string | number)[][]) => {
-    try { return await redis.eval<string[], unknown[]>(FENCED_WRITE, [lease!.key], [lease!.token, JSON.stringify(commands)]); }
+    // every key the script touches is declared (KEYS[1] the lock, then each command's key), as Redis scripting asks:
+    // hosted Redis may route or refuse access to undeclared keys
+    const keys = [lease!.key, ...new Set(commands.map((c) => String(c[1])))];
+    try { return await redis.eval<string[], unknown[]>(FENCED_WRITE, keys, [lease!.token, JSON.stringify(commands)]); }
     catch (e) {
       if (e instanceof Error && e.message.includes("room lock expired")) throw new StoreBusyError("room lock expired");
       throw e;

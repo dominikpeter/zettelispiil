@@ -160,30 +160,93 @@ test("sign in with a code by email: wrong code refused, right code signs in, sig
   await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible();
 });
 
-test("delete the account: asked first inside the app, then signed out, and even a copied cookie is out", async ({ page, request }) => {
-  test.skip(!!process.env.BASE_URL, "needs the local e2e server's fixed code");
-  await page.goto("/");
-  await openSettings(page);
-  await page.getByLabel("E-Mail-Adresse").fill("delete-me@example.com");
+/** sign in on the real e2e server with its fixed code; leaves the settings sheet open */
+async function signInByCode(page: Page, email: string) {
+  await page.getByLabel("E-Mail-Adresse").fill(email);
   await page.getByRole("button", { name: "Code per E-Mail" }).click();
   await page.getByLabel("Code aus der E-Mail").fill("123456");
   await page.getByRole("button", { name: "Anmelden", exact: true }).click();
-  await expect(page.getByText("delete-me@example.com", { exact: true })).toBeVisible();
+  await expect(page.getByText(email, { exact: true })).toBeVisible();
+}
+
+// one test for both: the e2e server allows 3 code mails a minute from one network, like production, and every sign-in is one
+test("about you, then delete the account: the text is kept and back after a reload; deleting asks first, signs out everywhere and takes the text along", async ({ page, request }) => {
+  test.skip(!!process.env.BASE_URL, "needs the local e2e server's fixed code");
+  expect((await request.get("/api/account/about")).status()).toBe(401); // nobody signed in: nothing to read
+  await page.goto("/");
+  await openSettings(page);
+  await expect(page.getByLabel("Über dich")).toHaveCount(0); // signed out: no box
+  await signInByCode(page, "about-me@example.com");
+
+  const about = page.getByLabel("Über dich");
+  await expect(about).toHaveValue("");
+  const save = page.getByRole("button", { name: "Speichern" });
+  await expect(save).toBeDisabled(); // nothing changed yet
+  await about.fill("spielt  Alphorn,\nliebt Rösti und die Straße nach Arosa");
+  await save.click();
+  await expect(page.getByText("Gespeichert")).toBeVisible();
+  await expect(about).toHaveValue("spielt Alphorn, liebt Rösti und die Strasse nach Arosa"); // one line, Swiss spelling
+  await expect(save).toBeDisabled();
+
+  await page.reload();
+  await openSettings(page);
+  await expect(page.getByLabel("Über dich")).toHaveValue("spielt Alphorn, liebt Rösti und die Strasse nach Arosa");
+  expect(await about.evaluate((e: HTMLTextAreaElement) => e.maxLength)).toBe(200);
+
   const copied = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join("; ");
 
+  // delete the account: asked first inside the app
   await page.getByRole("button", { name: "Konto löschen" }).click();
   await page.getByRole("button", { name: "Behalten" }).click(); // changed my mind: nothing happens
-  await expect(page.getByText("delete-me@example.com", { exact: true })).toBeVisible();
+  await expect(page.getByText("about-me@example.com", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Konto löschen" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Konto löschen" }).click();
   await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible(); // signed out
   await page.reload();
   await openSettings(page);
   await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible();
-  await expect(page.getByText("delete-me@example.com", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("about-me@example.com", { exact: true })).toHaveCount(0);
   // a copy of the old cookie (another tab, another device) signs no one in: the session ended on the server
-  const status = await (await request.get("/api/ai/status", { headers: { cookie: copied } })).json();
-  expect(status.user).toBeNull();
+  expect((await (await request.get("/api/ai/status", { headers: { cookie: copied } })).json()).user).toBeNull();
+  expect((await request.get("/api/account/about", { headers: { cookie: copied } })).status()).toBe(401);
+  // and the text went with the account: signed in again with the same address, the box is empty
+  await signInByCode(page, "about-me@example.com");
+  await expect(page.getByLabel("Über dich")).toHaveValue("");
+});
+
+test("about you goes only into the phone's own player: the own nickname asks with me, other names and one-phone Zetteli don't", async ({ page }) => {
+  await status(page, { name: "Lisa Muster", email: "lisa@example.ch" });
+  await page.route("**/api/account/about", (r) => r.fulfill({ json: { about: "spielt Alphorn" } }));
+  const names: { base: string; me: boolean }[] = [];
+  await page.route("**/api/ai/names", async (r) => {
+    const { base, me } = r.request().postDataJSON();
+    names.push({ base, me: !!me });
+    await r.fulfill({ json: { ai: true, names: [`Alphorn-${base}`] } });
+  });
+  const ideas: boolean[] = [];
+  await page.route("**/api/ai/ideas", async (r) => {
+    ideas.push(!!r.request().postDataJSON().me);
+    await r.fulfill({ json: { ai: true, words: ["Alphorn", "Rösti", "Arosa"] } });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Spieler 1: Lustigen Namen erfinden" }).click(); // one phone: a player, not the account
+  await expect.poll(() => names).toEqual([{ base: "Lisa", me: false }]);
+
+  await page.getByRole("button", { name: /Mehrere Handys/ }).click();
+  await page.getByLabel("Dein Name").fill("Beni");
+  await page.getByRole("button", { name: "Lustigen Namen erfinden", exact: true }).click(); // my own name
+  await expect.poll(() => names.at(-1)).toEqual({ base: "Beni", me: true });
+  await expect(page.getByLabel("Dein Name")).toHaveValue("Alphorn-Beni");
+
+  // one phone passed around: whoever holds it writes, so their ideas don't use the account's "about you"
+  await page.getByRole("button", { name: /Ein Handy/ }).click();
+  await page.getByRole("button", { name: "Neues Spiel" }).click();
+  await page.waitForURL(/\/local$/);
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  await page.getByRole("button", { name: /^Ich bin / }).click();
+  await page.getByLabel(/^Thema/).fill("Schweiz");
+  await page.getByRole("button", { name: "Vorschläge holen" }).click();
+  await expect.poll(() => ideas).toEqual([false]);
 });
 
 test("live: a code mail really goes out through Resend", async ({ page }) => {

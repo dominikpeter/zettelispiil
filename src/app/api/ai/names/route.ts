@@ -1,7 +1,9 @@
+import { logSafe } from "@/lib/logSafe";
 import { aiLive, funnyNames } from "@/lib/ai";
-import { lang, refusal, refused } from "../guard";
+import { aboutMe, lang, refusal, refused } from "../guard";
 
-// POST { kind: "player" | "team", lang, n, avoid, base?, room? } (base: a name typed already, to build the funny one around) → { ai: false } | { ai: true, names: string[] }
+// POST { kind: "player" | "team", lang, n, avoid, base?, room?, me? } (base: a name typed already, to build the funny one
+// around; me: it's the signed-in player's own name, so what they wrote about themselves shapes it) → { ai: false } | { ai: true, names: string[] }
 export async function POST(req: Request) {
   if (!(await aiLive())) return Response.json({ ai: false });
   const body = await req.json().catch(() => ({}));
@@ -12,9 +14,10 @@ export async function POST(req: Request) {
   const avoid = Array.isArray(body?.avoid) ? body.avoid.slice(0, 40).map((a: unknown) => String(a).slice(0, 24)) : []; // names in play plus this phone's recent suggestions
   try {
     const base = String(body?.base ?? "").trim().slice(0, 24); // names are at most 24 long; one that can't fit gets no suggestions and the phone falls back
-    return Response.json({ ai: true, names: await funnyNames(kind, lang(body?.lang), n, avoid, base) });
+    const about = kind === "player" ? await aboutMe(req, body?.me) : "";
+    return Response.json({ ai: true, names: await funnyNames(kind, lang(body?.lang), n, avoid, base, about) });
   } catch (e) {
-    console.error("ai names failed", e);
+    console.error("ai names failed", logSafe(e));
     return Response.json({ ai: false, error: "ai_failed" });
   }
 }

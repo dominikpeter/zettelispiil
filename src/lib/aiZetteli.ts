@@ -6,6 +6,7 @@ import type { Lang } from "./i18n.ts";
 import { MAX_AI_WORDS, norm, type Slip } from "./room.ts";
 import { TOPIC_IDS } from "./topics.ts";
 import { shuffle } from "./aiCache.ts";
+import { logSafe } from "./logSafe.ts";
 import { redis as live } from "./store.ts";
 
 const DAY = 86_400; // seconds
@@ -113,7 +114,7 @@ export async function supplyZetteli({ lang, topics, count, write, now = Date.now
         // about twice what this game needs: filtering out the recent ones still leaves plenty, the rest fills the pool with variety
         return { topic, ok: true, slips: shuffle(await write(topic, lang, Math.min(ASK_MAX, n * 2 + 10), avoid)) };
       } catch (e) {
-        console.error("ai zetteli failed", topic, e);
+        console.error("ai zetteli failed", topic, logSafe(e));
         return { topic, ok: false, slips: [] as Slip[] };
       }
     }),

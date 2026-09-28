@@ -22,6 +22,8 @@ const WORDS = ["Matterhorn", "Rösti", "Velo", "Fondue"];
 // one scene per chapter, in the order of `guide.steps` in i18n.ts
 const SCENES = ["table", "teams", "setup", "write", "explain", "pass", "heckle", "rounds", "draw", "win"] as const;
 const at = (id: (typeof SCENES)[number]) => SCENES.indexOf(id);
+/** reduced motion asked for: the scenes' little loops stay put (the CSS already stops their animations) */
+const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 // the step bar's icon per chapter
 const ICONS = [Users, Shuffle, SlidersHorizontal, PenLine, MessageCircle, SkipForward, Zap, Repeat, Brush, Trophy];
 // the scene's tint per chapter (theme tokens only)
@@ -96,8 +98,8 @@ export default function Guide() {
       setStep(i);
       const h = pinned.current?.offsetHeight ?? 0;
       setPad(h);
-      // the scene as big as fits: nearly edge to edge, up to 58% of the screen's height
-      setZoom(Math.min(((pinned.current?.clientWidth ?? STAGE_W + 16) - 16) / STAGE_W, (innerHeight * 0.58) / STAGE_H));
+      // the drawing scaled to its CSS-sized frame
+      setZoom((pinned.current?.querySelector<HTMLElement>("[data-stage]")?.clientWidth ?? STAGE_W) / STAGE_W);
       const last = sections.current[n - 1];
       if (last && end.current) setTail(Math.max(0, innerHeight - h - 8 - last.offsetHeight - end.current.offsetHeight));
     };
@@ -189,7 +191,14 @@ function Stage({ step, zoom }: { step: number; zoom: number }) {
   const t = useT();
   const scene = SCENES[step];
   return (
-    <div aria-hidden className="mx-auto" style={{ width: STAGE_W * zoom, height: STAGE_H * zoom }}>
+    // the frame is sized by CSS (nearly edge to edge, at most 58% of the screen's height), so nothing jumps when the
+    // drawing inside is scaled to it after the first paint
+    <div
+      aria-hidden
+      data-stage
+      className="mx-auto overflow-hidden rounded-4xl"
+      style={{ width: `min(100%, calc(58svh * ${STAGE_W / STAGE_H}))`, aspectRatio: `${STAGE_W} / ${STAGE_H}` }}
+    >
       <div
         className={`relative origin-top-left overflow-hidden rounded-4xl ${TINT[step]} transition-colors duration-500 ${styles.stage}`}
         style={{ width: STAGE_W, height: STAGE_H, scale: String(zoom) }}
@@ -277,6 +286,7 @@ function Turn({ dir, word, label }: { dir: "right" | "left"; word: string; label
   const [left, setLeft] = useState(30_000);
   const [score, setScore] = useState(0);
   useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
     const tick = setInterval(() => setLeft((l) => (l <= 1000 ? 30_000 : l - 1000)), 1000);
     const point = dir === "right" ? setInterval(() => setScore((s) => s + 1), 3200) : undefined;
     return () => (clearInterval(tick), clearInterval(point));
@@ -311,6 +321,7 @@ function Rounds() {
   const t = useT();
   const [i, setI] = useState(0);
   useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
     const id = setInterval(() => setI((x) => (x + 1) % ONLINE_DEFAULT_ROUNDS.length), 1200);
     return () => clearInterval(id);
   }, []);
@@ -335,6 +346,7 @@ function Teams() {
   const t = useT();
   const [k, setK] = useState(0);
   useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
     const id = setInterval(() => setK((x) => (x + 1) % 4), 1400);
     return () => clearInterval(id);
   }, []);
@@ -371,6 +383,7 @@ function Heckle() {
   const t = useT();
   const [n, setN] = useState(0);
   useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
     const id = setInterval(() => setN((x) => x + 1), 3600);
     return () => clearInterval(id);
   }, []);
@@ -398,6 +411,7 @@ function Setup() {
   const t = useT();
   const [k, setK] = useState(0);
   useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
     const id = setInterval(() => setK((x) => (x + 1) % 4), 1400);
     return () => clearInterval(id);
   }, []);
@@ -439,6 +453,7 @@ function Setup() {
 function Draw() {
   const [n, setN] = useState(0);
   useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
     const id = setInterval(() => setN((x) => x + 1), 3200);
     return () => clearInterval(id);
   }, []);

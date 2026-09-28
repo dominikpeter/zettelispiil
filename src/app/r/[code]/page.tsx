@@ -183,7 +183,7 @@ export default function Room() {
               <input value={name} maxLength={24} autoComplete="nickname" autoCorrect="off" spellCheck={false} placeholder={t.yourName} aria-label={t.yourName} onChange={(e) => setName(e.target.value)} className={`${field} min-w-0 flex-1 text-center font-semibold`} />
               <AiNameButton
                 label={t.aiName}
-                make={() => funnyName("player", langPref.get(), [name], t.funnyPlayers, null, name, t.namePrefixes)}
+                make={() => funnyName("player", langPref.get(), [name], t.funnyPlayers, null, name, t.namePrefixes, true)}
                 onName={setName}
                 className={fieldBtn}
               />

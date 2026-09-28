@@ -1,4 +1,5 @@
 import { Ratelimit } from "@upstash/ratelimit";
+import { getAbout } from "@/lib/about";
 import { authEnabled, currentUser } from "@/lib/auth";
 import { roomAi } from "@/lib/room";
 import { db, ipOf, redis } from "@/lib/store";
@@ -49,3 +50,11 @@ export async function refused(req: Request, room?: { code?: unknown; pid?: unkno
 export const refusal = (why: "login" | "rate_limited") => Response.json({ ai: false, error: why }, { status: why === "login" ? 401 : 429 });
 
 export const lang = (l: unknown) => (l === "en" || l === "fr" ? l : "de");
+
+/** `me`: the phone asks for its own player (their nickname, their own Zetteli). Only then, and only for the signed-in
+ *  account itself, what they wrote about themselves goes into the prompt; "" otherwise (or when it can't be read) */
+export async function aboutMe(req: Request, me: unknown) {
+  if (me !== true) return "";
+  const user = await currentUser(req);
+  return user ? await getAbout(user.id).catch(() => "") : "";
+}

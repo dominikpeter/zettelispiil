@@ -11,7 +11,7 @@ import { Cta, type P } from "./common";
 type Check = { corrected: string; tooHard: boolean; reason: string; hint: string };
 const CHECK_DELAY = 450; // ms of calm typing before a word is checked (short: the answer itself takes ~2 s)
 
-export function Write({ v, send, busy }: P) {
+export function Write({ v, send, busy, mode }: P) {
   const t = useT();
   const lang = v.settings.lang; // the Zetteli's language, set by the host; the UI stays in this phone's language
   const aiOn = useAiOn(); // switched on here, and signed in (or in a signed-in host's room) where that's required
@@ -112,6 +112,7 @@ export function Write({ v, send, busy }: P) {
       {aiOn && (
         <Ideas
           lang={lang}
+          me={mode === "online"}
           avoid={words.filter(Boolean)}
           full={draft.every((d) => d.word.trim())}
           onPick={(w) => {
@@ -206,7 +207,9 @@ export function Write({ v, send, busy }: P) {
 }
 
 /** topic in, three AI suggestions out; tapping one puts it on the next empty Zetteli */
-function Ideas({ lang, avoid, full, onPick }: { lang: string; avoid: string[]; full: boolean; onPick: (w: string) => void }) {
+// me: in a room each phone is its own player, so a signed-in writer's "about me" may flavour the ideas; on one shared
+// phone the writer is whoever holds it, not the account
+function Ideas({ lang, me, avoid, full, onPick }: { lang: string; me: boolean; avoid: string[]; full: boolean; onPick: (w: string) => void }) {
   const t = useT();
   const aiRoom = useAiRoom();
   const [topic, setTopic] = useState("");
@@ -215,7 +218,7 @@ function Ideas({ lang, avoid, full, onPick }: { lang: string; avoid: string[]; f
   const get = async () => {
     setLoading(true);
     try {
-      const r = await fetch("/api/ai/ideas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic, lang, avoid, room: aiRoom }) }).then((x) => x.json());
+      const r = await fetch("/api/ai/ideas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic, lang, avoid, room: aiRoom, me }) }).then((x) => x.json());
       setIdeas(r?.ai && Array.isArray(r.words) && r.words.length ? r.words : []);
     } catch {
       setIdeas([]);
