@@ -22,6 +22,8 @@ const WORDS = ["Matterhorn", "Rösti", "Velo", "Fondue"];
 // one scene per chapter, in the order of `guide.steps` in i18n.ts
 const SCENES = ["table", "teams", "setup", "write", "explain", "pass", "heckle", "rounds", "draw", "win"] as const;
 const at = (id: (typeof SCENES)[number]) => SCENES.indexOf(id);
+/** reduced motion asked for: the scenes' little loops stay put (the CSS already stops their animations) */
+const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 // the step bar's icon per chapter
 const ICONS = [Users, Shuffle, SlidersHorizontal, PenLine, MessageCircle, SkipForward, Zap, Repeat, Brush, Trophy];
 // the scene's tint per chapter (theme tokens only)
@@ -284,6 +286,7 @@ function Turn({ dir, word, label }: { dir: "right" | "left"; word: string; label
   const [left, setLeft] = useState(30_000);
   const [score, setScore] = useState(0);
   useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
     const tick = setInterval(() => setLeft((l) => (l <= 1000 ? 30_000 : l - 1000)), 1000);
     const point = dir === "right" ? setInterval(() => setScore((s) => s + 1), 3200) : undefined;
     return () => (clearInterval(tick), clearInterval(point));
@@ -318,6 +321,7 @@ function Rounds() {
   const t = useT();
   const [i, setI] = useState(0);
   useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
     const id = setInterval(() => setI((x) => (x + 1) % ONLINE_DEFAULT_ROUNDS.length), 1200);
     return () => clearInterval(id);
   }, []);
@@ -342,6 +346,7 @@ function Teams() {
   const t = useT();
   const [k, setK] = useState(0);
   useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
     const id = setInterval(() => setK((x) => (x + 1) % 4), 1400);
     return () => clearInterval(id);
   }, []);
@@ -378,6 +383,7 @@ function Heckle() {
   const t = useT();
   const [n, setN] = useState(0);
   useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
     const id = setInterval(() => setN((x) => x + 1), 3600);
     return () => clearInterval(id);
   }, []);
@@ -405,6 +411,7 @@ function Setup() {
   const t = useT();
   const [k, setK] = useState(0);
   useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
     const id = setInterval(() => setK((x) => (x + 1) % 4), 1400);
     return () => clearInterval(id);
   }, []);
@@ -446,6 +453,7 @@ function Setup() {
 function Draw() {
   const [n, setN] = useState(0);
   useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
     const id = setInterval(() => setN((x) => x + 1), 3200);
     return () => clearInterval(id);
   }, []);

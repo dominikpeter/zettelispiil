@@ -97,6 +97,8 @@ function AboutMe() {
       </p>
       <textarea
         id="about-me"
+        name="about"
+        autoComplete="off"
         value={text}
         disabled={saved === null}
         maxLength={ABOUT_MAX}
@@ -120,7 +122,7 @@ function AboutMe() {
           {!state && <span className="text-xs text-muted tabular-nums">{text.length} / {ABOUT_MAX}</span>}
         </p>
         <button type="submit" disabled={!dirty || state === "busy"} className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-accent px-4 text-sm font-semibold text-canvas disabled:opacity-40 ${press}`}>
-          {t.aboutSave}
+          {state === "busy" ? t.aboutSaving : t.aboutSave}
         </button>
       </div>
     </form>
