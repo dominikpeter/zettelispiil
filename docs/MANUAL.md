@@ -6,7 +6,7 @@ Zettelispiil ist das Schweizer Partyspiel mit Zetteli, direkt im Browser auf [ze
 
 Alle schreiben Begriffe auf Zetteli: Personen, Orte, Dinge, Filme, alles, was sich erklären lässt. Die Zetteli kommen in die Schüssel. Zwei bis vier Teams spielen abwechselnd: Eine Person zieht Zetteli und bringt ihr Team dazu, so viele wie möglich zu erraten, bevor die Zeit abläuft.
 
-Ist die Schüssel leer, ist die Runde vorbei und alle Zetteli kommen wieder hinein. Es bleiben immer dieselben Begriffe, aber die Regeln werden von Runde zu Runde strenger. Gespielt wird in bis zu fünf Runden. Am Schluss gewinnt das Team mit den meisten erratenen Zetteli.
+Jedes Zetteli wird zufällig aus denen gezogen, die noch in der Schüssel liegen, also auch nach jedem Wechsel und in jeder Runde neu gemischt; niemand kann die Reihenfolge vorhersagen. Erratene bleiben bis zur nächsten Runde draussen. Läuft die Zeit ab, kommt das Zetteli in der Hand (und was beiseitegelegt war) zurück in die Schüssel, aber nicht gleich als erstes Zetteli der nächsten Person, ausser es ist das letzte. Ist die Schüssel leer, ist die Runde vorbei und alle Zetteli kommen wieder hinein. Es bleiben immer dieselben Begriffe, aber die Regeln werden von Runde zu Runde strenger. Gespielt wird in bis zu fünf Runden. Am Schluss gewinnt das Team mit den meisten erratenen Zetteli.
 
 ## Ein Handy oder mehrere Handys
 
@@ -88,6 +88,16 @@ Runden anpassen («Reihenfolge ändern oder Runden weglassen»):
 - **Hinzufügen**: Weggelassene Runden erscheinen darunter und lassen sich mit einem Tipp wieder hinzufügen.
 
 Insgesamt sind so bis zu fünf Runden möglich.
+
+### Knigge: fair spielen
+
+Damit's für alle lustig bleibt, gilt ein bisschen Anstand. Das Spiel prüft das nicht, das macht ihr untereinander:
+
+- **Pantomime**: Nicht auf Gegenstände im Raum zeigen.
+- **Geräusch**: Dreh dich um, sonst hilft die Mimik mit. Es zählt nur das Geräusch, und nur eins: «Bu-bumm» gilt als ein Geräusch.
+- **Nichts notieren**: Nach der ersten Runde die gemerkten Begriffe aufschreiben ist kein Fairplay.
+- **Nicht übersetzen**: Den Begriff nicht einfach in eine andere Sprache übersetzen, 1:1 gilt nicht.
+- **Keine Wortteile**: Kein Teil des Begriffs darf vorkommen. «Langeweile» nicht mit «Weile» erklären; bei «Froschkönig» sind «Frosch» und «König» tabu.
 
 ## Zetteli schreiben
 
@@ -206,7 +216,7 @@ Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 - **Spendier mir einen Kaffee**: Zettelispiil ist gratis und ohne Werbung. Wer mag, spendiert einen kleinen (CHF 1), grossen (CHF 5) oder Deluxe-Kaffee (CHF 10) oder einen eigenen Betrag. Bezahlt wird bei Stripe (Karte, Apple Pay, Google Pay), danach kommst du zurück ins Spiel. In der iPhone-App gibt es die drei Kaffees als In-App-Kauf über den App Store (ohne eigenen Betrag). Muss ein Kauf erst noch bestätigt werden, zum Beispiel von den Eltern, steht das gleich darunter.
 - **Teilen**: **WhatsApp** oder **Link kopieren**, um Zettelispiil weiterzuempfehlen.
 - Ganz unten: **Problem mit der App? Hier melden** führt zu den GitHub-Issues, wo du Fehler melden kannst. **Datenschutz** zeigt, welche Daten wo und wie lange gespeichert werden. Darunter «Gemacht mit ♥ von Dominik», der Link zu GitHub und die Version.
-- **So geht's**: Auf der Startseite (unter dem kurzen Text) und in den Einstellungen ganz unten öffnet sich eine kleine Tour: Beim Scrollen spielt eine Szene rund um die Schüssel das Spiel in zehn Schritten durch, von den Teams über die Einstellungen, das Stören und das Zeichnen bis zum Sieg. Jedes Wischen rastet beim nächsten Schritt ein. Die Symbole über der Szene zeigen, wo du bist; ein Tipp darauf springt zu diesem Schritt. **Los geht's** führt zurück zur Startseite.
+- **So geht's**: Auf der Startseite (unter dem kurzen Text) und in den Einstellungen ganz unten öffnet sich eine kleine Tour: Beim Scrollen spielt eine Szene rund um die Schüssel das Spiel in elf Schritten durch, von den Teams über die Einstellungen, das Stören, das Zeichnen und den Knigge (siehe «Knigge: fair spielen») bis zum Sieg. Jedes Wischen rastet beim nächsten Schritt ein. Die Symbole über der Szene zeigen, wo du bist; ein Tipp darauf springt zu diesem Schritt. **Los geht's** führt zurück zur Startseite.
 - Führt ein Link ins Leere (eine Adresse, die es nicht gibt), steht dort «Diese Seite gibt es nicht.» mit dem Knopf **Zur Startseite**.
 
 ## Aufs Handy holen

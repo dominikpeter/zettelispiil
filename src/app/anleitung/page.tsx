@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Brush, ChevronRight, MessageCircle, PenLine, Repeat, Shuffle, SkipForward, SlidersHorizontal, Smartphone, Trophy, Users, Zap } from "lucide-react";
+import { ArrowLeft, Brush, ChevronRight, Ear, Hand, Languages, MessageCircle, NotebookPen, PenLine, Repeat, Scale, Scissors, Shuffle, SkipForward, SlidersHorizontal, Smartphone, Trophy, Users, Zap } from "lucide-react";
 import Link from "next/link";
 import styles from "./page.module.css";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
@@ -20,14 +20,16 @@ const PLAYERS = [
 ];
 const WORDS = ["Matterhorn", "Rösti", "Velo", "Fondue"];
 // one scene per chapter, in the order of `guide.steps` in i18n.ts
-const SCENES = ["table", "teams", "setup", "write", "explain", "pass", "heckle", "rounds", "draw", "win"] as const;
+const SCENES = ["table", "teams", "setup", "write", "explain", "pass", "heckle", "rounds", "draw", "fair", "win"] as const;
 const at = (id: (typeof SCENES)[number]) => SCENES.indexOf(id);
 /** reduced motion asked for: the scenes' little loops stay put (the CSS already stops their animations) */
 const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 // the step bar's icon per chapter
-const ICONS = [Users, Shuffle, SlidersHorizontal, PenLine, MessageCircle, SkipForward, Zap, Repeat, Brush, Trophy];
+const ICONS = [Users, Shuffle, SlidersHorizontal, PenLine, MessageCircle, SkipForward, Zap, Repeat, Brush, Scale, Trophy];
 // the scene's tint per chapter (theme tokens only)
-const TINT = ["bg-raised", "bg-team-a/10", "bg-team-b/10", "bg-gold/15", "bg-team-a/10", "bg-team-b/10", "bg-team-b/15", "bg-accent/10", "bg-accent/15", "bg-gold/20"];
+const TINT = ["bg-raised", "bg-team-a/10", "bg-team-b/10", "bg-gold/15", "bg-team-a/10", "bg-team-b/10", "bg-team-b/15", "bg-accent/10", "bg-accent/15", "bg-team-a/15", "bg-gold/20"];
+// the fair-play rules' icons, in the order of `rules` in the guide's Knigge chapter
+const FAIR = [Hand, Ear, NotebookPen, Languages, Scissors];
 const TEAM_BG = ["bg-team-a", "bg-team-b", "bg-team-c", "bg-team-d"];
 // the scene is drawn at one size and scaled to fit, so slips and names grow with it
 const STAGE_W = 300;
@@ -172,6 +174,21 @@ export default function Guide() {
           <p className="text-sm font-semibold text-accent tabular-nums">{g.step(i + 1, n)}</p>
           <h2 className="mt-0.5 text-2xl font-extrabold tracking-tight">{s.h}</h2>
           <p className="mt-1.5 text-base leading-relaxed text-muted">{s.p}</p>
+          {"rules" in s && s.rules && (
+            <ul className="mt-3 flex flex-col gap-2.5">
+              {s.rules.map((r, k) => {
+                const Icon = FAIR[k];
+                return (
+                  <li key={r.tag} className="flex gap-3 rounded-2xl bg-surface p-3">
+                    <Icon className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
+                    <p className="text-base leading-snug">
+                      <b className="font-bold">{r.tag}.</b> <span className="text-muted">{r.text}</span>
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </section>
       ))}
 
@@ -246,6 +263,8 @@ function Stage({ step, zoom }: { step: number; zoom: number }) {
 
         {scene === "draw" && <Draw />}
 
+        {scene === "fair" && <Fair />}
+
         {scene === "win" && (
           <>
             <Confetti n={40} />
@@ -317,6 +336,32 @@ function Turn({ dir, word, label }: { dir: "right" | "left"; word: string; label
 }
 
 /** the five rounds, one after the other: the same slips, stricter rules */
+/** fair play: the rules one after the other, each with its sign */
+function Fair() {
+  const t = useT();
+  const rules = t.guide.steps.find((s) => "rules" in s && s.rules)?.rules ?? [];
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (still()) return; // reduced motion: the scene holds its first frame
+    const id = setInterval(() => setI((x) => (x + 1) % FAIR.length), 1600);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="absolute inset-x-0 top-[12%] flex flex-col items-center gap-3">
+      <div className="flex gap-2.5">
+        {FAIR.map((Icon, k) => (
+          <span key={k} className={`grid size-11 place-items-center rounded-2xl shadow-sm transition-colors duration-300 ${k === i ? "bg-accent text-canvas" : "bg-surface text-muted"}`}>
+            <Icon className="size-6" aria-hidden />
+          </span>
+        ))}
+      </div>
+      <p key={i} className="guide-pop text-2xl font-extrabold tracking-tight">
+        {rules[i]?.tag}
+      </p>
+    </div>
+  );
+}
+
 function Rounds() {
   const t = useT();
   const [i, setI] = useState(0);

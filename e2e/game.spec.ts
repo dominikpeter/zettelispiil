@@ -378,7 +378,7 @@ test("language and theme live in the settings sheet", async ({ page }) => {
   await expect(page.getByText(/Chacun écrit des mots/)).toBeVisible(); // remembered
 });
 
-test("the tour: from the home page, ten chapters, each step lands on its own, and back to play", async ({ page }) => {
+test("the tour: from the home page, eleven chapters, each step lands on its own, and back to play", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("link", { name: "So geht's: kurze Tour" }).click();
   await expect(page).toHaveURL("/anleitung");
@@ -387,7 +387,7 @@ test("the tour: from the home page, ten chapters, each step lands on its own, an
   await expect(current).toHaveAttribute("aria-label", "Alle zusammen");
   // every dot jumps to its own chapter, not a neighbour; the scene follows
   const dots = page.getByRole("navigation", { name: "So geht's" }).getByRole("button");
-  await expect(dots).toHaveCount(10);
+  await expect(dots).toHaveCount(11);
   for (const name of await dots.evaluateAll((bs) => bs.map((b) => b.getAttribute("aria-label")))) {
     await page.getByRole("button", { name: name!, exact: true }).click();
     await expect(current).toHaveAttribute("aria-label", name!);
