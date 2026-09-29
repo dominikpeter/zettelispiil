@@ -50,6 +50,7 @@ type Room = Heckles & {
   bowl: number[]; // word ids still in the bowl, including the one in hand
   current: number | null;
   held: number[]; // skipped this turn and set aside, the describer can swap back to them
+  lastSeen?: number[]; // in hand or set aside when the last turn's time ran out: the next turn doesn't open with them (? rooms from before)
   shownAt: number;
   round: number;
   team: Team; // whose turn it is
@@ -251,10 +252,16 @@ function handOver(room: Room) {
 // bowl minus what's in hand or set aside
 const fresh = (room: Room) => room.bowl.filter((w) => w !== room.current && !room.held.includes(w));
 
-/** next Zetteli from the bowl; when only set-aside ones are left, take those back */
+/** next Zetteli from the bowl, a fresh random pick each time; when only set-aside ones are left, take those back.
+ *  A turn doesn't open with what the last describer had in hand or set aside when time ran out: back in the bowl, they
+ *  come again later, but the next player drawing the very same Zetteli looks like the game didn't shuffle */
 function draw(room: Room, now: number) {
   const pool = fresh(room);
-  room.current = pool.length ? pool[pick(pool.length)] : (room.held.shift() ?? null);
+  const seen = room.lastSeen ?? [];
+  const others = pool.filter((w) => !seen.includes(w));
+  const from = others.length ? others : pool;
+  room.lastSeen = [];
+  room.current = from.length ? from[pick(from.length)] : (room.held.shift() ?? null);
   room.shownAt = now;
   room.drawNo++;
 }
@@ -295,6 +302,7 @@ function closeTurn(room: Room, at: number, keepDescriber: boolean) {
 function settle(room: Room, now: number) {
   if (room.phase !== "turn" || room.pausedAt || now <= room.endsAt + GRACE) return false;
   logHand(room, room.endsAt, "time");
+  room.lastSeen = [...(room.current === null ? [] : [room.current]), ...room.held];
   closeTurn(room, room.endsAt, false);
   room.phase = "ready";
   return true;

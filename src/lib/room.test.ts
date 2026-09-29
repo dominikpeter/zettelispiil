@@ -192,6 +192,33 @@ test("the draw is random every time: new order each round, after every player sw
   assert.ok(switches > 20 && afterSwitch / switches < 0.3, `after a switch the next Zetteli is predictable (${afterSwitch}/${switches})`);
 });
 
+test("time up with a Zetteli in hand: the next player doesn't open with that same one, unless it's the last one left", async () => {
+  // players reported it: time ran out on X, and the next player drew X again (a 1 in 4 chance here, 1 in 2 near the end)
+  for (let n = 0; n < 20; n++) {
+    const { as, see, tick } = await setup();
+    await writeAll(as);
+    const first = await describerView(see);
+    await as(first.i, { type: "go" });
+    const x = (await see(first.i)).word!.id;
+    tick(33_000); // time up with x in hand
+    const next = await describerView(see);
+    assert.notEqual(next.i, first.i);
+    await as(next.i, { type: "go" });
+    assert.notEqual((await see(next.i)).word!.id, x, "the next turn opened with the Zetteli that was in hand at time up");
+  }
+  // the last one left still comes, even if it was the one in hand
+  const { as, see, tick } = await setup();
+  await writeAll(as);
+  const a = await describerView(see);
+  await as(a.i, { type: "go" });
+  for (let k = 0; k < 3; k++) await as(a.i, { type: "got", w: (await see(a.i)).word!.id });
+  const last = (await see(a.i)).word!.id;
+  tick(33_000);
+  const b = await describerView(see);
+  await as(b.i, { type: "go" });
+  assert.equal((await see(b.i)).word!.id, last);
+});
+
 test("describers take turns within their team; the host can pass on one who isn't there", async () => {
   const { as, see, tick } = await setup();
   await writeAll(as);
