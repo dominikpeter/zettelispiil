@@ -129,6 +129,69 @@ test("time up puts the Zetteli back and hands over to the other team", async () 
   assert.deepEqual(after.lastTurn && { p: after.lastTurn.p, got: after.lastTurn.got }, { p: i, got: 2 });
 });
 
+// issue #12: every draw is a fresh random pick from what's left in the bowl, so it's reshuffled at every round and every
+// player switch (and in between); guessed ones stay out until the next round, skipped ones go back at the turn's end
+test("the draw is random every time: new order each round, after every player switch; guessed stay out, skipped go back", async () => {
+  const { as, see, tick } = await setup();
+  await as(0, { type: "settings", settings: { perPlayer: 10, seconds: 30, rounds: ["describe", "sound"] } });
+  await as(0, { type: "start" });
+  for (const i of [0, 1, 2, 3]) await as(i, { type: "words", words: Array.from({ length: 10 }, (_, k) => `w${i}-${k}`) });
+  const N = 40;
+
+  const orders: number[][] = [[], []];
+  let afterSwitch = 0; // draws right after a player switch that were simply the lowest id left (the write order)
+  let switches = 0;
+  let skippedBack = false;
+  for (let round = 0; round < 2; round++) {
+    const guessed = new Set<number>();
+    let turn = 0;
+    while ((await see(0)).phase === "ready") {
+      const { i } = await describerView(see);
+      await as(i, { type: "go" });
+      let v = await see(i);
+      if (turn > 0 && v.word) {
+        switches++;
+        const left = [...Array(N).keys()].filter((w) => !guessed.has(w));
+        if (v.word.id === Math.min(...left)) afterSwitch++;
+      }
+      // a short turn: a few guessed, one skipped (it must come back later this round), then time runs out
+      let skipped: number | null = null;
+      for (let n = 0; n < 3 && v.word; n++) {
+        tick(200);
+        const w = v.word.id;
+        assert.ok(!guessed.has(w), `round ${round + 1}: a guessed Zetteli came back mid-round`);
+        if (n === 1 && skipped === null) {
+          await as(i, { type: "skip", w });
+          skipped = w;
+        } else {
+          await as(i, { type: "got", w });
+          guessed.add(w);
+          orders[round].push(w);
+        }
+        v = await see(i);
+        if (v.phase !== "turn") break;
+      }
+      if (v.phase === "turn") tick(33_000); // time up: the one in hand and the skipped one go back into the bowl
+      const after = await see(0);
+      if (after.phase === "ready") assert.equal(after.bowlLeft, N - guessed.size, "skipped and unfinished ones are back in the bowl");
+      if (skipped !== null && !guessed.has(skipped)) skippedBack ||= true;
+      turn++;
+    }
+    assert.equal(guessed.size, N, `round ${round + 1}: every Zetteli was guessed exactly once`);
+    if (round === 0) {
+      assert.equal((await see(0)).phase, "roundEnd");
+      await as(0, { type: "nextRound" });
+      assert.equal((await see(0)).bowlLeft, N, "a new round: all Zetteli back in the bowl");
+    }
+  }
+  assert.ok(skippedBack);
+  const written = [...Array(N).keys()];
+  assert.notDeepEqual(orders[0], written, "round 1 is not drawn in the order they were written");
+  assert.notDeepEqual(orders[1], orders[0], "round 2 is drawn in a new order, not round 1's again");
+  // a fresh random pick hits the lowest id left about once in twenty; a fixed order would hit it every time
+  assert.ok(switches > 20 && afterSwitch / switches < 0.3, `after a switch the next Zetteli is predictable (${afterSwitch}/${switches})`);
+});
+
 test("describers take turns within their team; the host can pass on one who isn't there", async () => {
   const { as, see, tick } = await setup();
   await writeAll(as);

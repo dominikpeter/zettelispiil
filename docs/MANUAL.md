@@ -6,7 +6,7 @@ Zettelispiil ist das Schweizer Partyspiel mit Zetteli, direkt im Browser auf [ze
 
 Alle schreiben Begriffe auf Zetteli: Personen, Orte, Dinge, Filme, alles, was sich erklären lässt. Die Zetteli kommen in die Schüssel. Zwei bis vier Teams spielen abwechselnd: Eine Person zieht Zetteli und bringt ihr Team dazu, so viele wie möglich zu erraten, bevor die Zeit abläuft.
 
-Ist die Schüssel leer, ist die Runde vorbei und alle Zetteli kommen wieder hinein. Es bleiben immer dieselben Begriffe, aber die Regeln werden von Runde zu Runde strenger. Gespielt wird in bis zu fünf Runden. Am Schluss gewinnt das Team mit den meisten erratenen Zetteli.
+Jedes Zetteli wird zufällig aus denen gezogen, die noch in der Schüssel liegen, also auch nach jedem Wechsel und in jeder Runde neu gemischt; niemand kann die Reihenfolge vorhersagen. Erratene bleiben bis zur nächsten Runde draussen. Ist die Schüssel leer, ist die Runde vorbei und alle Zetteli kommen wieder hinein. Es bleiben immer dieselben Begriffe, aber die Regeln werden von Runde zu Runde strenger. Gespielt wird in bis zu fünf Runden. Am Schluss gewinnt das Team mit den meisten erratenen Zetteli.
 
 ## Ein Handy oder mehrere Handys
 
