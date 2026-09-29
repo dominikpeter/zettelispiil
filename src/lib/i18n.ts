@@ -145,8 +145,8 @@ const de = {
       { h: "Zeichnen", p: "Keine Buchstaben, keine Zahlen. Mit mehreren Handys zeichnest du auf deinem, und alle anderen sehen live mit, Strich für Strich. Mit einem Handy zeichnest du auf Papier oder ein Flipchart." },
       { h: "Knigge", p: "Damit's für alle lustig bleibt, gilt ein bisschen Anstand:", rules: [
         { tag: "Nicht zeigen", text: "Pantomime: Nicht auf Gegenstände im Raum zeigen." },
-        { tag: "Umdrehen", text: "Geräusch: Dreh dich um, sonst hilft die Mimik mit. Es zählt nur das Geräusch, und nur eins: «Bu-bumm» gilt als ein Geräusch." },
-        { tag: "Nichts notieren", text: "Nach der ersten Runde die gemerkten Begriffe aufschreiben ist kein Fairplay." },
+        { tag: "Umdrehen", text: "Geräusch: Dreh dich um, sonst hilft die Mimik mit. Es zählt nur das Geräusch, und du hast genau eins, keine Kette verschiedener Geräusche. Besteht es aus zwei Tönen wie ein Herzschlag, ist es trotzdem eins." },
+        { tag: "Nicht aufzählen", text: "Ab der zweiten Runde kennt ihr die Begriffe. Sie aufzuschreiben oder beim Raten einfach alle gemerkten der Reihe nach herunterzurattern, bis einer passt, ist kein Fairplay. Geraten wird, was erklärt wird." },
         { tag: "Nicht übersetzen", text: "Den Begriff nicht einfach in eine andere Sprache übersetzen, 1:1 gilt nicht." },
         { tag: "Keine Wortteile", text: "Kein Teil des Begriffs darf vorkommen: «Langeweile» nicht mit «Weile» erklären, bei «Froschkönig» sind «Frosch» und «König» tabu." },
       ] },
@@ -515,8 +515,8 @@ const en: Dict = {
       { h: "Drawing", p: "No letters, no numbers. With several phones you draw on yours and everyone else watches live, stroke by stroke. With one phone you draw on paper or a flip chart." },
       { h: "Fair play", p: "To keep it fun for everyone, a little etiquette:", rules: [
         { tag: "No pointing", text: "Mime: don't point at things in the room." },
-        { tag: "Turn around", text: "Sounds: turn your back, or your face gives it away. Only the sound counts, and only one: «ba-boom» counts as one sound." },
-        { tag: "No notes", text: "Writing down the words you remember after the first round isn't fair play." },
+        { tag: "Turn around", text: "Sounds: turn your back, or your face gives it away. Only the sound counts, and you get exactly one, not a string of different sounds. If it has two beats, like a heartbeat, it still counts as one." },
+        { tag: "No rattling off", text: "From the second round on you know the words. Writing them down, or reeling off every one you remember until one hits, isn't fair play. Guess what's being explained." },
         { tag: "No translating", text: "Don't just translate the word into another language; 1:1 doesn't count." },
         { tag: "No word parts", text: "No part of the word may be said: don't explain «boredom» with «bore»; for «Frog Prince», «frog» and «prince» are off limits." },
       ] },
@@ -875,8 +875,8 @@ const fr: Dict = {
       { h: "Dessiner", p: "Ni lettres, ni chiffres. Avec plusieurs téléphones, tu dessines sur le tien et tous les autres regardent en direct, trait par trait. Avec un seul téléphone, tu dessines sur papier ou un tableau." },
       { h: "Fair-play", p: "Pour que ça reste drôle pour tout le monde, un peu de savoir-vivre :", rules: [
         { tag: "Ne pas montrer", text: "Mime : ne montre pas d'objets dans la pièce." },
-        { tag: "Se retourner", text: "Bruits : tourne le dos, sinon ton visage aide. Seul le bruit compte, et un seul : « ba-boum » compte pour un bruit." },
-        { tag: "Pas de notes", text: "Noter après la première manche les mots qu'on a retenus, ce n'est pas du fair-play." },
+        { tag: "Se retourner", text: "Bruits : tourne le dos, sinon ton visage aide. Seul le bruit compte, et tu n'en as qu'un, pas une suite de bruits différents. S'il a deux temps, comme un battement de cœur, il compte quand même pour un." },
+        { tag: "Pas de liste", text: "Dès la deuxième manche, vous connaissez les mots. Les noter, ou réciter tous ceux qu'on a retenus jusqu'à tomber sur le bon, ce n'est pas du fair-play. On devine ce qui est expliqué." },
         { tag: "Pas de traduction", text: "Ne traduis pas simplement le mot dans une autre langue : le 1:1 ne compte pas." },
         { tag: "Pas de morceaux", text: "Aucune partie du mot ne doit être dite : « Froschkönig » interdit « Frosch » et « König », « bonhomme » interdit « bon » et « homme »." },
       ] },
