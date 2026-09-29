@@ -53,6 +53,7 @@ export default function Guide() {
   const g = t.guide;
   const n = g.steps.length;
   const [step, setStep] = useState(0);
+  const [rule, setRule] = useState(0); // the fair-play rule in view, inside that chapter
   const sections = useRef<(HTMLElement | null)[]>([]);
   const pinned = useRef<HTMLDivElement>(null);
   const end = useRef<HTMLDivElement>(null);
@@ -98,6 +99,12 @@ export default function Guide() {
         if (s && s.getBoundingClientRect().top <= line) i = k;
       });
       setStep(i);
+      // inside the fair-play chapter: the last rule that has come up past the line is the one on stage
+      let r = 0;
+      sections.current[i]?.querySelectorAll("[data-rule]").forEach((el, k) => {
+        if (el.getBoundingClientRect().top <= line) r = k;
+      });
+      setRule(r);
       const h = pinned.current?.offsetHeight ?? 0;
       setPad(h);
       // the drawing scaled to its CSS-sized frame
@@ -158,7 +165,7 @@ export default function Guide() {
             );
           })}
         </nav>
-        <Stage step={step} zoom={zoom} />
+        <Stage step={step} zoom={zoom} rule={rule} />
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-full h-8 bg-gradient-to-b from-canvas to-transparent" />
       </div>
 
@@ -179,7 +186,12 @@ export default function Guide() {
               {s.rules.map((r, k) => {
                 const Icon = FAIR[k];
                 return (
-                  <li key={r.tag} className="flex gap-3 rounded-2xl bg-surface p-3">
+                  // each rule is a snap point of its own: a swipe moves on one rule, never past several at once
+                  <li
+                    key={r.tag}
+                    data-rule
+                    className={`flex gap-3 rounded-2xl p-3 transition-colors duration-300 snap-start ${jumping ? "snap-normal" : "snap-always"} ${i === step && k === rule ? "bg-accent/15" : "bg-surface"}`}
+                  >
                     <Icon className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
                     <p className="text-base leading-snug">
                       <b className="font-bold">{r.tag}.</b> <span className="text-muted">{r.text}</span>
@@ -204,7 +216,7 @@ export default function Guide() {
 
 /** the scene: a stage with the bowl at its heart; positions in container units. Drawn at one size and scaled as a
  *  picture (CSS zoom would scale the container units twice in WebKit) */
-function Stage({ step, zoom }: { step: number; zoom: number }) {
+function Stage({ step, zoom, rule }: { step: number; zoom: number; rule: number }) {
   const t = useT();
   const scene = SCENES[step];
   return (
@@ -263,7 +275,7 @@ function Stage({ step, zoom }: { step: number; zoom: number }) {
 
         {scene === "draw" && <Draw />}
 
-        {scene === "fair" && <Fair />}
+        {scene === "fair" && <Fair i={rule} />}
 
         {scene === "win" && (
           <>
@@ -336,16 +348,10 @@ function Turn({ dir, word, label }: { dir: "right" | "left"; word: string; label
 }
 
 /** the five rounds, one after the other: the same slips, stricter rules */
-/** fair play: the rules one after the other, each with its sign */
-function Fair() {
+/** fair play: the rule being read, with its sign; it follows the scroll, one rule per swipe */
+function Fair({ i }: { i: number }) {
   const t = useT();
   const rules = t.guide.steps.find((s) => "rules" in s && s.rules)?.rules ?? [];
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    if (still()) return; // reduced motion: the scene holds its first frame
-    const id = setInterval(() => setI((x) => (x + 1) % FAIR.length), 1600);
-    return () => clearInterval(id);
-  }, []);
   return (
     <div className="absolute inset-x-0 top-[12%] flex flex-col items-center gap-3">
       <div className="flex gap-2.5">
