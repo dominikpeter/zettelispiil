@@ -352,12 +352,21 @@ for (const name of ["iPhone SE", "iPhone 15"] as const) {
       expect(out, `${n}: players cut off at the scene's edge`).toEqual([]);
     }
 
-    // a swipe moves on exactly one chapter and snaps it under the scene
+    // a swipe moves on exactly one chapter and snaps it under the scene; inside the fair-play chapter, one rule per swipe
+    const rules = () => page.evaluate(() => [...document.querySelectorAll("main [data-rule]")].map((r) => r.getBoundingClientRect().top));
     await steps.first().click();
     await expect.poll(async () => (await tour(page)).snapping).toBe(true);
     for (let i = 0; i < names.length - 1; i++) {
       const t = await tour(page);
-      await page.evaluate((d) => scrollBy(0, d), (t.tops[i + 1] - t.tops[i]) * 0.6);
+      const inside = (await rules()).filter((y) => y > t.tops[i] + 1 && y < t.tops[i + 1] - 1); // this chapter's rules, below its heading
+      for (const [k] of inside.entries()) {
+        const now = (await rules())[k];
+        await page.evaluate((d) => scrollBy(0, d), (now - t.under) * 0.6);
+        await expect.poll(async () => Math.abs((await rules())[k] - t.under), { message: `${names[i]}: rule ${k + 1} snapped under the scene` }).toBeLessThan(2);
+        await expect.poll(async () => (await tour(page)).current).toBe(names[i]); // still the same chapter
+      }
+      const at = await tour(page);
+      await page.evaluate((d) => scrollBy(0, d), (at.tops[i + 1] - at.under) * 0.6);
       await expect.poll(async () => Math.abs((await tour(page)).tops[i + 1] - t.under), { message: `${names[i + 1]}: snapped under the scene` }).toBeLessThan(2);
       await expect.poll(async () => (await tour(page)).current).toBe(names[i + 1]);
     }
