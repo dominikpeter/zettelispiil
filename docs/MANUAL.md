@@ -94,8 +94,8 @@ Insgesamt sind so bis zu fünf Runden möglich.
 Damit's für alle lustig bleibt, gilt ein bisschen Anstand. Das Spiel prüft das nicht, das macht ihr untereinander:
 
 - **Pantomime**: Nicht auf Gegenstände im Raum zeigen.
-- **Geräusch**: Dreh dich um, sonst hilft die Mimik mit. Es zählt nur das Geräusch, und nur eins: «Bu-bumm» gilt als ein Geräusch.
-- **Nichts notieren**: Nach der ersten Runde die gemerkten Begriffe aufschreiben ist kein Fairplay.
+- **Geräusch**: Dreh dich um, sonst hilft die Mimik mit. Es zählt nur das Geräusch, und du hast genau eins, keine Kette verschiedener Geräusche. Besteht es aus zwei Tönen wie ein Herzschlag, ist es trotzdem eins.
+- **Nicht aufzählen**: Ab der zweiten Runde kennt ihr die Begriffe. Sie aufzuschreiben oder beim Raten einfach alle gemerkten der Reihe nach herunterzurattern, bis einer passt, ist kein Fairplay. Geraten wird, was erklärt wird.
 - **Nicht übersetzen**: Den Begriff nicht einfach in eine andere Sprache übersetzen, 1:1 gilt nicht.
 - **Keine Wortteile**: Kein Teil des Begriffs darf vorkommen. «Langeweile» nicht mit «Weile» erklären; bei «Froschkönig» sind «Frosch» und «König» tabu.
 
