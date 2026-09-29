@@ -89,6 +89,16 @@ Runden anpassen («Reihenfolge ändern oder Runden weglassen»):
 
 Insgesamt sind so bis zu fünf Runden möglich.
 
+### Knigge: fair spielen
+
+Damit's für alle lustig bleibt, gilt ein bisschen Anstand. Das Spiel prüft das nicht, das macht ihr untereinander:
+
+- **Pantomime**: Nicht auf Gegenstände im Raum zeigen.
+- **Geräusch**: Dreh dich um, sonst hilft die Mimik mit. Es zählt nur das Geräusch, und nur eins: «Bu-bumm» gilt als ein Geräusch.
+- **Nichts notieren**: Nach der ersten Runde die gemerkten Begriffe aufschreiben ist kein Fairplay.
+- **Nicht übersetzen**: Den Begriff nicht einfach in eine andere Sprache übersetzen, 1:1 gilt nicht.
+- **Keine Wortteile**: Kein Teil des Begriffs darf vorkommen. «Langeweile» nicht mit «Weile» erklären; bei «Froschkönig» sind «Frosch» und «König» tabu.
+
 ## Zetteli schreiben
 
 Alle schreiben gleichzeitig ihre Zetteli («Schreib 4 Zetteli»). Niemand sieht, was du schreibst. Bei einem Handy schauen die anderen weg, während du schreibst.
@@ -206,7 +216,7 @@ Das Zahnrad oben öffnet die **Einstellungen**. Sie gelten nur für dein Handy.
 - **Spendier mir einen Kaffee**: Zettelispiil ist gratis und ohne Werbung. Wer mag, spendiert einen kleinen (CHF 1), grossen (CHF 5) oder Deluxe-Kaffee (CHF 10) oder einen eigenen Betrag. Bezahlt wird bei Stripe (Karte, Apple Pay, Google Pay), danach kommst du zurück ins Spiel. In der iPhone-App gibt es die drei Kaffees als In-App-Kauf über den App Store (ohne eigenen Betrag). Muss ein Kauf erst noch bestätigt werden, zum Beispiel von den Eltern, steht das gleich darunter.
 - **Teilen**: **WhatsApp** oder **Link kopieren**, um Zettelispiil weiterzuempfehlen.
 - Ganz unten: **Problem mit der App? Hier melden** führt zu den GitHub-Issues, wo du Fehler melden kannst. **Datenschutz** zeigt, welche Daten wo und wie lange gespeichert werden. Darunter «Gemacht mit ♥ von Dominik», der Link zu GitHub und die Version.
-- **So geht's**: Auf der Startseite (unter dem kurzen Text) und in den Einstellungen ganz unten öffnet sich eine kleine Tour: Beim Scrollen spielt eine Szene rund um die Schüssel das Spiel in zehn Schritten durch, von den Teams über die Einstellungen, das Stören und das Zeichnen bis zum Sieg. Jedes Wischen rastet beim nächsten Schritt ein. Die Symbole über der Szene zeigen, wo du bist; ein Tipp darauf springt zu diesem Schritt. **Los geht's** führt zurück zur Startseite.
+- **So geht's**: Auf der Startseite (unter dem kurzen Text) und in den Einstellungen ganz unten öffnet sich eine kleine Tour: Beim Scrollen spielt eine Szene rund um die Schüssel das Spiel in elf Schritten durch, von den Teams über die Einstellungen, das Stören, das Zeichnen und den Knigge (siehe «Knigge: fair spielen») bis zum Sieg. Jedes Wischen rastet beim nächsten Schritt ein. Die Symbole über der Szene zeigen, wo du bist; ein Tipp darauf springt zu diesem Schritt. **Los geht's** führt zurück zur Startseite.
 - Führt ein Link ins Leere (eine Adresse, die es nicht gibt), steht dort «Diese Seite gibt es nicht.» mit dem Knopf **Zur Startseite**.
 
 ## Aufs Handy holen

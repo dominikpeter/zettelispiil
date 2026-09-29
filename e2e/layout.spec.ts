@@ -329,7 +329,7 @@ for (const name of ["iPhone SE", "iPhone 15"] as const) {
     await page.goto("/anleitung");
     const steps = page.getByRole("navigation", { name: "So geht's" }).getByRole("button");
     const names = await steps.evaluateAll((bs) => bs.map((b) => b.getAttribute("aria-label")!));
-    expect(names).toHaveLength(10);
+    expect(names).toHaveLength(11);
 
     // a tap goes to that chapter, not a neighbour: its heading right under the scene; the players stay inside the scene
     for (const [i, n] of names.entries()) {
