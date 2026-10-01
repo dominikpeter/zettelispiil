@@ -471,6 +471,7 @@ test("a room opened by a signed-in host lends AI to its members, and only to the
   assert.equal((await view(db, ai.code, guest.pid, guest.token)).ai, true);
   assert.equal(await roomAi(db, ai.code, guest.pid, guest.token), "user-lisa"); // members use the host's budget
   assert.equal(await roomAi(db, ai.code, guest.pid, "wrong"), ""); // a wrong token gets nothing
+  assert.equal(await roomAi(db, ai.code, "constructor", undefined), "");
   assert.equal(await roomAi(db, ai.code, "nobody", guest.token), "");
   assert.equal(await roomAi(db, "../x", guest.pid, guest.token), ""); // junk codes never reach the store
 

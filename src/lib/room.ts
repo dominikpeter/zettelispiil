@@ -326,8 +326,9 @@ export type Action =
 export async function roomAi(db: Store, code: unknown, pid: unknown, token: unknown) {
   if (typeof code !== "string" || !/^[A-Z0-9]{4,6}$/.test(code)) return "";
   const [room, members] = await Promise.all([db.get<Room>(k(code).room), db.hgetall<Member>(k(code).members)]);
-  const me = members[String(pid)];
-  return room?.aiBy && me && me.token === token ? room.aiBy : "";
+  const id = String(pid);
+  const me = Object.hasOwn(members, id) ? members[id] : undefined;
+  return room?.aiBy && me && typeof token === "string" && me.token === token ? room.aiBy : "";
 }
 
 /** the host signed in after opening the room: from now on AI is on for everyone in it, on their budget */
