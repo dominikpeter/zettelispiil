@@ -62,7 +62,7 @@ export function Ready({ v, send, busy, mode }: P) {
             {t.go}
           </button>
         ) : (
-          <Waiting text={v.players[v.me]?.team === p.team ? t.youGuess(p.name) : t.youListen(p.name)} />
+          <Waiting text={v.players[v.me]?.team === p.team ? t.youGuess(p.name) : v.settings.rounds[v.round] === "draw" ? t.youWatch(p.name) : t.youListen(p.name)} />
         )}
         {/* "Anna ist nicht da": not on Anna's own phone (she is here); on one phone it's the host's call as before */}
         {(local || (v.isHost && !me)) && (

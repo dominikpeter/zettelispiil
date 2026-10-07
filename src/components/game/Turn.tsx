@@ -250,7 +250,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
         <div className="flex items-center justify-between gap-3">
           <TimerRing left={shownLeft} total={total} size={64} label={t.secondsLeft} />
           <div className="min-w-0 text-right">
-            <p className={`text-3xl font-extrabold tracking-tight ${guessing ? TEAM[p.team].text : "text-ink"}`}>{guessing ? t.guess : t.listen}</p>
+            <p className={`text-3xl font-extrabold tracking-tight ${guessing ? TEAM[p.team].text : "text-ink"}`}>{guessing ? t.guess : type === "draw" ? t.watch : t.listen}</p>
             <p className="truncate text-muted">
               {t.explains(p.name, type)} · <b className="text-ink tabular-nums">{v.turnGot}</b> {t.guessed}
             </p>
@@ -276,7 +276,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
         </div>
         <TimerRing left={shownLeft} total={total} size={220} label={t.secondsLeft} />
         <div>
-          <p className={`text-5xl font-extrabold tracking-tight ${guessing ? TEAM[p.team].text : "text-ink"}`}>{guessing ? t.guess : t.listen}</p>
+          <p className={`text-5xl font-extrabold tracking-tight ${guessing ? TEAM[p.team].text : "text-ink"}`}>{guessing ? t.guess : type === "draw" ? t.watch : t.listen}</p>
           <p className="mt-2 text-lg text-muted">
             {t.explains(p.name, type)}
             {!guessing && `, ${t.forTeam(v.teamNames[p.team])}`}

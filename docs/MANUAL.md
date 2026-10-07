@@ -148,14 +148,14 @@ Vor jedem Zug siehst du, wer dran ist und für welches Team. Wer erklärt, tippt
 
 ### Mitraten mit mehreren Handys
 
-- Dein Team sieht «Ratet!», die anderen Teams «Zuhören».
+- Dein Team sieht «Ratet!», die anderen Teams beim Zeichnen «Zuschauen», sonst «Zuhören».
 - Wer miträt, kann auf dem eigenen Handy auf **Erraten** tippen. Ein Zetteli zählt immer nur einmal, egal wer zuerst tippt.
 - Jedes erratene Zetteli blitzt kurz auf allen anderen Handys auf.
 - Ist jemand nicht da, kann die Spielleitung diese Person überspringen («… ist nicht da, überspringen»). Auf dem Handy dieser Person selbst steht das nicht.
 
 ### Stören
 
-Hat die Spielleitung **Störmodus** eingeschaltet, dürfen die anderen Teams («Zuhören») die erklärende Person ablenken. Unter dem Knopf steht, wie oft ihr in diesem Zug noch stören dürft («noch 2×»).
+Hat die Spielleitung **Störmodus** eingeschaltet, dürfen die anderen Teams («Zuschauen» beim Zeichnen, sonst «Zuhören») die erklärende Person ablenken. Unter dem Knopf steht, wie oft ihr in diesem Zug noch stören dürft («noch 2×»).
 
 - **Auto** (Standard): Zu Beginn jedes Zugs kann ein Team, das hinten liegt, einen **Stör-Bonus** bekommen: 30 % Chance, pro Punkt Rückstand 10 % mehr, höchstens 80 %. Der Bonus gilt fürs ganze Team: 1× stören, bei 5 oder mehr Punkten Rückstand 2×. Wer vorne liegt oder gleichauf ist, bekommt nie einen. Der Knopf **Stör-Bonus!** erscheint nur, wenn euer Team einen hat. Drückt jemand aus deinem Team, siehst du «<Name> hat gestört».
 - **Fix**: Jede Person der anderen Teams darf pro Zug so oft stören, wie eingestellt. Im nächsten Zug geht es wieder von vorne los.
