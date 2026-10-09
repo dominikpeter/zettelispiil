@@ -78,7 +78,7 @@ Die Spielleitung legt mit Plus und Minus fest:
 
 **Mit mehreren Handys** sind alle fünf Runden standardmässig dabei, Zeichnen als vorletzte. **Mit einem Handy** sind es die ersten vier; Zeichnen kannst du dort zusätzlich hinzufügen, auf Papier oder Flipchart:
 
-- **Mit mehreren Handys** zeichnest du auf deinem Handy, alle anderen sehen live mit: die Linie entsteht bei ihnen Strich für Strich, ein Punkt zeigt, wo dein Stift gerade ist. Du hast mehrere Stifte zur Auswahl und kannst mit **Alles löschen** neu anfangen. Auch beim Zeichnen lassen sich beiseitegelegte Zetteli antippen und zurücktauschen.
+- **Mit mehreren Handys** zeichnest du auf deinem Handy, alle anderen sehen live mit: die Linie entsteht bei ihnen Strich für Strich, ein Punkt zeigt, wo dein Stift gerade ist. Du hast mehrere Stifte zur Auswahl und kannst mit **Alles löschen** neu anfangen. Auch beim Zeichnen lassen sich beiseitegelegte Zetteli antippen und zurücktauschen. Mit dem Knopf **Grosse Zeichenfläche** füllt das Blatt den Bildschirm (auch quer gehalten); der Begriff, die Stifte und die Knöpfe **Passen** und **Erraten** bleiben daneben sichtbar, auch wenn der nächste Zetteli kommt.
 - **Mit einem Handy** zeichnest du auf ein Flipchart oder Papier, das Handy zeigt nur den Begriff.
 
 Runden anpassen («Reihenfolge ändern oder Runden weglassen»):
@@ -235,3 +235,12 @@ Danach startet Zettelispiil mit eigenem Symbol und ohne Browserleiste. Während 
 - In «Ein Wort» zählt das richtige Wort: Knüpft an Erklärungen aus den früheren Runden an.
 - Ein schwieriges Zetteli lieber früh überspringen und später zurücktauschen, statt Zeit zu verlieren.
 - Bei einem Handy: Handy flach halten, damit niemand aus einem anderen Team mitliest.
+
+## Spielleitung greift ein
+
+Während des Spiels (im Pausenmenü, Knopf oben rechts) hat die Spielleitung **Host-Werkzeuge**. Alle sehen kurz, was sie getan hat.
+
+- **Punkte**: pro Team ein Punkt dazu oder weg (zum Beispiel bei einem Regelverstoss). Ein Team kann nicht unter 0 fallen.
+- **Zetteli ungültig**: der Zetteli in der Hand zählt nicht, er geht zurück in die Schüssel und ein anderer kommt.
+- **Rauswerfen**: wer nicht mehr mitspielt, kommt aus dem Spiel; er beschreibt nie mehr, seine Zetteli bleiben in der Schüssel. Nicht möglich während des Schreibens, nicht für die Person, die gerade erklärt, und jedes Team behält mindestens eine Person.
+- **Host abgeben**: eine andere Person wird Spielleitung, zum Beispiel wenn das Handy leer ist.

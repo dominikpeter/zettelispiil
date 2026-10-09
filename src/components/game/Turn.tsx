@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Eraser } from "lucide-react";
+import { Check, Eraser, Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useHints, useT } from "@/lib/prefs";
 import { secondsFor } from "@/lib/settings";
@@ -141,17 +141,19 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   const { heckleButton, heckleToast, heckleSlip, mateToast } = useHeckle(v, left, send, mode);
 
   const [wipes, setWipes] = useState(0);
+  const [full, setFull] = useState(false); // drawing: the paper fills the screen; the word, pens and buttons stay around it
+  const wide = useLandscape();
 
   const topBar = (
-    <div className="sticky top-safe z-10 -mx-4 flex items-center justify-between gap-3 bg-canvas/90 px-4 py-2 backdrop-blur">
-      <TimerRing left={shownLeft} total={total} size={76} label={t.secondsLeft} />
+    <div className={`flex items-center justify-between gap-3 px-4 ${full ? "-mx-4 py-0" : "sticky top-safe z-10 -mx-4 bg-canvas/90 py-2 backdrop-blur"}`}>
+      <TimerRing left={shownLeft} total={total} size={full ? 48 : 76} label={t.secondsLeft} />
       <div className="text-center">
-        <p className="text-sm text-muted">{t.thisTurn}</p>
-        <p key={v.turnGot} className="bump text-3xl font-extrabold text-hi tabular-nums">
+        {!full && <p className="text-sm text-muted">{t.thisTurn}</p>}
+        <p key={v.turnGot} className={`bump font-extrabold text-hi tabular-nums ${full ? "text-2xl" : "text-3xl"}`}>
           +{v.turnGot}
         </p>
       </div>
-      <Bowl count={v.bowlLeft} className="w-20" />
+      <Bowl count={v.bowlLeft} className={full ? "w-12" : "w-20"} />
     </div>
   );
   const buttons = (
@@ -191,8 +193,11 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   if (type === "draw" && me && mode === "online") {
     const word = v.word;
     const sheet = v.sheet;
+    const fullCls = full
+      ? `fixed inset-0 z-30 gap-2 overflow-hidden bg-canvas p-3 pt-safe-4 pb-safe-4 ${wide ? "grid grid-cols-[auto_1fr] content-start [&>*:not([data-paper])]:col-start-2" : "flex flex-col"}`
+      : "flex flex-1 flex-col gap-2";
     return (
-      <div className="flex flex-1 flex-col gap-2">
+      <div className={fullCls}>
         {heckleToast}
         {topBar}
         {word && (
@@ -206,7 +211,11 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
           </HeckleFx>
         )}
         {/* the paper takes what's left of the screen, never more: no scrolling while drawing */}
-        <div className="mx-auto w-full" style={{ maxWidth: v.held.length ? "min(100%, calc(100dvh - 28rem))" : "min(100%, calc(100dvh - 24rem))" }}>
+        <div
+          data-paper
+          className={`mx-auto w-full ${full && wide ? "col-start-1 row-span-6 row-start-1 self-center" : ""}`}
+          style={{ maxWidth: full ? (wide ? "min(100dvh - 1.5rem, 62vw)" : "min(100%, calc(100dvh - 19rem))") : v.held.length ? "min(100%, calc(100dvh - 28rem))" : "min(100%, calc(100dvh - 24rem))" }}
+        >
           {word && sheet !== null && live && (
             <DrawPad key={word.id} code={live.code} sheet={sheet} wipeNo={wipes} ink={ink} label={t.drawHere} onFlush={up ? undefined : live.draw} />
           )}
@@ -236,6 +245,9 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
           >
             <Eraser className="size-5" aria-hidden />
           </button>
+          <button onClick={() => setFull((f) => !f)} aria-label={full ? t.fullSizeExit : t.fullSize} aria-pressed={full} className={`${btn2} w-auto! px-3`}>
+            {full ? <Minimize2 className="size-5" aria-hidden /> : <Maximize2 className="size-5" aria-hidden />}
+          </button>
         </div>
         {heldSlips}
         {buttons}
@@ -256,7 +268,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
             </p>
           </div>
         </div>
-        <div className="mx-auto w-full" style={{ maxWidth: teamButton ? "min(100%, calc(100dvh - 17rem))" : "min(100%, calc(100dvh - 12rem))" }}>
+        <div className="mx-auto w-full" style={{ maxWidth: teamButton ? "min(100%, calc(100dvh - 19rem))" : "min(100%, calc(100dvh - 12rem))" }}>
           {live && v.sheet !== null && <DrawView code={live.code} sheet={v.sheet} label={t.explains(p.name, type)} />}
         </div>
         {teamButton}
@@ -334,4 +346,17 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
       {buttons}
     </div>
   );
+}
+
+/** a phone turned sideways: the paper goes left, everything else beside it */
+function useLandscape() {
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const q = window.matchMedia("(orientation: landscape)");
+    const on = () => setWide(q.matches);
+    on();
+    q.addEventListener("change", on);
+    return () => q.removeEventListener("change", on);
+  }, []);
+  return wide;
 }

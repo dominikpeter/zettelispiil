@@ -69,6 +69,8 @@ type Room = Heckles & {
   writeNo: number;
   turnNo: number;
   aiBy?: string; // user id of a host who was signed in when creating the room: AI is on for everyone in it, on that host's budget
+  out?: number[]; // players the host removed mid-game (indices in `ids`): they stay in the stats, but never describe
+  note?: { n: number; kind: "points" | "void" | "kick" | "host"; team?: number; d?: number; name?: string }; // the host's latest ruling, flashed on every phone
   kept?: { writeNo: number; ids: string[] }; // back to the settings before the first turn: whose Zetteli, written in which round of writing
 };
 
@@ -245,7 +247,7 @@ function fillBowl(room: Room, slips: Slip[], authors: number[]) {
   room.phase = "ready";
 }
 
-const teamPlayers = (room: Room, t: Team) => room.teams.flatMap((x, i) => (x === t ? [i] : []));
+const teamPlayers = (room: Room, t: Team) => room.teams.flatMap((x, i) => (x === t && !room.out?.includes(i) ? [i] : []));
 /** who describes next (ready) or now (turn) */
 export const describer = (room: Room) => {
   const ps = teamPlayers(room, room.team);
@@ -321,7 +323,10 @@ export type Action =
   | { type: "settings"; settings: Partial<Settings> }
   | { type: "team"; team: Team }
   | { type: "rename"; name: string }
-  | { type: "kick"; player: number }
+  | { type: "kick"; player: number } // lobby: index in the lobby; later: index in `players` (not the one describing now)
+  | { type: "points"; team: Team; d: 1 | -1 } // host: a rule was broken or a point was missed
+  | { type: "void" } // host: the Zetteli in hand doesn't count (rule dispute), it goes back into the bowl
+  | { type: "host"; player: number } // host: hand the host role to someone else
   | { type: "teamName"; team: Team; name: string }
   | { type: "words"; words: (string | Partial<Slip>)[] }
   | { type: "fill"; words: Partial<Slip>[] } // host, "KI schreibt": the AI's Zetteli go straight into the bowl
@@ -395,10 +400,46 @@ async function actUnlocked(db: Store, code: string, pid: unknown, token: unknown
       return;
     }
     case "kick": {
-      const m = Number.isInteger(a.player) ? members[a.player] : undefined;
-      need(host && room.phase === "lobby" && !!m && m.id !== room.hostId);
-      await db.hdel(k(code).members, m!.id);
-      return;
+      if (room.phase === "lobby") {
+        const m = Number.isInteger(a.player) ? members[a.player] : undefined;
+        need(host && !!m && m.id !== room.hostId);
+        await db.hdel(k(code).members, m!.id);
+        return;
+      }
+      const m = Number.isInteger(a.player) ? members.find((x) => x.id === room.ids[a.player]) : undefined;
+      // not while writing (the bowl counts on everyone), not the one describing, and every team keeps somebody
+      need(host && ["ready", "turn", "roundEnd"].includes(room.phase) && !!m && m.id !== room.hostId && !room.out?.includes(a.player));
+      need(!(room.phase === "turn" && a.player === describer(room)) && teamPlayers(room, room.teams[a.player]).length > 1);
+      (room.out ??= []).push(a.player);
+      room.note = { n: (room.note?.n ?? 0) + 1, kind: "kick", name: m!.name };
+      await db.hset(k(code).members, m!.id, { ...m!, token: uid() }, TTL); // their phone is locked out
+      break;
+    }
+    case "points": {
+      need(host && ["ready", "turn", "roundEnd"].includes(room.phase));
+      if (!Number.isInteger(a.team) || a.team < 0 || a.team >= room.teamNames.length || (a.d !== 1 && a.d !== -1)) throw new RoomError("bad_request");
+      if (room.scores[room.round][a.team] + a.d < 0) throw new RoomError("bad_request");
+      room.scores[room.round][a.team] += a.d;
+      room.note = { n: (room.note?.n ?? 0) + 1, kind: "points", team: a.team, d: a.d };
+      break;
+    }
+    case "void": {
+      if (room.phase !== "turn" || room.current === null) return;
+      need(host);
+      const w = room.current;
+      logHand(room, now, "skip");
+      room.held.push(w); // so the next draw is another one, if there is another
+      draw(room, now);
+      room.held = room.held.filter((x) => x !== w);
+      room.note = { n: (room.note?.n ?? 0) + 1, kind: "void" };
+      break;
+    }
+    case "host": {
+      const id = Number.isInteger(a.player) ? (room.phase === "lobby" ? members[a.player]?.id : room.ids[a.player]) : undefined;
+      need(host && !!id && id !== room.hostId && members.some((m) => m.id === id) && !room.out?.includes(room.ids.indexOf(id)));
+      room.hostId = id!;
+      room.note = { n: (room.note?.n ?? 0) + 1, kind: "host", name: members.find((m) => m.id === id)!.name };
+      break;
     }
     case "teamName": {
       const name = cleanName(a.name);
@@ -605,6 +646,8 @@ export type View = {
   total: number;
   turnGot: number; // guessed so far in the running turn
   lastGot: { n: number; text: string; by: number } | null; // the latest guessed Zetteli, flashed on the other phones
+  note: Room["note"] | null; // the host's latest ruling (points, void, kick, new host), flashed on every phone
+  out: number[]; // players the host removed (indices in players)
   lastHeckle: { n: number; by: number; until: number } | null; // the latest heckle; the describer's Zetteli is disturbed until `until` (server clock), nobody heckles meanwhile
   heckles: number; // heckles I have left this turn (auto mode: my team's bonus)
   heckleDone: boolean; // this turn has been disturbed enough
@@ -689,6 +732,8 @@ async function roomView(db: Store, code: string, pid: unknown, token: unknown, n
     total: room.words.length,
     turnGot: room.turnGot,
     lastGot: room.lastGot ?? null,
+    note: room.note ?? null,
+    out: room.out ?? [],
     ...heckleView(room, idx),
     scores: room.scores,
     lastTurn: room.turns.at(-1) ?? null,

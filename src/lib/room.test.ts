@@ -945,3 +945,49 @@ test("a queued action uses the time after acquiring the room lock", async (t) =>
   assert.equal(v.phase, "ready");
   assert.equal(v.scores[0].reduce((a, b) => a + b, 0), 0);
 });
+
+test("host controls: points ±1, void a card, kick mid-game, hand over the host role", async () => {
+  const { as, see, tick, now } = await setup();
+  await writeAll(as);
+  const s0 = await see(0);
+  await assert.rejects(as(1, { type: "points", team: 0, d: 1 }), RoomError); // only the host
+  await assert.rejects(as(0, { type: "points", team: 0, d: -1 }), RoomError); // no negative score
+  await assert.rejects(as(0, { type: "points", team: 5, d: 1 }), RoomError);
+  await as(0, { type: "points", team: 0, d: 1 });
+  let v = await see(1);
+  assert.equal(v.scores[v.round][0], 1);
+  assert.deepEqual([v.note?.kind, v.note?.team, v.note?.d], ["points", 0, 1]); // every phone sees the ruling
+  await as(0, { type: "points", team: 0, d: -1 });
+  assert.equal((await see(1)).scores[0][0], 0);
+
+  // kick the player who is not describing: they are out, locked out, and never describe
+  const d = s0.active!;
+  const victim = [1, 2, 3].find((i) => i !== d && s0.players[i].team === s0.players[d].team) ?? [1, 2, 3].find((i) => i !== d)!;
+  const same = s0.players.filter((p) => p.team === s0.players[victim].team).length;
+  if (same > 1) {
+    await as(0, { type: "kick", player: victim });
+    v = await see(0);
+    assert.deepEqual(v.out, [victim]);
+    assert.equal(v.note?.kind, "kick");
+    await assert.rejects(as(victim, { type: "points", team: 0, d: 1 }), RoomError);
+  } else await assert.rejects(as(0, { type: "kick", player: victim }), RoomError); // a team keeps somebody
+
+  // void the Zetteli in hand: nobody scores, it stays in the bowl
+  await as((await see(0)).active!, { type: "go" }); // the next describer starts (the kicked one never is)
+  tick(1000);
+  const before = (await see(0)).bowlLeft;
+  await as(0, { type: "void" });
+  v = await see(0);
+  assert.equal(v.bowlLeft, before);
+  assert.equal(v.note?.kind, "void");
+  assert.equal(v.scores[0].reduce((a, b) => a + b, 0), 0);
+
+  // hand over the host role
+  await assert.rejects(as(1, { type: "host", player: 1 }), RoomError);
+  const heir = [1, 2, 3].find((i) => !v.out.includes(i))!;
+  await as(0, { type: "host", player: heir });
+  v = await see(heir);
+  assert.equal(v.isHost, true);
+  assert.equal((await see(0)).isHost, false);
+  assert.ok(now() > 0);
+});

@@ -48,6 +48,33 @@ function GotFlash({ v }: { v: View }) {
   );
 }
 
+/** the host's ruling (points, void, kick, new host) flashes on every phone, the host's too */
+function HostNote({ v }: { v: View }) {
+  const t = useT();
+  const note = v.note;
+  const [seen, setSeen] = useState(note?.n ?? 0);
+  const [shown, setShown] = useState<typeof note>(null);
+  if (note && note.n !== seen) {
+    setSeen(note.n);
+    setShown(note);
+  }
+  useEffect(() => {
+    if (!shown) return;
+    const h = setTimeout(() => setShown(null), 2600);
+    return () => clearTimeout(h);
+  }, [shown]);
+  if (!shown) return null;
+  const text =
+    shown.kind === "points" ? t.noteHostPoint(v.teamNames[shown.team ?? 0] ?? "", shown.d ?? 0) : shown.kind === "void" ? t.noteVoid : shown.kind === "kick" ? t.noteKick(shown.name ?? "") : t.noteHost(shown.name ?? "");
+  return (
+    <div role="status" className="pointer-events-none fixed inset-x-0 top-safe-toast z-40 flex justify-center px-4">
+      <p key={shown.n} className="pop max-w-full truncate rounded-full bg-raised px-4 py-2 font-bold text-ink shadow-xl">
+        {text}
+      </p>
+    </div>
+  );
+}
+
 /**
  * every phase of a running game; lobby and joining are handled by the page.
  * `offset`: server clock − this phone's clock. Only the turn screen ticks with it, so the countdown re-renders that screen alone
@@ -68,6 +95,7 @@ export function Phase(props: P & { offset: number }) {
   return (
     <>
       {props.mode === "online" && v.phase !== "write" && <GotFlash v={v} />}
+      {props.mode === "online" && <HostNote v={v} />}
       {body}
     </>
   );
