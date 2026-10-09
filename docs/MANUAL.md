@@ -21,13 +21,13 @@ Auf der Startseite wählst du, wie ihr spielt.
 - Ihr braucht mindestens 2 Spieler pro Team, bei zwei Teams also 4.
 - Tippe auf **Neues Spiel**. Ein laufendes Spiel kannst du später mit **Weiterspielen** fortsetzen, auch nach einem Neuladen der Seite.
 - Das Handy sagt jeweils, wem ihr es geben sollt («Gib das Handy an …»). Wer bestätigt («Ich bin …»), ist dran.
-- Ist diese Person nicht da, könnt ihr sie auf diesem Bildschirm überspringen. Das geht vor jedem Zug, unabhängig davon, wer das Spiel erstellt hat.
+- Ist diese Person nicht da, könnt ihr sie auf diesem Bildschirm überspringen. Das geht vor jedem Zug, unabhängig davon, wer das Spiel erstellt hat. Dann erklärt die nächste Person desselben Teams; die Teamreihenfolge bleibt.
 
 ### Mehrere Handys
 
 «Alle spielen mit dem eigenen Handy.» Die Zetteli erscheinen nur auf dem Handy der Person, die gerade erklärt.
 
-- Gib **Dein Name** ein (oder lass dir mit dem Funkel-Knopf einen erfinden).
+- Gib **Dein Name** ein (oder lass dir mit dem Funkel-Knopf einen erfinden). Gleiche Namen bekommen automatisch eine Nummer («Tim», «Tim 2»).
 - **Neuer Raum**: Du leitest das Spiel (Spielleitung), die anderen kommen per Code dazu. Tippe auf **Raum erstellen**.
 - **Raum beitreten**: Gib den **Raumcode** mit 6 Zeichen ein und tippe auf **Beitreten**, oder nutze **QR-Code scannen**.
 - Im Raum stehen QR-Code und Raumcode gross oben («Scannen oder Code eingeben»). Mit **Link teilen** schickst du die Einladung direkt per Nachricht, mit dem WhatsApp-Knopf daneben gleich in einen WhatsApp-Chat. In den Einstellungen kannst du Zettelispiil auch per WhatsApp weiterempfehlen.
@@ -104,7 +104,7 @@ Damit's für alle lustig bleibt, gilt ein bisschen Anstand. Das Spiel prüft das
 Alle schreiben gleichzeitig ihre Zetteli («Schreib 4 Zetteli»). Niemand sieht, was du schreibst. Bei einem Handy schauen die anderen weg, während du schreibst.
 
 - Unter jedes Zetteli kannst du einen **Hinweis für die Erklärer:in** setzen (optional).
-- Mit **In die Schüssel** gibst du deine Zetteli ab. Das Spiel zeigt, wie viele schon fertig sind.
+- Mit **In die Schüssel** gibst du deine Zetteli ab. Das Spiel zeigt, wie viele schon fertig sind. Wer noch fehlt, steht mit Namen darunter.
 - Steht derselbe Begriff zweimal auf deinen eigenen Zetteli, macht dich das Spiel darauf aufmerksam.
 
 ### KI schreibt die Zetteli

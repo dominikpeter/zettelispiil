@@ -228,19 +228,35 @@ test("describers take turns within their team; the host can pass on one who isn'
   await as(0, { type: "pass" });
   const second = await see(0);
   assert.equal(second.phase, "ready");
-  assert.notEqual(second.players[second.active!].team, team); // the other team is up
-  await as(second.active!, { type: "go" });
-  tick(33_000); // time runs out
-  const third = await see(0);
-  assert.equal(third.players[third.active!].team, team); // back to the first team…
-  assert.notEqual(third.active, first.i); // …with the passed describer's teammate
-  await as(0, { type: "pass" });
+  assert.equal(second.players[second.active!].team, team); // same team stays up…
+  assert.notEqual(second.active, first.i); // …with the next describer
   await as(0, { type: "pass" });
   assert.equal((await see(0)).active, first.i); // the team's turn order goes round
 });
 
+test("same names get a number; bad team index is bad_request; stats and write progress", async () => {
+  const { db, host, as, see } = await setup();
+  const t2 = await joinRoom(db, host.code, "tim"); // "Tim" is taken (any case)
+  assert.equal((await see(0)).players[4].name, "tim 2");
+  await act(db, host.code, t2.pid, t2.token, { type: "rename", name: "Nora" });
+  assert.equal((await see(0)).players[4].name, "Nora 2");
+  await act(db, host.code, t2.pid, t2.token, { type: "rename", name: "Nora 2" }); // own name stays
+  assert.equal((await see(0)).players[4].name, "Nora 2");
+  await assert.rejects(as(0, { type: "team", team: 9 }), (e) => e instanceof RoomError && e.code === "bad_request");
+  await assert.rejects(as(0, { type: "teamName", team: 9, name: "x" }), (e) => e instanceof RoomError && e.code === "bad_request");
+  await act(db, host.code, host.pid, host.token, { type: "kick", player: 4 });
+  await as(0, { type: "start" });
+  await as(1, { type: "words", words: ["w1"] });
+  assert.deepEqual((await see(0)).doneBy, [false, true, false, false]);
+  assert.equal((await see(0)).done, 1);
+  await as(0, { type: "words", words: ["w0"] });
+  await as(2, { type: "words", words: ["w2"] });
+  await as(3, { type: "words", words: ["w3"] });
+  assert.equal((await see(0)).phase, "ready");
+});
+
 test("full game ends with stats for everyone", async () => {
-  const { as, see, tick } = await setup();
+  const { db, host, all, as, see, tick } = await setup();
   await writeAll(as);
   for (let guard = 0; guard < 50 && (await see(0)).phase !== "end"; guard++) {
     const v = await see(0);
@@ -256,6 +272,8 @@ test("full game ends with stats for everyone", async () => {
   const end = await see(2);
   assert.equal(end.phase, "end");
   assert.ok(end.stats);
+  assert.equal((await view(db, host.code, "nobody", "x", 0)).stats, null); // non-members see no stats
+  assert.equal((await view(db, host.code, all[2].pid, "wrong", 0)).stats, null);
   const s = computeStats(end.stats.log, end.stats.turns, end.stats.words, end.players.map((p) => p.team), end.scores);
   assert.equal(s.totals[0] + s.totals[1], 8); // 4 Zetteli × 2 rounds
   assert.equal(s.race.at(-1)![0] + s.race.at(-1)![1], 8);

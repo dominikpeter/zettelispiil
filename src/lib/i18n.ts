@@ -264,6 +264,7 @@ const de = {
   done: (d: number, n: number) => `${d} von ${n} fertig`,
   wordsIn: "Deine Zetteli sind drin",
   soon: "Gleich geht's los.",
+  waitingFor: (n: string) => `Es fehlen noch: ${n}`,
   // turns
   roundOf: (n: number, of: number) => `Runde ${n} von ${of}`,
   gotLast: (name: string, n: number) => `${name} hat ${n} Zetteli geholt`,
@@ -632,6 +633,7 @@ const en: Dict = {
   done: (d, n) => `${d} of ${n} done`,
   wordsIn: "Your slips are in",
   soon: "Starting any second.",
+  waitingFor: (n) => `Still waiting for: ${n}`,
   roundOf: (n, of) => `Round ${n} of ${of}`,
   gotLast: (name, n) => `${name} got ${n} slip${n === 1 ? "" : "s"}`,
   yourTurn: "It's your turn",
@@ -994,6 +996,7 @@ const fr: Dict = {
   done: (d, n) => `${d} sur ${n} prêts`,
   wordsIn: "Tes papiers sont dans le bol",
   soon: "Ça commence tout de suite.",
+  waitingFor: (n) => `Il manque encore : ${n}`,
   roundOf: (n, of) => `Manche ${n} sur ${of}`,
   gotLast: (name, n) => `${name} a trouvé ${n} papier${n === 1 ? "" : "s"}`,
   yourTurn: "C'est ton tour",

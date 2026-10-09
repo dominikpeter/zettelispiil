@@ -130,6 +130,14 @@ function evenTeams(members: Member[], n: number, hostId: string) {
   }
 }
 
+/** same name (any case) as someone else: append " 2", " 3" … and stay within the 24 character cap */
+const uniq = (n: string, taken: string[]) => {
+  const t = new Set(taken.map((x) => x.toLowerCase()));
+  let c = n;
+  for (let i = 2; t.has(c.toLowerCase()); i++) c = `${n.slice(0, 21)} ${i}`;
+  return c;
+};
+
 async function addMember(db: Store, code: string, name: string, members: Member[], teamCount: number) {
   const team = smallest(members, teamCount);
   const m: Member = { id: uid(), name, token: uid(), at: Date.now(), team };
@@ -166,7 +174,7 @@ async function joinUnlocked(db: Store, code: string, name: unknown) {
   const { room, members } = await load(db, code);
   if (room.phase !== "lobby") throw new RoomError("started");
   if (members.length >= MAX_PLAYERS) throw new RoomError("full");
-  const m = await addMember(db, code, n, members, room.teamNames.length);
+  const m = await addMember(db, code, uniq(n, members.map((m) => m.name)), members, room.teamNames.length);
   return { code, pid: m.id, token: m.token };
 }
 
@@ -376,13 +384,14 @@ async function actUnlocked(db: Store, code: string, pid: unknown, token: unknown
       break;
     }
     case "team":
-      need(room.phase === "lobby" && Number.isInteger(a.team) && a.team >= 0 && a.team < room.teamNames.length);
+      if (!Number.isInteger(a.team) || a.team < 0 || a.team >= room.teamNames.length) throw new RoomError("bad_request");
+      need(room.phase === "lobby");
       await db.hset(k(code).members, me.id, { ...me, team: a.team }, TTL);
       return;
     case "rename": {
       const name = cleanName(a.name);
       need(room.phase === "lobby" && !!name);
-      await db.hset(k(code).members, me.id, { ...me, name }, TTL);
+      await db.hset(k(code).members, me.id, { ...me, name: uniq(name, members.filter((m) => m.id !== me.id).map((m) => m.name)) }, TTL);
       return;
     }
     case "kick": {
@@ -393,7 +402,8 @@ async function actUnlocked(db: Store, code: string, pid: unknown, token: unknown
     }
     case "teamName": {
       const name = cleanName(a.name);
-      need(room.phase === "lobby" && Number.isInteger(a.team) && a.team >= 0 && a.team < room.teamNames.length && !!name && (host || me.team === a.team));
+      if (!Number.isInteger(a.team) || a.team < 0 || a.team >= room.teamNames.length) throw new RoomError("bad_request");
+      need(room.phase === "lobby" && !!name && (host || me.team === a.team));
       room.teamNames[a.team] = name;
       break;
     }
@@ -552,7 +562,9 @@ async function actUnlocked(db: Store, code: string, pid: unknown, token: unknown
     case "pass": // the describer isn't there: skip them
       need(host && room.phase === "ready");
       room.carryMs = 0;
-      handOver(room);
+      // same team's next describer is up; a team of one has nobody else, so the other team goes
+      if (room.teams.filter((t) => t === room.team).length > 1) room.next[room.team]++;
+      else handOver(room);
       break;
     case "lobby":
       need(host && room.phase === "end");
@@ -602,6 +614,7 @@ export type View = {
   beforePlay: boolean; // writing, or ready with no turn played yet: the host may go back to the settings, Zetteli stay
   kept: number; // lobby, back from writing: Zetteli written so far that stay in the game
   done: number; // players who wrote their words
+  doneBy: boolean[]; // write phase: per player (same order as players), true once their Zetteli are in
   iDone: boolean;
   turnNo: number;
   stats: null | { words: string[]; hints: string[]; authors: number[]; log: Ev[]; turns: TurnLog[]; drawings: Drawing[]; heckles: { by: number; bonus: boolean }[]; bonusGot: number[] };
@@ -635,6 +648,7 @@ async function roomView(db: Store, code: string, pid: unknown, token: unknown, n
   const active = playing ? describer(room) : null;
 
   let done = 0;
+  let doneBy: boolean[] = [];
   let iDone = false;
   let myWrite: WriteEntry | null = null;
   let kept = 0;
@@ -644,7 +658,8 @@ async function roomView(db: Store, code: string, pid: unknown, token: unknown, n
   }
   if (room.phase === "write") {
     const h = await db.hgetall<WriteEntry>(`room:${code}:words:${room.writeNo}`);
-    done = Object.values(h).filter((e) => e.words.length === room.settings.perPlayer).length;
+    doneBy = room.ids.map((_, i) => h[String(i)]?.words.length === room.settings.perPlayer);
+    done = doneBy.filter(Boolean).length;
     myWrite = idx >= 0 ? (h[String(idx)] ?? null) : null;
     iDone = myWrite?.words.length === room.settings.perPlayer;
   }
@@ -680,9 +695,10 @@ async function roomView(db: Store, code: string, pid: unknown, token: unknown, n
     beforePlay: room.phase === "write" || (room.phase === "ready" && !room.log.length && !room.turns.length),
     kept,
     done,
+    doneBy,
     iDone,
     myWrite,
     turnNo: room.turnNo,
-    stats: room.phase === "end" ? { words: room.words, hints: room.hints ?? [], authors: room.authors, log: room.log, turns: room.turns, drawings: room.drawings ?? [], heckles: room.heckleLog ?? [], bonusGot: room.bonusGot ?? [] } : null,
+    stats: room.phase === "end" && me ? { words: room.words, hints: room.hints ?? [], authors: room.authors, log: room.log, turns: room.turns, drawings: room.drawings ?? [], heckles: room.heckleLog ?? [], bonusGot: room.bonusGot ?? [] } : null,
   };
 }
