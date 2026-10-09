@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Eraser, Maximize2, Minimize2 } from "lucide-react";
+import { Check, Eraser, Maximize2, Minimize2, RotateCw } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useHints, useT } from "@/lib/prefs";
 import { secondsFor } from "@/lib/settings";
@@ -142,7 +142,9 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
 
   const [wipes, setWipes] = useState(0);
   const [full, setFull] = useState(false); // drawing: the paper fills the screen; the word, pens and buttons stay around it
-  const wide = useLandscape();
+  const [turned, setTurned] = useState(false); // full size, turned a quarter: for a phone whose rotation is locked
+  const physWide = useLandscape();
+  const wide = turned ? !physWide : physWide; // the shape of the screen the game sees
 
   const topBar = (
     <div className={`flex items-center justify-between gap-3 px-4 ${full ? "-mx-4 py-0" : "sticky top-safe z-10 -mx-4 bg-canvas/90 py-2 backdrop-blur"}`}>
@@ -193,11 +195,15 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   if (type === "draw" && me && mode === "online") {
     const word = v.word;
     const sheet = v.sheet;
+    const turnedNow = full && turned;
+    const H = turnedNow ? "100dvw" : "100dvh"; // height and width of the screen as the game sees it
+    const W = turnedNow ? "100dvh" : "100vw";
     const fullCls = full
-      ? `fixed inset-0 z-30 gap-2 overflow-hidden bg-canvas p-3 pt-safe-4 pb-safe-4 ${wide ? "grid grid-cols-[auto_1fr] content-start [&>*:not([data-paper])]:col-start-2" : "flex flex-col"}`
+      ? `fixed top-0 left-0 z-30 gap-2 overflow-hidden bg-canvas p-3 ${turnedNow ? "" : "pt-safe-4 pb-safe-4"} ${wide ? "grid grid-cols-[auto_1fr] content-start [&>*:not([data-paper])]:col-start-2" : "flex flex-col"}`
       : "flex flex-1 flex-col gap-2";
+    const fullStyle: CSSProperties | undefined = full ? (turnedNow ? { width: "100dvh", height: "100dvw", transformOrigin: "top left", transform: "translateX(100dvw) rotate(90deg)" } : { width: "100%", height: "100dvh" }) : undefined;
     return (
-      <div className={fullCls}>
+      <div className={fullCls} style={fullStyle}>
         {heckleToast}
         {topBar}
         {word && (
@@ -214,10 +220,10 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
         <div
           data-paper
           className={`mx-auto w-full ${full && wide ? "col-start-1 row-span-6 row-start-1 self-center" : ""}`}
-          style={{ maxWidth: full ? (wide ? "min(100dvh - 1.5rem, 62vw)" : "min(100%, calc(100dvh - 19rem))") : v.held.length ? "min(100%, calc(100dvh - 28rem))" : "min(100%, calc(100dvh - 24rem))" }}
+          style={{ maxWidth: full ? (wide ? `min(${H} - 1.5rem, calc(${W} * 0.62))` : `min(100%, calc(${H} - 19rem))`) : v.held.length ? "min(100%, calc(100dvh - 28rem))" : "min(100%, calc(100dvh - 24rem))" }}
         >
           {word && sheet !== null && live && (
-            <DrawPad key={word.id} code={live.code} sheet={sheet} wipeNo={wipes} ink={ink} label={t.drawHere} onFlush={up ? undefined : live.draw} />
+            <DrawPad key={word.id} turned={full && turned} code={live.code} sheet={sheet} wipeNo={wipes} ink={ink} label={t.drawHere} onFlush={up ? undefined : live.draw} />
           )}
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -245,7 +251,15 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
           >
             <Eraser className="size-5" aria-hidden />
           </button>
-          <button onClick={() => setFull((f) => !f)} aria-label={full ? t.fullSizeExit : t.fullSize} aria-pressed={full} className={`${btn2} w-auto! px-3`}>
+          {full && (
+            <button onClick={() => setTurned((x) => !x)} aria-label={t.rotate} aria-pressed={turned} className={`${btn2} w-auto! px-3`}>
+              <RotateCw className="size-5" aria-hidden />
+            </button>
+          )}
+          <button onClick={() => {
+              setFull(!full);
+              if (full) setTurned(false);
+            }} aria-label={full ? t.fullSizeExit : t.fullSize} aria-pressed={full} className={`${btn2} w-auto! px-3`}>
             {full ? <Minimize2 className="size-5" aria-hidden /> : <Maximize2 className="size-5" aria-hidden />}
           </button>
         </div>

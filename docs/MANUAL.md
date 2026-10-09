@@ -78,7 +78,7 @@ Die Spielleitung legt mit Plus und Minus fest:
 
 **Mit mehreren Handys** sind alle fünf Runden standardmässig dabei, Zeichnen als vorletzte. **Mit einem Handy** sind es die ersten vier; Zeichnen kannst du dort zusätzlich hinzufügen, auf Papier oder Flipchart:
 
-- **Mit mehreren Handys** zeichnest du auf deinem Handy, alle anderen sehen live mit: die Linie entsteht bei ihnen Strich für Strich, ein Punkt zeigt, wo dein Stift gerade ist. Du hast mehrere Stifte zur Auswahl und kannst mit **Alles löschen** neu anfangen. Auch beim Zeichnen lassen sich beiseitegelegte Zetteli antippen und zurücktauschen. Mit dem Knopf **Grosse Zeichenfläche** füllt das Blatt den Bildschirm (auch quer gehalten); der Begriff, die Stifte und die Knöpfe **Passen** und **Erraten** bleiben daneben sichtbar, auch wenn der nächste Zetteli kommt.
+- **Mit mehreren Handys** zeichnest du auf deinem Handy, alle anderen sehen live mit: die Linie entsteht bei ihnen Strich für Strich, ein Punkt zeigt, wo dein Stift gerade ist. Du hast mehrere Stifte zur Auswahl und kannst mit **Alles löschen** neu anfangen. Auch beim Zeichnen lassen sich beiseitegelegte Zetteli antippen und zurücktauschen. Mit dem Knopf **Grosse Zeichenfläche** füllt das Blatt den Bildschirm (auch quer gehalten); der Begriff, die Stifte und die Knöpfe **Passen** und **Erraten** bleiben daneben sichtbar, auch wenn der nächste Zetteli kommt. Mit **Ansicht drehen** kippt die ganze Ansicht um eine Vierteldrehung, damit du auch bei gesperrter Bildschirmdrehung quer zeichnen kannst; die anderen sehen das Bild wie immer aufrecht.
 - **Mit einem Handy** zeichnest du auf ein Flipchart oder Papier, das Handy zeigt nur den Begriff.
 
 Runden anpassen («Reihenfolge ändern oder Runden weglassen»):

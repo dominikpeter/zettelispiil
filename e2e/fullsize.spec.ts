@@ -69,6 +69,33 @@ test("full-size drawing keeps word and Erraten, upright and sideways, through th
   await intact("full, next Zetteli");
   await shot("3-full-next-card");
 
+  // rotation lock on: turn the view in the app. The paper then runs sideways, and a stroke must still land where the finger is
+  await d.getByRole("button", { name: "Ansicht drehen" }).click();
+  await intact("turned");
+  await shot("3b-full-turned");
+  const spot = await d.evaluate(() => {
+    const r = document.querySelector("canvas")!.getBoundingClientRect();
+    return { r: { left: r.left, right: r.right, top: r.top, width: r.width, height: r.height } };
+  });
+  // a point 25 % along the paper's own x and y axes; the paper's x runs down the screen, its y runs left
+  const sx = spot.r.right - 0.25 * spot.r.width, sy = spot.r.top + 0.25 * spot.r.height;
+  await d.mouse.move(sx, sy);
+  await d.mouse.down();
+  await d.mouse.move(sx + 1, sy + 14, { steps: 5 });
+  await d.mouse.up();
+  const hit = await d.evaluate(() => {
+    const c = document.querySelector("canvas")!;
+    const n = c.width, ctx = c.getContext("2d")!;
+    const at = (u: number, v: number) => ctx.getImageData(Math.round(u * n) - 4, Math.round(v * n) - 4, 8, 8).data.some((x, i) => i % 4 === 3 && x > 0);
+    return { onPoint: at(0.25, 0.25), notMirrored: !at(0.75, 0.75) };
+  });
+  expect(hit).toEqual({ onPoint: true, notMirrored: true });
+  await shot("3c-full-turned-drawn");
+  await d.getByRole("button", { name: "Erraten" }).click();
+  await intact("turned, next Zetteli");
+  await shot("3d-full-turned-next");
+  await d.getByRole("button", { name: "Ansicht drehen" }).click(); // and back
+
   await d.setViewportSize({ width: 844, height: 390 }); // turned sideways
   await expect.poll(() => intact("full sideways")).toBeGreaterThan(250);
   await shot("4-full-sideways");

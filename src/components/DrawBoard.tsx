@@ -77,7 +77,7 @@ const paper = "slip block aspect-square h-auto w-full touch-none rounded-md";
  * On mount it reloads what's already on the sheet (after a pause or a reload).
  * `wipeNo` going up clears the paper at once; new lines wait until the room's `sheet` has moved on, so none get lost.
  */
-export function DrawPad({ ink, onFlush, label, code, sheet, wipeNo }: { ink: number; onFlush?: (sheet: number, s: Stroke[]) => void; label: string; code: string; sheet: number; wipeNo: number }) {
+export function DrawPad({ ink, onFlush, label, code, sheet, wipeNo, turned = false }: { turned?: boolean; ink: number; onFlush?: (sheet: number, s: Stroke[]) => void; label: string; code: string; sheet: number; wipeNo: number }) {
   const mine = useRef<Stroke[]>([]);
   const current = useRef<Stroke | null>(null);
   const pending = useRef<Stroke[]>([]);
@@ -135,7 +135,8 @@ export function DrawPad({ ink, onFlush, label, code, sheet, wipeNo }: { ink: num
   const at = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
     const k = (v: number) => Math.max(0, Math.min(1000, Math.round(v * 1000)));
-    return [k((e.clientX - r.left) / r.width), k((e.clientY - r.top) / r.height)];
+    // the screen is turned a quarter clockwise (full-size drawing): the paper's x runs down the screen, its y runs left
+    return turned ? [k((e.clientY - r.top) / r.height), k((r.right - e.clientX) / r.width)] : [k((e.clientX - r.left) / r.width), k((e.clientY - r.top) / r.height)];
   };
 
   return (
