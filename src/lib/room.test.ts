@@ -390,9 +390,11 @@ test("drawing round: the drawer's lines reach everyone sheet by sheet; only the 
   assert.equal((await see(other)).word, null); // watchers get lines, never the word
   await assert.rejects(push(other, sheet, [[0, 1, 2, 3, 4]]), RoomError); // only the drawer draws
   await assert.rejects(push(i, sheet, [[0, 1, 2000]]), RoomError); // off the paper
+  await assert.rejects(push(i, sheet, [[0, 1500, 1001]]), RoomError); // a wide sheet is wider, not taller
+  await assert.rejects(push(i, sheet, [[0, 1501, 10]]), RoomError);
   await push(i, sheet, [[0, 10, 10, 20, 20]]);
-  await push(i, sheet, [[1, 20, 20, 30, 40], [2, 5, 5]]);
-  assert.deepEqual((await pullStrokes(db, host.code, sheet, 0)).strokes, [[0, 10, 10, 20, 20], [1, 20, 20, 30, 40], [2, 5, 5]]);
+  await push(i, sheet, [[1, 20, 20, 1500, 40], [2, 5, 5]]); // drawn sideways: x runs to 1500
+  assert.deepEqual((await pullStrokes(db, host.code, sheet, 0)).strokes, [[0, 10, 10, 20, 20], [1, 20, 20, 1500, 40], [2, 5, 5]]);
   assert.deepEqual((await pullStrokes(db, host.code, sheet, 2)).strokes, [[2, 5, 5]]); // only what's new
 
   await as(i, { type: "wipe" });

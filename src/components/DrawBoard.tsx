@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { Stroke } from "@/lib/room";
 import { advance, PACE_MS } from "@/lib/pace";
 
@@ -9,11 +9,15 @@ const FLUSH_MS = 120; // drawer: how often new line pieces go out
 const FAST_MS = 250; // watcher: poll interval while lines are coming in (tracing hides the gaps)
 const IDLE_MS = 700; // watcher: poll interval once the drawer pauses
 const IDLE_AFTER = 8; // empty polls before slowing down
+/** the paper is 1000 high; a wide sheet (drawn sideways, full size) runs to 1500 across, 3:2. A square one is its left part */
+export const WIDE = 1500;
+/** how far across a sheet runs: wide once any line goes past the square, so old and upright drawings stay square */
+export const across = (ss: Stroke[]) => (ss.some((st) => st.some((n, i) => i % 2 === 1 && n > 1000)) ? WIDE : 1000);
 
 /**
  * draw strokes (up to `limit` points in all) as soft curves through the midpoints of their samples, so a few points
  * still look hand-drawn. A stroke cut off by `limit` ends at a midpoint: revealing the next point only extends it,
- * nothing already on screen moves. Returns where the pen is.
+ * nothing already on screen moves. `size`: the paper's height in px (1000 on the grid). Returns where the pen is.
  */
 function ink(ctx: CanvasRenderingContext2D, strokes: Stroke[], size: number, limit = Infinity) {
   ctx.lineCap = "round";
@@ -43,14 +47,15 @@ function ink(ctx: CanvasRenderingContext2D, strokes: Stroke[], size: number, lim
 }
 
 /** the whole paper at once (drawer, and watchers after a resize) */
-function paint(ctx: CanvasRenderingContext2D, strokes: Stroke[], size: number) {
-  ctx.clearRect(0, 0, size, size);
-  ink(ctx, strokes, size);
+function paint(c: HTMLCanvasElement, strokes: Stroke[]) {
+  const ctx = c.getContext("2d")!;
+  ctx.clearRect(0, 0, c.width, c.height);
+  ink(ctx, strokes, c.height);
 }
 
 const points = (ss: Stroke[]) => ss.reduce((n, s) => n + (s.length - 1) / 2, 0);
 
-/** the paper: square, as large as the space it gets (the parent decides the size); keeps its pixels sharp */
+/** the paper: as wide as the space it gets (the parent decides the size, `shape` the height); keeps its pixels sharp */
 function useFit(draw: (c: HTMLCanvasElement) => void) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const resized = useEffectEvent(() => canvas.current && draw(canvas.current));
@@ -58,8 +63,9 @@ function useFit(draw: (c: HTMLCanvasElement) => void) {
     const c = canvas.current;
     if (!c) return;
     const fit = () => {
-      const px = Math.round(c.clientWidth * (window.devicePixelRatio || 1));
-      if (c.width !== px) c.width = c.height = px;
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr);
+      if (c.width !== w || c.height !== h) [c.width, c.height] = [w, h];
       resized();
     };
     fit();
@@ -70,21 +76,25 @@ function useFit(draw: (c: HTMLCanvasElement) => void) {
   return { canvas, redraw: () => canvas.current && draw(canvas.current) };
 }
 
-const paper = "slip block aspect-square h-auto w-full touch-none rounded-md";
+const paper = "slip block h-auto w-full touch-none rounded-md";
+const shape = (w: number) => ({ clipPath: "none", paddingBottom: 0, aspectRatio: `${w} / 1000` });
 
 /**
  * drawer: lines show at once and go out in small pieces. Remount (new `key`) for the next Zetteli.
  * On mount it reloads what's already on the sheet (after a pause or a reload).
  * `wipeNo` going up clears the paper at once; new lines wait until the room's `sheet` has moved on, so none get lost.
  */
-export function DrawPad({ ink, onFlush, label, code, sheet, wipeNo, turned = false }: { turned?: boolean; ink: number; onFlush?: (sheet: number, s: Stroke[]) => void; label: string; code: string; sheet: number; wipeNo: number }) {
+export function DrawPad({ ink, onFlush, label, code, sheet, wipeNo, turned = false, wide = false }: { turned?: boolean; wide?: boolean; ink: number; onFlush?: (sheet: number, s: Stroke[]) => void; label: string; code: string; sheet: number; wipeNo: number }) {
   const mine = useRef<Stroke[]>([]);
   const current = useRef<Stroke | null>(null);
   const pending = useRef<Stroke[]>([]);
   const lastFlushed = useRef(0); // coordinates of `current` already sent
   const target = useRef({ sheet, wipeNo, hold: false }); // where new lines go; `hold` while a wipe is on its way
-  const { canvas, redraw } = useFit((c) => paint(c.getContext("2d")!, [...mine.current, ...(current.current ? [current.current] : [])], c.width));
+  const { canvas, redraw } = useFit((c) => paint(c, [...mine.current, ...(current.current ? [current.current] : [])]));
   const repaint = useEffectEvent(() => redraw());
+  // drawn wide (sideways), the sheet stays wide upright too: the drawer always sees all of it, like the others do
+  const [wideInk, setWideInk] = useState(false);
+  const w = wide || wideInk ? WIDE : 1000;
 
   // back after a pause or a reload: what the others already see
   useEffect(() => {
@@ -94,6 +104,7 @@ export function DrawPad({ ink, onFlush, label, code, sheet, wipeNo, turned = fal
       .then((r) => {
         if (!alive || r?.sheet !== sheet || !Array.isArray(r.strokes) || !r.strokes.length) return;
         mine.current = [...r.strokes, ...mine.current];
+        if (across(mine.current) === WIDE) setWideInk(true);
         repaint();
       })
       .catch(() => {});
@@ -108,6 +119,7 @@ export function DrawPad({ ink, onFlush, label, code, sheet, wipeNo, turned = fal
     target.current = { sheet: target.current.sheet, wipeNo, hold: true };
     mine.current = [];
     pending.current = [];
+    setWideInk(false);
     repaint();
   }, [wipeNo]);
   useEffect(() => {
@@ -134,9 +146,9 @@ export function DrawPad({ ink, onFlush, label, code, sheet, wipeNo, turned = fal
 
   const at = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
-    const k = (v: number) => Math.max(0, Math.min(1000, Math.round(v * 1000)));
+    const k = (v: number, max: number) => Math.max(0, Math.min(max, Math.round(v * max)));
     // the screen is turned a quarter clockwise (full-size drawing): the paper's x runs down the screen, its y runs left
-    return turned ? [k((e.clientY - r.top) / r.height), k((r.right - e.clientX) / r.width)] : [k((e.clientX - r.left) / r.width), k((e.clientY - r.top) / r.height)];
+    return turned ? [k((e.clientY - r.top) / r.height, w), k((r.right - e.clientX) / r.width, 1000)] : [k((e.clientX - r.left) / r.width, w), k((e.clientY - r.top) / r.height, 1000)];
   };
 
   return (
@@ -145,7 +157,7 @@ export function DrawPad({ ink, onFlush, label, code, sheet, wipeNo, turned = fal
       role="img"
       aria-label={label}
       className={`${paper} ${onFlush ? "cursor-crosshair" : ""}`}
-      style={{ clipPath: "none", paddingBottom: 0 }}
+      style={shape(w)}
       onPointerDown={
         onFlush &&
         ((e) => {
@@ -172,6 +184,7 @@ export function DrawPad({ ink, onFlush, label, code, sheet, wipeNo, turned = fal
           const cur = current.current;
           if (cur && cur.length - 1 > lastFlushed.current) pending.current.push([cur[0], ...cur.slice(Math.max(1, lastFlushed.current - 1))]);
           if (cur) mine.current.push(cur);
+          if (cur && across([cur]) === WIDE) setWideInk(true);
           current.current = null;
         })
       }
@@ -189,8 +202,8 @@ export function Replay({ strokes, label, play = 0 }: { strokes: Stroke[]; label:
   const shown = useRef(play ? 0 : Infinity);
   const { canvas, redraw } = useFit((c) => {
     const ctx = c.getContext("2d")!;
-    ctx.clearRect(0, 0, c.width, c.width);
-    ink(ctx, strokes, c.width, shown.current);
+    ctx.clearRect(0, 0, c.width, c.height);
+    ink(ctx, strokes, c.height, shown.current);
   });
   const repaint = useEffectEvent(() => redraw());
   useEffect(() => {
@@ -212,11 +225,11 @@ export function Replay({ strokes, label, play = 0 }: { strokes: Stroke[]; label:
     return () => cancelAnimationFrame(frame);
   }, [play, strokes]);
   // not touch-none like the others: a grid of these must still scroll under a finger
-  return <canvas ref={canvas} role="img" aria-label={label} className="slip block aspect-square h-auto w-full rounded-md" style={{ clipPath: "none", paddingBottom: 0 }} />;
+  return <canvas ref={canvas} role="img" aria-label={label} className="slip block h-auto w-full rounded-md" style={shape(across(strokes))} />;
 }
 
-/** watchers: pull only new lines, fast while the drawer draws, and trace them in smoothly */
-export function DrawView({ code, sheet, label }: { code: string; sheet: number; label: string }) {
+/** watchers: pull only new lines, fast while the drawer draws, and trace them in smoothly. `room`: the height the paper may take */
+export function DrawView({ code, sheet, label, room }: { code: string; sheet: number; label: string; room: string }) {
   const strokes = useRef<Stroke[]>([]);
   const total = useRef(0); // points received so far (kept as a running sum, not recounted every frame)
   const shown = useRef(0); // points on screen so far (fractional while tracing)
@@ -224,19 +237,21 @@ export function DrawView({ code, sheet, label }: { code: string; sheet: number; 
   const at = useRef({ sheet, from: 0, gen: 0 }); // gen bumps on every reset, so late answers for an old sheet are dropped
   // lines already fully on screen, drawn once onto a stored image; each frame only adds the line being traced
   const baked = useRef<{ img: HTMLCanvasElement; strokes: number; points: number } | null>(null);
+  const [w, setW] = useState(1000); // the sheet turns wide once a line goes past the square
   const reset = () => {
     strokes.current = [];
     total.current = shown.current = 0;
     baked.current = null;
+    setW(1000);
   };
   const { canvas, redraw } = useFit((c) => {
     const ctx = c.getContext("2d")!;
-    const size = c.width;
+    const size = c.height;
     const limit = Math.floor(shown.current);
     let b = baked.current;
-    if (!b || b.img.width !== size) {
+    if (!b || b.img.width !== c.width || b.img.height !== size) {
       const img = document.createElement("canvas");
-      img.width = img.height = size;
+      [img.width, img.height] = [c.width, size];
       b = baked.current = { img, strokes: 0, points: 0 };
     }
     for (let st = strokes.current[b.strokes]; st && b.points + (st.length - 1) / 2 <= limit; st = strokes.current[b.strokes]) {
@@ -244,7 +259,7 @@ export function DrawView({ code, sheet, label }: { code: string; sheet: number; 
       b.strokes++;
       b.points += (st.length - 1) / 2;
     }
-    ctx.clearRect(0, 0, size, size);
+    ctx.clearRect(0, 0, c.width, size);
     ctx.drawImage(b.img, 0, 0);
     const pen = ink(ctx, strokes.current.slice(b.strokes), size, limit - b.points);
     if (pen && shown.current < total.current) {
@@ -277,6 +292,7 @@ export function DrawView({ code, sheet, label }: { code: string; sheet: number; 
         if (r.sheet !== s) reset();
         strokes.current.push(...r.strokes);
         total.current += points(r.strokes);
+        if (across(r.strokes) === WIDE) setW(WIDE);
         if (r.strokes.length) deadline.current = performance.now() + PACE_MS;
         at.current = { sheet: r.sheet, from: r.from + r.strokes.length, gen: r.sheet !== s ? gen + 1 : gen };
         idle = r.strokes.length ? 0 : idle + 1;
@@ -312,5 +328,9 @@ export function DrawView({ code, sheet, label }: { code: string; sheet: number; 
     };
   }, [code]); // one loop per mount; sheet changes go through `at`
 
-  return <canvas ref={canvas} role="img" aria-label={label} className={paper} style={{ clipPath: "none", paddingBottom: 0 }} />;
+  return (
+    <div className="mx-auto w-full" style={{ maxWidth: `min(100%, calc((${room}) * ${w / 1000}))` }}>
+      <canvas ref={canvas} role="img" aria-label={label} className={paper} style={shape(w)} />
+    </div>
+  );
 }

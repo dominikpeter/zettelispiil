@@ -901,6 +901,14 @@ dialog.sheet[open]::backdrop { animation: fade-in 0.3s ease-out both; }
 @utility grid-cols-turn-actions {
   grid-template-columns: 1fr 1.6fr;
 }
+/* drawing sideways, full size: the paper (first column, all rows) and a slim column of tools, the guess buttons at its foot.
+   A size container, so the paper can take its width from the screen's height (cqh) */
+@utility draw-side {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  container-type: size;
+}
 @utility bottom-bowl-count {
   bottom: 14%;
 }

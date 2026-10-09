@@ -145,9 +145,10 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   const [turned, setTurned] = useState(false); // full size, turned a quarter: for a phone whose rotation is locked
   const physWide = useLandscape();
   const wide = turned ? !physWide : physWide; // the shape of the screen the game sees
+  const side = full && wide; // sideways: a wide paper at full height, the word on its corner, the rest in a slim column
 
   const topBar = (
-    <div className={`flex items-center gap-3 ${full && wide ? "" : "justify-between px-4"} ${full ? (wide ? "" : "-mx-4 py-0") : "sticky top-safe z-10 -mx-4 bg-canvas/90 py-2 backdrop-blur"}`}>
+    <div className={`flex items-center gap-3 ${side ? "" : "justify-between px-4"} ${full ? (wide ? "" : "-mx-4 py-0") : "sticky top-safe z-10 -mx-4 bg-canvas/90 py-2 backdrop-blur"}`}>
       <TimerRing left={shownLeft} total={total} size={full ? (wide ? 40 : 48) : 76} label={t.secondsLeft} />
       <div className="text-center">
         {!full && <p className="text-sm text-muted">{t.thisTurn}</p>}
@@ -155,16 +156,16 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
           +{v.turnGot}
         </p>
       </div>
-      {!(full && wide) && <Bowl count={v.bowlLeft} className={full ? "w-12" : "w-20"} />}
+      {!side && <Bowl count={v.bowlLeft} className={full ? "w-12" : "w-20"} />}
     </div>
   );
   const buttons = (
-    <div className={full && wide ? "flex flex-col-reverse gap-2" : "grid grid-cols-turn-actions gap-3 pb-2"}>
-      <button onClick={() => act("l")} disabled={up || !!fling || !v.canSkip} className={`${btn2} min-h-14 flex-col gap-0 leading-tight`}>
+    <div className={side ? "row-start-4 flex flex-col-reverse gap-1.5 self-end" : "grid grid-cols-turn-actions gap-3 pb-2"}>
+      <button onClick={() => act("l")} disabled={up || !!fling || !v.canSkip} className={`${btn2} ${side ? "px-2" : "min-h-14"} flex-col gap-0 leading-tight`}>
         {t.next}
         {v.settings.skips !== -1 && <span className="text-xs font-medium text-muted">{t.left(v.settings.skips - v.held.length)}</span>}
       </button>
-      <button onClick={() => act("r")} disabled={up || !!fling} className={btn}>
+      <button onClick={() => act("r")} disabled={up || !!fling} className={`${btn} ${side ? "px-2" : ""}`}>
         <Check className="size-5" aria-hidden /> {t.got}
       </button>
     </div>
@@ -196,40 +197,47 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
     const word = v.word;
     const sheet = v.sheet;
     const turnedNow = full && turned;
-    const H = turnedNow ? "100dvw" : "100dvh"; // height and width of the screen as the game sees it
-    const W = turnedNow ? "100dvh" : "100vw";
+    // what lies under the notch and the home bar; turned, the view's left edge is the phone's top and its right the bottom
+    const [inL, inR] = turnedNow ? ["env(safe-area-inset-top)", "env(safe-area-inset-bottom)"] : ["env(safe-area-inset-left)", "env(safe-area-inset-right)"];
     const fullCls = full
-      ? `fixed top-0 left-0 z-30 gap-2 overflow-hidden bg-canvas ${wide ? "p-2" : "p-3"} ${turnedNow || wide ? "" : "pt-safe-4 pb-safe-4"} ${wide ? "grid grid-cols-[auto_1fr] content-start [&>*:not([data-paper])]:col-start-2" : "flex flex-col"}`
+      ? `fixed top-0 left-0 z-30 gap-2 overflow-hidden bg-canvas ${side ? "draw-side gap-y-1.5 p-2 [&>*:not([data-paper])]:col-start-2" : "flex flex-col p-3"} ${turnedNow || side ? "" : "pt-safe-4 pb-safe-4"}`
       : "flex flex-1 flex-col gap-2";
-    const fullStyle: CSSProperties | undefined = full ? (turnedNow ? { width: "100dvh", height: "100dvw", transformOrigin: "top left", transform: "translateX(100dvw) rotate(90deg)" } : { width: "100%", height: "100dvh" }) : undefined;
+    const fullStyle: CSSProperties | undefined = full
+      ? {
+          ...(turnedNow ? { width: "100dvh", height: "100dvw", transformOrigin: "top left", transform: "translateX(100dvw) rotate(90deg)" } : { width: "100%", height: "100dvh" }),
+          ...(side && { paddingLeft: `max(0.5rem, ${inL})`, paddingRight: `max(0.5rem, ${inR})`, paddingBottom: turnedNow ? undefined : "max(0.5rem, env(safe-area-inset-bottom))" }),
+        }
+      : undefined;
+    const tool = `${btn2} size-9! min-h-0! shrink-0 px-0!`; // small round icons: upright, the pens and the tools fit one row even on a small phone
     return (
       <div className={fullCls} style={fullStyle}>
         {heckleToast}
         {topBar}
         {word && (
-          <div data-paper={full && wide ? "" : undefined} className={full && wide ? "pointer-events-none absolute top-3 left-3 z-10 w-40 drop-shadow-lg" : "contents"}>
-          <HeckleFx fx={heckleSlip} className={full && wide ? "w-full" : "w-full max-w-xs self-center"}>
-            <Slip key={word.id} tilt={-1} className={`unfold @container w-full text-center ${full && wide ? "px-3 pt-0.5" : "px-5 pt-1.5"}`}>
-              <span data-testid="word" className="font-hand block font-bold" style={fitLine(word.text, full && wide ? "1.5rem" : "2.25rem")}>
+          <div data-paper={side ? "" : undefined} className={side ? "pointer-events-none absolute top-3 z-10 w-36 opacity-95 drop-shadow-lg" : "contents"} style={side ? { left: `calc(max(0.5rem, ${inL}) + 0.25rem)` } : undefined}>
+          <HeckleFx fx={heckleSlip} className={side ? "w-full" : "w-full max-w-xs self-center"}>
+            <Slip key={word.id} tilt={-1} className={`unfold @container w-full text-center ${side ? "px-2 pt-0.5" : "px-5 pt-1.5"}`}>
+              <span data-testid="word" className="font-hand block font-bold" style={fitLine(word.text, side ? "1.375rem" : "2.25rem")}>
                 {word.text}
               </span>
-              {showHint && word.hint && <span className="block text-center text-sm text-paper-ink/60">{word.hint}</span>}
+              {showHint && word.hint && <span className={`block text-center text-paper-ink/60 ${side ? "text-xs" : "text-sm"}`}>{word.hint}</span>}
             </Slip>
           </HeckleFx>
           </div>
         )}
-        {/* the paper takes what's left of the screen, never more: no scrolling while drawing */}
+        {/* the paper takes what's left of the screen, never more: no scrolling while drawing. Sideways it is wide (3:2) and
+            as tall as the screen, leaving the column beside it just room for the buttons */}
         <div
           data-paper
-          className={`mx-auto w-full ${full && wide ? "col-start-1 row-span-6 row-start-1 self-center" : ""}`}
-          style={full && wide ? { width: `min(calc(${H} - 1rem), calc(${W} - 12rem))` } : { maxWidth: full ? ( `min(100%, calc(${H} - 19rem))`) : v.held.length ? "min(100%, calc(100dvh - 28rem))" : "min(100%, calc(100dvh - 24rem))" }}
+          className={`mx-auto w-full ${side ? "col-start-1 row-span-full row-start-1 self-start" : ""}`}
+          style={side ? { width: "min(150cqh, 100cqw - 8rem)" } : { maxWidth: full ? (turnedNow ? "min(100%, calc(100dvw - 19rem))" : "min(100%, calc(100dvh - 19rem))") : v.held.length ? "min(100%, calc(100dvh - 28rem))" : "min(100%, calc(100dvh - 24rem))" }}
         >
           {word && sheet !== null && live && (
-            <DrawPad key={word.id} turned={full && turned} code={live.code} sheet={sheet} wipeNo={wipes} ink={ink} label={t.drawHere} onFlush={up ? undefined : live.draw} />
+            <DrawPad key={word.id} turned={turnedNow} wide={side} code={live.code} sheet={sheet} wipeNo={wipes} ink={ink} label={t.drawHere} onFlush={up ? undefined : live.draw} />
           )}
         </div>
-        <div className={`flex flex-wrap items-center gap-2 ${full && wide ? "" : "justify-between"}`}>
-          <div className="flex gap-2" role="radiogroup" aria-label={t.drawHere}>
+        <div className={`flex flex-wrap items-center gap-1.5 ${side ? "" : "justify-between"}`}>
+          <div className={`flex gap-1.5 ${side ? "flex-wrap" : ""}`} role="radiogroup" aria-label={t.drawHere}>
             {INKS.map((c, i) => (
               <button
                 key={c}
@@ -237,7 +245,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
                 aria-checked={ink === i}
                 aria-label={t.pen(i + 1)}
                 onClick={() => setInk(i)}
-                className={`${full ? "size-9" : "size-10"} rounded-full border-4 ${press} ${ink === i ? "border-accent" : "border-surface"}`}
+                className={`size-9 rounded-full border-4 ${press} ${ink === i ? "border-accent" : "border-surface"}`}
                 style={{ background: c }}
               />
             ))}
@@ -249,19 +257,19 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
             }}
             disabled={up}
             aria-label={t.wipe}
-            className={`${btn2} ${full ? "size-10! min-h-0! shrink-0 px-0!" : "w-auto! px-3"}`}
+            className={tool}
           >
             <Eraser className="size-5" aria-hidden />
           </button>
           {full && (
-            <button onClick={() => setTurned((x) => !x)} aria-label={t.rotate} aria-pressed={turned} className={`${btn2} ${full ? "size-10! min-h-0! shrink-0 px-0!" : "w-auto! px-3"}`}>
+            <button onClick={() => setTurned((x) => !x)} aria-label={t.rotate} aria-pressed={turned} className={tool}>
               <RotateCw className="size-5" aria-hidden />
             </button>
           )}
           <button onClick={() => {
               setFull(!full);
               if (full) setTurned(false);
-            }} aria-label={full ? t.fullSizeExit : t.fullSize} aria-pressed={full} className={`${btn2} ${full ? "size-10! min-h-0! shrink-0 px-0!" : "w-auto! px-3"}`}>
+            }} aria-label={full ? t.fullSizeExit : t.fullSize} aria-pressed={full} className={tool}>
             {full ? <Minimize2 className="size-5" aria-hidden /> : <Maximize2 className="size-5" aria-hidden />}
           </button>
         </div>
@@ -284,9 +292,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
             </p>
           </div>
         </div>
-        <div className="mx-auto w-full" style={{ maxWidth: teamButton ? "min(100%, calc(100dvh - 19rem))" : "min(100%, calc(100dvh - 12rem))" }}>
-          {live && v.sheet !== null && <DrawView code={live.code} sheet={v.sheet} label={t.explains(p.name, type)} />}
-        </div>
+        {live && v.sheet !== null && <DrawView code={live.code} sheet={v.sheet} label={t.explains(p.name, type)} room={teamButton ? "100dvh - 19rem" : "100dvh - 12rem"} />}
         {teamButton}
         {heckleButton}
         {mateToast}

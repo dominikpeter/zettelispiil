@@ -24,7 +24,7 @@ type WriteEntry = { words: Slip[]; cancelled: string[] };
 /** compare words the way players would: case, accents, ß and punctuation don't matter */
 export const norm = (w: string) =>
   w.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/ß/g, "ss").replace(/[^\p{L}\p{N}]/gu, "");
-/** a drawn line: [color index, x0, y0, x1, y1, …] on a 0…1000 grid */
+/** a drawn line: [color index, x0, y0, x1, y1, …]; y runs 0…1000, x to 1000 on a square sheet, to 1500 on a wide one (drawn sideways) */
 export type Stroke = number[];
 export type Team = number; // 0 … settings.teams - 1
 export type Phase = "lobby" | "write" | "ready" | "turn" | "roundEnd" | "end";
@@ -195,7 +195,7 @@ async function syncDrawer(db: Store, room: Room, members: Member[]) {
 }
 
 const validStrokes = (ss: unknown): ss is Stroke[] =>
-  Array.isArray(ss) && ss.length > 0 && ss.length <= 20 && ss.every((st) => Array.isArray(st) && st.length >= 3 && st.length <= 401 && st.every((n) => Number.isInteger(n) && n >= 0 && n <= 1000));
+  Array.isArray(ss) && ss.length > 0 && ss.length <= 20 && ss.every((st) => Array.isArray(st) && st.length >= 3 && st.length <= 401 && st.every((n, i) => Number.isInteger(n) && n >= 0 && n <= (i % 2 ? 1500 : 1000)));
 
 /** drawer's phone: add lines to the current sheet */
 export async function pushStrokes(db: Store, code: string, pid: unknown, token: unknown, sheet: unknown, strokes: unknown, now = Date.now()) {
