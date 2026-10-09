@@ -577,7 +577,7 @@ test("AI help can be toggled during a turn without losing the game", async ({ pa
   for (const choice of ["Aus", "An"]) {
     await page.getByRole("button", { name: "Pause" }).click();
     const menu = page.getByRole("dialog", { name: "Pause" });
-    await menu.locator("summary").click();
+    await menu.locator("summary").first().click(); // the settings; the host tools have a summary too
     const section = menu.locator("section").filter({ has: page.getByRole("heading", { name: "KI-Hilfe", exact: true }) });
     await section.getByRole("button", { name: choice, exact: true }).click();
     await menu.getByRole("button", { name: "Weiterspielen" }).click();

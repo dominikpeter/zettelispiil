@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Home, Pause, Play, ChevronDown, Settings2, X } from "lucide-react";
+import { ArrowLeft, Ban, Crown, Home, Minus, Pause, Play, Plus, ChevronDown, Settings2, UserX, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useT } from "@/lib/prefs";
 import { type View } from "@/lib/room";
@@ -138,6 +138,7 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
                 <SettingsPanel />
               </div>
             </details>
+            {canCancel && <HostTools v={v} send={send} local={local} />}
             <div className="mx-auto flex w-full max-w-md flex-col gap-2">
               {(!paused || canPause) && (
                 <button onClick={resume} className={btn}>
@@ -173,5 +174,55 @@ export function GameMenu({ v, send, mode, onLeave }: { v: View; send: Send; mode
       )}
       {asking && <Confirm text={t.cancelConfirm} yes={t.cancelGame} no={t.resumeTurn} onYes={cancel} onNo={() => setAsking(false)} />}
     </>
+  );
+}
+
+/** the host's rulings: points up or down, void the slip in hand, remove a player, hand over the host role. Everyone sees what was done */
+function HostTools({ v, send, local }: { v: View; send: Send; local: boolean }) {
+  const t = useT();
+  const as = local ? v.hostIndex : undefined;
+  if (!["ready", "turn", "roundEnd"].includes(v.phase)) return null;
+  const tool = "grid size-11 shrink-0 place-items-center rounded-lg bg-raised text-ink active:scale-95 disabled:opacity-40";
+  return (
+    <details className="mx-auto mb-4 w-full max-w-md rounded-3xl bg-surface p-4 [&[open]>summary>svg]:rotate-180">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-semibold [&::-webkit-details-marker]:hidden">
+        {t.hostTools}
+        <ChevronDown className="size-5 transition-transform" aria-hidden />
+      </summary>
+      <div className="mt-3 flex flex-col gap-3">
+        {v.teamNames.map((n, ti) => (
+          <div key={ti} className="flex items-center gap-2">
+            <span className={`size-2.5 shrink-0 rounded-full ${TEAM[ti % TEAM.length].bg}`} />
+            <span className="min-w-0 flex-1 truncate font-semibold">{n}</span>
+            <button className={tool} aria-label={t.pointMinus(n)} onClick={() => send({ type: "points", team: ti, d: -1 }, as)}>
+              <Minus className="size-5" aria-hidden />
+            </button>
+            <button className={tool} aria-label={t.pointPlus(n)} onClick={() => send({ type: "points", team: ti, d: 1 }, as)}>
+              <Plus className="size-5" aria-hidden />
+            </button>
+          </div>
+        ))}
+        {v.phase === "turn" && (
+          <button className={`${tool} w-full gap-2 px-3 text-sm`} onClick={() => send({ type: "void" }, as)}>
+            <Ban className="size-5" aria-hidden /> {t.voidCard}
+          </button>
+        )}
+        {v.players.map((p, i) =>
+          i === v.hostIndex || v.out.includes(i) ? null : (
+            <div key={i} className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate">{p.name}</span>
+              <button className={tool} aria-label={t.makeHost(p.name)} onClick={() => send({ type: "host", player: i }, as)}>
+                <Crown className="size-5" aria-hidden />
+              </button>
+              {!(v.phase === "turn" && i === v.active) && (
+                <button className={tool} aria-label={t.kickInGame(p.name)} onClick={() => send({ type: "kick", player: i }, as)}>
+                  <UserX className="size-5" aria-hidden />
+                </button>
+              )}
+            </div>
+          ),
+        )}
+      </div>
+    </details>
   );
 }

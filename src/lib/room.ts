@@ -24,7 +24,7 @@ type WriteEntry = { words: Slip[]; cancelled: string[] };
 /** compare words the way players would: case, accents, ß and punctuation don't matter */
 export const norm = (w: string) =>
   w.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/ß/g, "ss").replace(/[^\p{L}\p{N}]/gu, "");
-/** a drawn line: [color index, x0, y0, x1, y1, …] on a 0…1000 grid */
+/** a drawn line: [color index, x0, y0, x1, y1, …]; y runs 0…1000, x to 1000 on a square sheet, to 1500 on a wide one (drawn sideways) */
 export type Stroke = number[];
 export type Team = number; // 0 … settings.teams - 1
 export type Phase = "lobby" | "write" | "ready" | "turn" | "roundEnd" | "end";
@@ -69,6 +69,8 @@ type Room = Heckles & {
   writeNo: number;
   turnNo: number;
   aiBy?: string; // user id of a host who was signed in when creating the room: AI is on for everyone in it, on that host's budget
+  out?: number[]; // players the host removed mid-game (indices in `ids`): they stay in the stats, but never describe
+  note?: { n: number; kind: "points" | "void" | "kick" | "host"; team?: number; d?: number; name?: string }; // the host's latest ruling, flashed on every phone
   kept?: { writeNo: number; ids: string[] }; // back to the settings before the first turn: whose Zetteli, written in which round of writing
 };
 
@@ -130,6 +132,14 @@ function evenTeams(members: Member[], n: number, hostId: string) {
   }
 }
 
+/** same name (any case) as someone else: append " 2", " 3" … and stay within the 24 character cap */
+const uniq = (n: string, taken: string[]) => {
+  const t = new Set(taken.map((x) => x.toLowerCase()));
+  let c = n;
+  for (let i = 2; t.has(c.toLowerCase()); i++) c = `${n.slice(0, 21)} ${i}`;
+  return c;
+};
+
 async function addMember(db: Store, code: string, name: string, members: Member[], teamCount: number) {
   const team = smallest(members, teamCount);
   const m: Member = { id: uid(), name, token: uid(), at: Date.now(), team };
@@ -166,7 +176,7 @@ async function joinUnlocked(db: Store, code: string, name: unknown) {
   const { room, members } = await load(db, code);
   if (room.phase !== "lobby") throw new RoomError("started");
   if (members.length >= MAX_PLAYERS) throw new RoomError("full");
-  const m = await addMember(db, code, n, members, room.teamNames.length);
+  const m = await addMember(db, code, uniq(n, members.map((m) => m.name)), members, room.teamNames.length);
   return { code, pid: m.id, token: m.token };
 }
 
@@ -185,7 +195,7 @@ async function syncDrawer(db: Store, room: Room, members: Member[]) {
 }
 
 const validStrokes = (ss: unknown): ss is Stroke[] =>
-  Array.isArray(ss) && ss.length > 0 && ss.length <= 20 && ss.every((st) => Array.isArray(st) && st.length >= 3 && st.length <= 401 && st.every((n) => Number.isInteger(n) && n >= 0 && n <= 1000));
+  Array.isArray(ss) && ss.length > 0 && ss.length <= 20 && ss.every((st) => Array.isArray(st) && st.length >= 3 && st.length <= 401 && st.every((n, i) => Number.isInteger(n) && n >= 0 && n <= (i % 2 ? 1500 : 1000)));
 
 /** drawer's phone: add lines to the current sheet */
 export async function pushStrokes(db: Store, code: string, pid: unknown, token: unknown, sheet: unknown, strokes: unknown, now = Date.now()) {
@@ -237,7 +247,7 @@ function fillBowl(room: Room, slips: Slip[], authors: number[]) {
   room.phase = "ready";
 }
 
-const teamPlayers = (room: Room, t: Team) => room.teams.flatMap((x, i) => (x === t ? [i] : []));
+const teamPlayers = (room: Room, t: Team) => room.teams.flatMap((x, i) => (x === t && !room.out?.includes(i) ? [i] : []));
 /** who describes next (ready) or now (turn) */
 export const describer = (room: Room) => {
   const ps = teamPlayers(room, room.team);
@@ -313,7 +323,10 @@ export type Action =
   | { type: "settings"; settings: Partial<Settings> }
   | { type: "team"; team: Team }
   | { type: "rename"; name: string }
-  | { type: "kick"; player: number }
+  | { type: "kick"; player: number } // lobby: index in the lobby; later: index in `players` (not the one describing now)
+  | { type: "points"; team: Team; d: 1 | -1 } // host: a rule was broken or a point was missed
+  | { type: "void" } // host: the Zetteli in hand doesn't count (rule dispute), it goes back into the bowl
+  | { type: "host"; player: number } // host: hand the host role to someone else
   | { type: "teamName"; team: Team; name: string }
   | { type: "words"; words: (string | Partial<Slip>)[] }
   | { type: "fill"; words: Partial<Slip>[] } // host, "KI schreibt": the AI's Zetteli go straight into the bowl
@@ -376,24 +389,62 @@ async function actUnlocked(db: Store, code: string, pid: unknown, token: unknown
       break;
     }
     case "team":
-      need(room.phase === "lobby" && Number.isInteger(a.team) && a.team >= 0 && a.team < room.teamNames.length);
+      if (!Number.isInteger(a.team) || a.team < 0 || a.team >= room.teamNames.length) throw new RoomError("bad_request");
+      need(room.phase === "lobby");
       await db.hset(k(code).members, me.id, { ...me, team: a.team }, TTL);
       return;
     case "rename": {
       const name = cleanName(a.name);
       need(room.phase === "lobby" && !!name);
-      await db.hset(k(code).members, me.id, { ...me, name }, TTL);
+      await db.hset(k(code).members, me.id, { ...me, name: uniq(name, members.filter((m) => m.id !== me.id).map((m) => m.name)) }, TTL);
       return;
     }
     case "kick": {
-      const m = Number.isInteger(a.player) ? members[a.player] : undefined;
-      need(host && room.phase === "lobby" && !!m && m.id !== room.hostId);
-      await db.hdel(k(code).members, m!.id);
-      return;
+      if (room.phase === "lobby") {
+        const m = Number.isInteger(a.player) ? members[a.player] : undefined;
+        need(host && !!m && m.id !== room.hostId);
+        await db.hdel(k(code).members, m!.id);
+        return;
+      }
+      const m = Number.isInteger(a.player) ? members.find((x) => x.id === room.ids[a.player]) : undefined;
+      // not while writing (the bowl counts on everyone), not the one describing, and every team keeps somebody
+      need(host && ["ready", "turn", "roundEnd"].includes(room.phase) && !!m && m.id !== room.hostId && !room.out?.includes(a.player));
+      need(!(room.phase === "turn" && a.player === describer(room)) && teamPlayers(room, room.teams[a.player]).length > 1);
+      (room.out ??= []).push(a.player);
+      room.note = { n: (room.note?.n ?? 0) + 1, kind: "kick", name: m!.name };
+      await db.hset(k(code).members, m!.id, { ...m!, token: uid() }, TTL); // their phone is locked out
+      break;
+    }
+    case "points": {
+      need(host && ["ready", "turn", "roundEnd"].includes(room.phase));
+      if (!Number.isInteger(a.team) || a.team < 0 || a.team >= room.teamNames.length || (a.d !== 1 && a.d !== -1)) throw new RoomError("bad_request");
+      if (room.scores[room.round][a.team] + a.d < 0) throw new RoomError("bad_request");
+      room.scores[room.round][a.team] += a.d;
+      room.note = { n: (room.note?.n ?? 0) + 1, kind: "points", team: a.team, d: a.d };
+      break;
+    }
+    case "void": {
+      if (room.phase !== "turn" || room.current === null) return;
+      need(host);
+      const w = room.current;
+      logHand(room, now, "skip");
+      room.held.push(w); // so the next draw is another one, if there is another
+      draw(room, now);
+      room.held = room.held.filter((x) => x !== w);
+      room.note = { n: (room.note?.n ?? 0) + 1, kind: "void" };
+      break;
+    }
+    case "host": {
+      const id = Number.isInteger(a.player) ? (room.phase === "lobby" ? members[a.player]?.id : room.ids[a.player]) : undefined;
+      need(host && !!id && id !== room.hostId && members.some((m) => m.id === id) && !room.out?.includes(room.ids.indexOf(id)));
+      room.hostId = id!;
+      room.note = { n: (room.note?.n ?? 0) + 1, kind: "host", name: members.find((m) => m.id === id)!.name };
+      break;
     }
     case "teamName": {
       const name = cleanName(a.name);
-      need(room.phase === "lobby" && Number.isInteger(a.team) && a.team >= 0 && a.team < room.teamNames.length && !!name && (host || me.team === a.team));
+      if (!Number.isInteger(a.team) || a.team < 0 || a.team >= room.teamNames.length) throw new RoomError("bad_request");
+      need(room.phase === "lobby" && !!name && (host || me.team === a.team));
       room.teamNames[a.team] = name;
       break;
     }
@@ -552,7 +603,9 @@ async function actUnlocked(db: Store, code: string, pid: unknown, token: unknown
     case "pass": // the describer isn't there: skip them
       need(host && room.phase === "ready");
       room.carryMs = 0;
-      handOver(room);
+      // same team's next describer is up; a team of one has nobody else, so the other team goes
+      if (room.teams.filter((t) => t === room.team).length > 1) room.next[room.team]++;
+      else handOver(room);
       break;
     case "lobby":
       need(host && room.phase === "end");
@@ -593,6 +646,8 @@ export type View = {
   total: number;
   turnGot: number; // guessed so far in the running turn
   lastGot: { n: number; text: string; by: number } | null; // the latest guessed Zetteli, flashed on the other phones
+  note: Room["note"] | null; // the host's latest ruling (points, void, kick, new host), flashed on every phone
+  out: number[]; // players the host removed (indices in players)
   lastHeckle: { n: number; by: number; until: number } | null; // the latest heckle; the describer's Zetteli is disturbed until `until` (server clock), nobody heckles meanwhile
   heckles: number; // heckles I have left this turn (auto mode: my team's bonus)
   heckleDone: boolean; // this turn has been disturbed enough
@@ -602,6 +657,7 @@ export type View = {
   beforePlay: boolean; // writing, or ready with no turn played yet: the host may go back to the settings, Zetteli stay
   kept: number; // lobby, back from writing: Zetteli written so far that stay in the game
   done: number; // players who wrote their words
+  doneBy: boolean[]; // write phase: per player (same order as players), true once their Zetteli are in
   iDone: boolean;
   turnNo: number;
   stats: null | { words: string[]; hints: string[]; authors: number[]; log: Ev[]; turns: TurnLog[]; drawings: Drawing[]; heckles: { by: number; bonus: boolean }[]; bonusGot: number[] };
@@ -635,6 +691,7 @@ async function roomView(db: Store, code: string, pid: unknown, token: unknown, n
   const active = playing ? describer(room) : null;
 
   let done = 0;
+  let doneBy: boolean[] = [];
   let iDone = false;
   let myWrite: WriteEntry | null = null;
   let kept = 0;
@@ -644,7 +701,8 @@ async function roomView(db: Store, code: string, pid: unknown, token: unknown, n
   }
   if (room.phase === "write") {
     const h = await db.hgetall<WriteEntry>(`room:${code}:words:${room.writeNo}`);
-    done = Object.values(h).filter((e) => e.words.length === room.settings.perPlayer).length;
+    doneBy = room.ids.map((_, i) => h[String(i)]?.words.length === room.settings.perPlayer);
+    done = doneBy.filter(Boolean).length;
     myWrite = idx >= 0 ? (h[String(idx)] ?? null) : null;
     iDone = myWrite?.words.length === room.settings.perPlayer;
   }
@@ -674,15 +732,18 @@ async function roomView(db: Store, code: string, pid: unknown, token: unknown, n
     total: room.words.length,
     turnGot: room.turnGot,
     lastGot: room.lastGot ?? null,
+    note: room.note ?? null,
+    out: room.out ?? [],
     ...heckleView(room, idx),
     scores: room.scores,
     lastTurn: room.turns.at(-1) ?? null,
     beforePlay: room.phase === "write" || (room.phase === "ready" && !room.log.length && !room.turns.length),
     kept,
     done,
+    doneBy,
     iDone,
     myWrite,
     turnNo: room.turnNo,
-    stats: room.phase === "end" ? { words: room.words, hints: room.hints ?? [], authors: room.authors, log: room.log, turns: room.turns, drawings: room.drawings ?? [], heckles: room.heckleLog ?? [], bonusGot: room.bonusGot ?? [] } : null,
+    stats: room.phase === "end" && me ? { words: room.words, hints: room.hints ?? [], authors: room.authors, log: room.log, turns: room.turns, drawings: room.drawings ?? [], heckles: room.heckleLog ?? [], bonusGot: room.bonusGot ?? [] } : null,
   };
 }

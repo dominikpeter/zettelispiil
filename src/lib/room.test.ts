@@ -228,19 +228,35 @@ test("describers take turns within their team; the host can pass on one who isn'
   await as(0, { type: "pass" });
   const second = await see(0);
   assert.equal(second.phase, "ready");
-  assert.notEqual(second.players[second.active!].team, team); // the other team is up
-  await as(second.active!, { type: "go" });
-  tick(33_000); // time runs out
-  const third = await see(0);
-  assert.equal(third.players[third.active!].team, team); // back to the first team…
-  assert.notEqual(third.active, first.i); // …with the passed describer's teammate
-  await as(0, { type: "pass" });
+  assert.equal(second.players[second.active!].team, team); // same team stays up…
+  assert.notEqual(second.active, first.i); // …with the next describer
   await as(0, { type: "pass" });
   assert.equal((await see(0)).active, first.i); // the team's turn order goes round
 });
 
+test("same names get a number; bad team index is bad_request; stats and write progress", async () => {
+  const { db, host, as, see } = await setup();
+  const t2 = await joinRoom(db, host.code, "tim"); // "Tim" is taken (any case)
+  assert.equal((await see(0)).players[4].name, "tim 2");
+  await act(db, host.code, t2.pid, t2.token, { type: "rename", name: "Nora" });
+  assert.equal((await see(0)).players[4].name, "Nora 2");
+  await act(db, host.code, t2.pid, t2.token, { type: "rename", name: "Nora 2" }); // own name stays
+  assert.equal((await see(0)).players[4].name, "Nora 2");
+  await assert.rejects(as(0, { type: "team", team: 9 }), (e) => e instanceof RoomError && e.code === "bad_request");
+  await assert.rejects(as(0, { type: "teamName", team: 9, name: "x" }), (e) => e instanceof RoomError && e.code === "bad_request");
+  await act(db, host.code, host.pid, host.token, { type: "kick", player: 4 });
+  await as(0, { type: "start" });
+  await as(1, { type: "words", words: ["w1"] });
+  assert.deepEqual((await see(0)).doneBy, [false, true, false, false]);
+  assert.equal((await see(0)).done, 1);
+  await as(0, { type: "words", words: ["w0"] });
+  await as(2, { type: "words", words: ["w2"] });
+  await as(3, { type: "words", words: ["w3"] });
+  assert.equal((await see(0)).phase, "ready");
+});
+
 test("full game ends with stats for everyone", async () => {
-  const { as, see, tick } = await setup();
+  const { db, host, all, as, see, tick } = await setup();
   await writeAll(as);
   for (let guard = 0; guard < 50 && (await see(0)).phase !== "end"; guard++) {
     const v = await see(0);
@@ -256,6 +272,8 @@ test("full game ends with stats for everyone", async () => {
   const end = await see(2);
   assert.equal(end.phase, "end");
   assert.ok(end.stats);
+  assert.equal((await view(db, host.code, "nobody", "x", 0)).stats, null); // non-members see no stats
+  assert.equal((await view(db, host.code, all[2].pid, "wrong", 0)).stats, null);
   const s = computeStats(end.stats.log, end.stats.turns, end.stats.words, end.players.map((p) => p.team), end.scores);
   assert.equal(s.totals[0] + s.totals[1], 8); // 4 Zetteli × 2 rounds
   assert.equal(s.race.at(-1)![0] + s.race.at(-1)![1], 8);
@@ -372,9 +390,11 @@ test("drawing round: the drawer's lines reach everyone sheet by sheet; only the 
   assert.equal((await see(other)).word, null); // watchers get lines, never the word
   await assert.rejects(push(other, sheet, [[0, 1, 2, 3, 4]]), RoomError); // only the drawer draws
   await assert.rejects(push(i, sheet, [[0, 1, 2000]]), RoomError); // off the paper
+  await assert.rejects(push(i, sheet, [[0, 1500, 1001]]), RoomError); // a wide sheet is wider, not taller
+  await assert.rejects(push(i, sheet, [[0, 1501, 10]]), RoomError);
   await push(i, sheet, [[0, 10, 10, 20, 20]]);
-  await push(i, sheet, [[1, 20, 20, 30, 40], [2, 5, 5]]);
-  assert.deepEqual((await pullStrokes(db, host.code, sheet, 0)).strokes, [[0, 10, 10, 20, 20], [1, 20, 20, 30, 40], [2, 5, 5]]);
+  await push(i, sheet, [[1, 20, 20, 1500, 40], [2, 5, 5]]); // drawn sideways: x runs to 1500
+  assert.deepEqual((await pullStrokes(db, host.code, sheet, 0)).strokes, [[0, 10, 10, 20, 20], [1, 20, 20, 1500, 40], [2, 5, 5]]);
   assert.deepEqual((await pullStrokes(db, host.code, sheet, 2)).strokes, [[2, 5, 5]]); // only what's new
 
   await as(i, { type: "wipe" });
@@ -926,4 +946,50 @@ test("a queued action uses the time after acquiring the room lock", async (t) =>
   const v = await view(db, host.code, all[i].pid, all[i].token, clock);
   assert.equal(v.phase, "ready");
   assert.equal(v.scores[0].reduce((a, b) => a + b, 0), 0);
+});
+
+test("host controls: points ±1, void a card, kick mid-game, hand over the host role", async () => {
+  const { as, see, tick, now } = await setup();
+  await writeAll(as);
+  const s0 = await see(0);
+  await assert.rejects(as(1, { type: "points", team: 0, d: 1 }), RoomError); // only the host
+  await assert.rejects(as(0, { type: "points", team: 0, d: -1 }), RoomError); // no negative score
+  await assert.rejects(as(0, { type: "points", team: 5, d: 1 }), RoomError);
+  await as(0, { type: "points", team: 0, d: 1 });
+  let v = await see(1);
+  assert.equal(v.scores[v.round][0], 1);
+  assert.deepEqual([v.note?.kind, v.note?.team, v.note?.d], ["points", 0, 1]); // every phone sees the ruling
+  await as(0, { type: "points", team: 0, d: -1 });
+  assert.equal((await see(1)).scores[0][0], 0);
+
+  // kick the player who is not describing: they are out, locked out, and never describe
+  const d = s0.active!;
+  const victim = [1, 2, 3].find((i) => i !== d && s0.players[i].team === s0.players[d].team) ?? [1, 2, 3].find((i) => i !== d)!;
+  const same = s0.players.filter((p) => p.team === s0.players[victim].team).length;
+  if (same > 1) {
+    await as(0, { type: "kick", player: victim });
+    v = await see(0);
+    assert.deepEqual(v.out, [victim]);
+    assert.equal(v.note?.kind, "kick");
+    await assert.rejects(as(victim, { type: "points", team: 0, d: 1 }), RoomError);
+  } else await assert.rejects(as(0, { type: "kick", player: victim }), RoomError); // a team keeps somebody
+
+  // void the Zetteli in hand: nobody scores, it stays in the bowl
+  await as((await see(0)).active!, { type: "go" }); // the next describer starts (the kicked one never is)
+  tick(1000);
+  const before = (await see(0)).bowlLeft;
+  await as(0, { type: "void" });
+  v = await see(0);
+  assert.equal(v.bowlLeft, before);
+  assert.equal(v.note?.kind, "void");
+  assert.equal(v.scores[0].reduce((a, b) => a + b, 0), 0);
+
+  // hand over the host role
+  await assert.rejects(as(1, { type: "host", player: 1 }), RoomError);
+  const heir = [1, 2, 3].find((i) => !v.out.includes(i))!;
+  await as(0, { type: "host", player: heir });
+  v = await see(heir);
+  assert.equal(v.isHost, true);
+  assert.equal((await see(0)).isHost, false);
+  assert.ok(now() > 0);
 });

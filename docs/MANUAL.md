@@ -21,13 +21,13 @@ Auf der Startseite wählst du, wie ihr spielt.
 - Ihr braucht mindestens 2 Spieler pro Team, bei zwei Teams also 4.
 - Tippe auf **Neues Spiel**. Ein laufendes Spiel kannst du später mit **Weiterspielen** fortsetzen, auch nach einem Neuladen der Seite.
 - Das Handy sagt jeweils, wem ihr es geben sollt («Gib das Handy an …»). Wer bestätigt («Ich bin …»), ist dran.
-- Ist diese Person nicht da, könnt ihr sie auf diesem Bildschirm überspringen. Das geht vor jedem Zug, unabhängig davon, wer das Spiel erstellt hat.
+- Ist diese Person nicht da, könnt ihr sie auf diesem Bildschirm überspringen. Das geht vor jedem Zug, unabhängig davon, wer das Spiel erstellt hat. Dann erklärt die nächste Person desselben Teams; die Teamreihenfolge bleibt.
 
 ### Mehrere Handys
 
 «Alle spielen mit dem eigenen Handy.» Die Zetteli erscheinen nur auf dem Handy der Person, die gerade erklärt.
 
-- Gib **Dein Name** ein (oder lass dir mit dem Funkel-Knopf einen erfinden).
+- Gib **Dein Name** ein (oder lass dir mit dem Funkel-Knopf einen erfinden). Gleiche Namen bekommen automatisch eine Nummer («Tim», «Tim 2»).
 - **Neuer Raum**: Du leitest das Spiel (Spielleitung), die anderen kommen per Code dazu. Tippe auf **Raum erstellen**.
 - **Raum beitreten**: Gib den **Raumcode** mit 6 Zeichen ein und tippe auf **Beitreten**, oder nutze **QR-Code scannen**.
 - Im Raum stehen QR-Code und Raumcode gross oben («Scannen oder Code eingeben»). Mit **Link teilen** schickst du die Einladung direkt per Nachricht, mit dem WhatsApp-Knopf daneben gleich in einen WhatsApp-Chat. In den Einstellungen kannst du Zettelispiil auch per WhatsApp weiterempfehlen.
@@ -78,7 +78,7 @@ Die Spielleitung legt mit Plus und Minus fest:
 
 **Mit mehreren Handys** sind alle fünf Runden standardmässig dabei, Zeichnen als vorletzte. **Mit einem Handy** sind es die ersten vier; Zeichnen kannst du dort zusätzlich hinzufügen, auf Papier oder Flipchart:
 
-- **Mit mehreren Handys** zeichnest du auf deinem Handy, alle anderen sehen live mit: die Linie entsteht bei ihnen Strich für Strich, ein Punkt zeigt, wo dein Stift gerade ist. Du hast mehrere Stifte zur Auswahl und kannst mit **Alles löschen** neu anfangen. Auch beim Zeichnen lassen sich beiseitegelegte Zetteli antippen und zurücktauschen.
+- **Mit mehreren Handys** zeichnest du auf deinem Handy, alle anderen sehen live mit: die Linie entsteht bei ihnen Strich für Strich, ein Punkt zeigt, wo dein Stift gerade ist. Du hast mehrere Stifte zur Auswahl und kannst mit **Alles löschen** neu anfangen. Auch beim Zeichnen lassen sich beiseitegelegte Zetteli antippen und zurücktauschen. Mit dem Knopf **Grosse Zeichenfläche** füllt das Blatt den Bildschirm (auch quer gehalten); der Begriff, die Stifte und die Knöpfe **Passen** und **Erraten** bleiben daneben sichtbar, auch wenn der nächste Zetteli kommt. Mit **Ansicht drehen** kippt die ganze Ansicht um eine Vierteldrehung, damit du auch bei gesperrter Bildschirmdrehung quer zeichnen kannst; die anderen sehen das Bild wie immer aufrecht. Quer gehalten (oder mit gedrehter Ansicht) wird das Blatt breit (3:2) und bekommt die ganze Höhe: der Begriff liegt klein in seiner oberen Ecke, die Knöpfe sitzen schmal daneben. Die anderen sehen das Blatt dann ebenfalls breit, sobald du über den quadratischen Teil hinaus zeichnest, und nichts wird verzerrt.
 - **Mit einem Handy** zeichnest du auf ein Flipchart oder Papier, das Handy zeigt nur den Begriff.
 
 Runden anpassen («Reihenfolge ändern oder Runden weglassen»):
@@ -104,7 +104,7 @@ Damit's für alle lustig bleibt, gilt ein bisschen Anstand. Das Spiel prüft das
 Alle schreiben gleichzeitig ihre Zetteli («Schreib 4 Zetteli»). Niemand sieht, was du schreibst. Bei einem Handy schauen die anderen weg, während du schreibst.
 
 - Unter jedes Zetteli kannst du einen **Hinweis für die Erklärer:in** setzen (optional).
-- Mit **In die Schüssel** gibst du deine Zetteli ab. Das Spiel zeigt, wie viele schon fertig sind.
+- Mit **In die Schüssel** gibst du deine Zetteli ab. Das Spiel zeigt, wie viele schon fertig sind. Wer noch fehlt, steht mit Namen darunter.
 - Steht derselbe Begriff zweimal auf deinen eigenen Zetteli, macht dich das Spiel darauf aufmerksam.
 
 ### KI schreibt die Zetteli
@@ -235,3 +235,12 @@ Danach startet Zettelispiil mit eigenem Symbol und ohne Browserleiste. Während 
 - In «Ein Wort» zählt das richtige Wort: Knüpft an Erklärungen aus den früheren Runden an.
 - Ein schwieriges Zetteli lieber früh überspringen und später zurücktauschen, statt Zeit zu verlieren.
 - Bei einem Handy: Handy flach halten, damit niemand aus einem anderen Team mitliest.
+
+## Spielleitung greift ein
+
+Während des Spiels (im Pausenmenü, Knopf oben rechts) hat die Spielleitung **Host-Werkzeuge**. Alle sehen kurz, was sie getan hat.
+
+- **Punkte**: pro Team ein Punkt dazu oder weg (zum Beispiel bei einem Regelverstoss). Ein Team kann nicht unter 0 fallen.
+- **Zetteli ungültig**: der Zetteli in der Hand zählt nicht, er geht zurück in die Schüssel und ein anderer kommt.
+- **Rauswerfen**: wer nicht mehr mitspielt, kommt aus dem Spiel; er beschreibt nie mehr, seine Zetteli bleiben in der Schüssel. Nicht möglich während des Schreibens, nicht für die Person, die gerade erklärt, und jedes Team behält mindestens eine Person.
+- **Host abgeben**: eine andere Person wird Spielleitung, zum Beispiel wenn das Handy leer ist.

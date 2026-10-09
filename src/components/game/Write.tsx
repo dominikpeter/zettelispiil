@@ -83,6 +83,7 @@ export function Write({ v, send, busy, mode }: P) {
     return () => clearTimeout(timer);
   }, [words.join("\u0000"), lang, aiOn]); // eslint-disable-line react-hooks/exhaustive-deps -- re-run only when the words change
 
+  const waiting = v.players.filter((_, i) => !v.doneBy[i]).map((p) => p.name).join(", ");
   if (v.iDone)
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
@@ -94,6 +95,7 @@ export function Write({ v, send, busy, mode }: P) {
           </span>
           . {t.soon}
         </p>
+        {waiting && <p className="text-sm text-muted">{t.waitingFor(waiting)}</p>}
       </div>
     );
 
@@ -201,6 +203,7 @@ export function Write({ v, send, busy, mode }: P) {
           </button>
         )}
         <p className="mt-2 text-center text-sm text-muted tabular-nums">{t.done(v.done, v.players.length)}</p>
+        {waiting && <p className="text-center text-sm text-muted">{t.waitingFor(waiting)}</p>}
       </Cta>
     </form>
   );
