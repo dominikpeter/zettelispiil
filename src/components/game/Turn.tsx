@@ -155,7 +155,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
           +{v.turnGot}
         </p>
       </div>
-      <Bowl count={v.bowlLeft} className={full ? "w-12" : "w-20"} />
+      {!(full && wide) && <Bowl count={v.bowlLeft} className={full ? "w-12" : "w-20"} />}
     </div>
   );
   const buttons = (
@@ -220,13 +220,13 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
         <div
           data-paper
           className={`mx-auto w-full ${full && wide ? "col-start-1 row-span-6 row-start-1 self-center" : ""}`}
-          style={{ maxWidth: full ? (wide ? `min(${H} - 1.5rem, calc(${W} * 0.62))` : `min(100%, calc(${H} - 19rem))`) : v.held.length ? "min(100%, calc(100dvh - 28rem))" : "min(100%, calc(100dvh - 24rem))" }}
+          style={full && wide ? { width: `min(calc(${H} - 1.5rem), calc(${W} - 17rem))` } : { maxWidth: full ? ( `min(100%, calc(${H} - 19rem))`) : v.held.length ? "min(100%, calc(100dvh - 28rem))" : "min(100%, calc(100dvh - 24rem))" }}
         >
           {word && sheet !== null && live && (
             <DrawPad key={word.id} turned={full && turned} code={live.code} sheet={sheet} wipeNo={wipes} ink={ink} label={t.drawHere} onFlush={up ? undefined : live.draw} />
           )}
         </div>
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex gap-2" role="radiogroup" aria-label={t.drawHere}>
             {INKS.map((c, i) => (
               <button
@@ -235,7 +235,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
                 aria-checked={ink === i}
                 aria-label={t.pen(i + 1)}
                 onClick={() => setInk(i)}
-                className={`size-10 rounded-full border-4 ${press} ${ink === i ? "border-accent" : "border-surface"}`}
+                className={`${full ? "size-9" : "size-10"} rounded-full border-4 ${press} ${ink === i ? "border-accent" : "border-surface"}`}
                 style={{ background: c }}
               />
             ))}
@@ -247,19 +247,19 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
             }}
             disabled={up}
             aria-label={t.wipe}
-            className={`${btn2} w-auto! px-3`}
+            className={`${btn2} ${full ? "size-10! min-h-0! shrink-0 px-0!" : "w-auto! px-3"}`}
           >
             <Eraser className="size-5" aria-hidden />
           </button>
           {full && (
-            <button onClick={() => setTurned((x) => !x)} aria-label={t.rotate} aria-pressed={turned} className={`${btn2} w-auto! px-3`}>
+            <button onClick={() => setTurned((x) => !x)} aria-label={t.rotate} aria-pressed={turned} className={`${btn2} ${full ? "size-10! min-h-0! shrink-0 px-0!" : "w-auto! px-3"}`}>
               <RotateCw className="size-5" aria-hidden />
             </button>
           )}
           <button onClick={() => {
               setFull(!full);
               if (full) setTurned(false);
-            }} aria-label={full ? t.fullSizeExit : t.fullSize} aria-pressed={full} className={`${btn2} w-auto! px-3`}>
+            }} aria-label={full ? t.fullSizeExit : t.fullSize} aria-pressed={full} className={`${btn2} ${full ? "size-10! min-h-0! shrink-0 px-0!" : "w-auto! px-3"}`}>
             {full ? <Minimize2 className="size-5" aria-hidden /> : <Maximize2 className="size-5" aria-hidden />}
           </button>
         </div>

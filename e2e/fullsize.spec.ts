@@ -46,8 +46,8 @@ test("full-size drawing keeps word and Erraten, upright and sideways, through th
     const measure = () =>
       d.evaluate(() => {
         const r = (e: Element) => e.getBoundingClientRect();
-        const btn = r([...document.querySelectorAll("button")].find((b) => b.textContent?.includes("Erraten"))!);
-        return { paper: r(document.querySelector("canvas")!).width, ok: btn.bottom <= innerHeight + 0.5 && btn.right <= innerWidth + 0.5 && document.scrollingElement!.scrollHeight <= innerHeight + 1 };
+        const btns = [...document.querySelectorAll("button")].filter((b) => b.offsetParent && b.closest(".fixed")).map(r); // every button of the full-size screen
+        return { paper: r(document.querySelector("canvas")!).width, ok: btns.length > 5 && btns.every((b) => b.bottom <= innerHeight + 0.5 && b.right <= innerWidth + 0.5 && b.top >= -0.5 && b.left >= -0.5) && document.scrollingElement!.scrollHeight <= innerHeight + 1 };
       });
     // the new slip unfolds for a moment: wait for the layout to settle
     if (SHOTS) await d.screenshot({ path: `${SHOTS}/try-${label.replace(/\W+/g, "-")}.png` });
