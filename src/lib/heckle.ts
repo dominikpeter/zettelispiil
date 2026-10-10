@@ -30,8 +30,8 @@ type Turn = Heckles & {
 
 const MAX_LOG = 500;
 
-/** one heckle disturbs the describer for a tenth of the turn, 2–5 s */
-export const heckleMs = (turnMs: number) => Math.min(5000, Math.max(2000, Math.round(turnMs / 10)));
+/** one heckle disturbs the describer for the set time (default 10 s); the turn's budget below still caps it */
+export const heckleMs = (seconds: number) => seconds * 1000;
 /** at most a third of a turn may be disturbed */
 const heckleBudget = (turnMs: number) => Math.round(turnMs / 3);
 const isAuto = (room: Turn) => cleanSettings(room.settings).heckleMode === "auto";
@@ -73,7 +73,7 @@ export function heckle(room: Turn, by: number, now: number): "ok" | "ignored" | 
   const turnMs = room.endsAt - room.turnStart;
   const budget = heckleBudget(turnMs) - (room.heckledMs ?? 0);
   if (now < (room.lastHeckle?.until ?? 0) || budget <= 0) return "ignored"; // someone was faster
-  const ms = Math.min(heckleMs(turnMs), budget);
+  const ms = Math.min(heckleMs(cleanSettings(room.settings).heckleSeconds), budget);
   if (auto) room.heckleBonus = room.heckleBonus!.map((x, t) => (t === mine ? x - 1 : x)); // the team's bonus, whoever presses
   else room.heckled = { ...room.heckled, [by]: used + 1 };
   room.heckledMs = (room.heckledMs ?? 0) + ms;
