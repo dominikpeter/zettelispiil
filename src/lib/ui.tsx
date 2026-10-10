@@ -16,7 +16,6 @@ export const fitLine = (text: string, max = "3.75rem"): CSSProperties => ({
   fontSize: `min(${max}, calc(100cqi / ${(Math.max(4, [...text].length) * 0.5).toFixed(2)}))`,
   whiteSpace: "nowrap",
 });
-
 // header controls: one frosted pill holding quiet icon buttons
 export const pill = "flex items-center gap-0.5 rounded-full border border-line/70 bg-surface/70 p-0.5 shadow-sm backdrop-blur-md";
 // 45px: a thumb-sized target (the root font is 18px)

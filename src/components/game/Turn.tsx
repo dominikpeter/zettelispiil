@@ -5,7 +5,8 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useHints, useT } from "@/lib/prefs";
 import { secondsFor } from "@/lib/settings";
 import { useCountdown } from "@/lib/useCountdown";
-import { Bowl, btn, btn2, buzz, fitLine, press, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
+import { FitWord } from "./FitWord";
+import { Bowl, btn, btn2, buzz, press, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
 import { DrawPad, DrawView, INKS } from "../DrawBoard";
 import { ruleOf, type P } from "./common";
 import { HeckleFx, useHeckle } from "./Heckle";
@@ -19,9 +20,7 @@ function SlipFace({ text, hint, compact, locked = false, got, skip, skipLabel, l
   const showHint = useHints();
   return (
     <Slip tilt={-1.5} className={`${live ? "unfold" : ""} relative @container px-5 text-center ${compact ? "pt-6 pb-7" : "pt-10 pb-12 [@media(max-height:640px)]:pt-6 [@media(max-height:640px)]:pb-8"} ${locked ? "opacity-70 grayscale" : ""}`}>
-      <p data-testid={live ? "word" : undefined} className="font-hand leading-tight font-bold" style={fitLine(text)}>
-        {text}
-      </p>
+      <FitWord as="p" text={text} data-testid={live ? "word" : undefined} className="font-hand leading-tight font-bold" />
       {showHint && hint && <p className="mt-3 text-base text-paper-ink/60">{hint}</p>}
       {/* stamps that fade in while dragging, and show in full on a throw */}
       <span className="absolute top-3 left-4 -rotate-12 rounded-md border-2 border-stamp px-2 text-sm font-extrabold text-stamp" style={{ opacity: got }}>
@@ -200,7 +199,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
     // what lies under the notch and the home bar; turned, the view's left edge is the phone's top and its right the bottom
     const [inL, inR] = turnedNow ? ["env(safe-area-inset-top)", "env(safe-area-inset-bottom)"] : ["env(safe-area-inset-left)", "env(safe-area-inset-right)"];
     const fullCls = full
-      ? `fixed top-0 left-0 z-30 gap-2 overflow-hidden bg-canvas ${side ? "draw-side gap-y-1.5 p-2 [&>*:not([data-paper])]:col-start-2" : "flex flex-col p-3"} ${turnedNow || side ? "" : "pt-safe-4 pb-safe-4"}`
+      ? `fixed top-0 left-0 z-30 gap-2 overflow-hidden select-none bg-canvas ${side ? "draw-side gap-y-1.5 p-2 [&>*:not([data-paper])]:col-start-2" : "flex flex-col p-3"} ${turnedNow || side ? "" : "pt-safe-4 pb-safe-4"}`
       : "flex flex-1 flex-col gap-2";
     const fullStyle: CSSProperties | undefined = full
       ? {
@@ -217,9 +216,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
           <div data-paper={side ? "" : undefined} className={side ? "pointer-events-none absolute top-3 z-10 w-36 opacity-95 drop-shadow-lg" : "contents"} style={side ? { left: `calc(max(0.5rem, ${inL}) + 0.25rem)` } : undefined}>
           <HeckleFx fx={heckleSlip} className={side ? "w-full" : "w-full max-w-xs self-center"}>
             <Slip key={word.id} tilt={-1} className={`unfold @container w-full text-center ${side ? "px-2 pt-0.5" : "px-5 pt-1.5"}`}>
-              <span data-testid="word" className="font-hand block font-bold" style={fitLine(word.text, side ? "1.375rem" : "2.25rem")}>
-                {word.text}
-              </span>
+              <FitWord text={word.text} max={side ? "1.375rem" : "2.25rem"} data-testid="word" className="font-hand block font-bold" />
               {showHint && word.hint && <span className={`block text-center text-paper-ink/60 ${side ? "text-xs" : "text-sm"}`}>{word.hint}</span>}
             </Slip>
           </HeckleFx>

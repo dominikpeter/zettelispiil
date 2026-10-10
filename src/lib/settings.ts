@@ -7,7 +7,7 @@ export const DEFAULT_ROUNDS: RoundType[] = ["describe", "pantomime", "oneword", 
 // every phone: drawing needs a screen each, so it's on by default there, second-to-last (a late-game highlight, one round before the finish)
 export const ONLINE_DEFAULT_ROUNDS: RoundType[] = ["describe", "pantomime", "oneword", "draw", "sound"];
 export const MAX_TEAMS = 4; // the app is built for any number; colours exist for four
-export type Settings = { perPlayer: number; seconds: number; roundSeconds: Partial<Record<RoundType, number>>; rounds: RoundType[]; skips: number; lang: Lang; teams: number; heckle: boolean; heckleMode: "auto" | "fixed"; heckles: number; source: "players" | "ai"; topics: string[] }; // skips: per turn, -1 = unlimited; lang: of the Zetteli (AI check, hints, ideas), each phone keeps its own UI language; heckle: the other teams may disturb the describer, `heckles` times each per turn; source: who writes the Zetteli (ai: nobody knows a word beforehand), about `topics`
+export type Settings = { perPlayer: number; seconds: number; roundSeconds: Partial<Record<RoundType, number>>; rounds: RoundType[]; skips: number; lang: Lang; teams: number; heckle: boolean; heckleMode: "auto" | "fixed"; heckles: number; heckleSeconds: number; source: "players" | "ai"; topics: string[] }; // skips: per turn, -1 = unlimited; lang: of the Zetteli (AI check, hints, ideas), each phone keeps its own UI language; heckle: the other teams may disturb the describer, `heckles` times each per turn; source: who writes the Zetteli (ai: nobody knows a word beforehand), about `topics`
 
 const clamp = (n: unknown, lo: number, hi: number, def: number) => Math.max(lo, Math.min(hi, Math.round(Number(n)) || def));
 const secs = (n: unknown, def: number) => Math.round(clamp(n, 10, 120, def) / 5) * 5; // a turn: 10 to 120 s, in steps of 5
@@ -35,6 +35,7 @@ export function cleanSettings(s: Partial<Settings>): Settings {
     heckle: s.heckle === true,
     heckleMode: s.heckleMode === "fixed" ? "fixed" : "auto", // auto: teams that are behind get a random bonus
     heckles: clamp(s.heckles, 1, 5, 2),
+    heckleSeconds: clamp(s.heckleSeconds, 2, 20, 10), // how long one heckle disturbs
     source: s.source === "ai" ? "ai" : "players",
     topics: topics.length ? topics : [...TOPIC_IDS],
   };
