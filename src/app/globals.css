@@ -542,6 +542,8 @@ button, input, label, a, summary, [role="button"] { touch-action: manipulation; 
 h1, h2, h3 { text-wrap: balance; }
 p { text-wrap: pretty; }
 button { user-select: none; }
+/* playing screens: a long press or a drag across text must not select it or open iOS'/Android's callout menu (typing fields still select) */
+.slip, canvas, .select-none { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
 :focus-visible {
   outline: 2px solid var(--color-accent);

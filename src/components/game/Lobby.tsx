@@ -335,6 +335,7 @@ export function Lobby({ v, send, busy, mode, share, onAdd }: P & { share?: { qr:
                   <p className="mt-1.5 text-sm text-muted">{s.heckleMode === "auto" ? t.heckleAutoHelp : t.heckleFixedHelp}</p>
                 </div>
               )}
+              {!local && s.heckle && <Stepper label={t.heckleSeconds} value={s.heckleSeconds} set={(n) => set({ heckleSeconds: n })} min={2} max={20} />}
               {!local && s.heckle && s.heckleMode === "fixed" && <Stepper label={t.heckles} value={s.heckles} set={(n) => set({ heckles: n })} min={1} max={5} />}
             </div>
             {(aiOn || s.source === "ai") && <ZetteliSource s={s} set={set} />}

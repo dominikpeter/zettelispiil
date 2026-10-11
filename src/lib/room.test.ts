@@ -614,7 +614,7 @@ test("drawings: only in drawing rounds", async () => {
 /** a running turn with heckling on; o = someone on the other team */
 async function heckleTurn(heckles = 2) {
   const t = await setup();
-  await t.as(0, { type: "settings", settings: { heckle: true, heckleMode: "fixed", heckles } });
+  await t.as(0, { type: "settings", settings: { heckle: true, heckleMode: "fixed", heckles, heckleSeconds: 3 } });
   await writeAll(t.as);
   const { i } = await describerView(t.see);
   await t.as(i, { type: "go" });
@@ -638,7 +638,7 @@ test("heckle: only the other team, a few presses each, one at a time, fresh ever
   const { as, see, tick, now, d, o } = await heckleTurn();
   assert.equal((await see(o)).heckles, 2);
   await as(o, { type: "heckle" });
-  assert.deepEqual((await see(d)).lastHeckle, { n: 1, by: o, until: now() + 3000 }); // 30 s turn: 3 s
+  assert.deepEqual((await see(d)).lastHeckle, { n: 1, by: o, until: now() + 3000 }); // set to 3 s (default 10)
   assert.equal((await see(o)).heckles, 1);
   await assert.rejects(as(d, { type: "heckle" }), RoomError); // the describer can't
   await assert.rejects(as((d + 2) % 4, { type: "heckle" }), RoomError); // nor their team

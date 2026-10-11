@@ -1,10 +1,12 @@
 // the heckle rules on their own; heckling in a running room (who may press, budget, pause) is tested in room.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { cleanSettings } from "./settings.ts";
 import { heckleBonus, heckleMs } from "./heckle.ts";
 
-test("heckle: a tenth of the turn, 2–5 s", () => {
-  assert.deepEqual([heckleMs(30_000), heckleMs(10_000), heckleMs(120_000), heckleMs(45_000)], [3000, 2000, 5000, 4500]);
+test("heckle: lasts the set seconds, 10 by default, 2–20", () => {
+  assert.deepEqual([heckleMs(10), heckleMs(2)], [10_000, 2000]);
+  assert.deepEqual([cleanSettings({}).heckleSeconds, cleanSettings({ heckleSeconds: 99 }).heckleSeconds, cleanSettings({ heckleSeconds: 1 }).heckleSeconds], [10, 20, 2]);
 });
 
 test("auto heckling: only teams behind the leader may get a bonus, more likely and bigger the further behind", () => {

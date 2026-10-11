@@ -46,6 +46,22 @@ function ink(ctx: CanvasRenderingContext2D, strokes: Stroke[], size: number, lim
   return pen;
 }
 
+/** a finished drawing as a PNG to share: the paper, the lines, the word underneath */
+export function drawingPng(strokes: Stroke[], word: string): Promise<Blob | null> {
+  const w = across(strokes), size = 1000, cap = 140;
+  const c = document.createElement("canvas");
+  [c.width, c.height] = [w, size + cap];
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#fffdf2";
+  ctx.fillRect(0, 0, c.width, c.height);
+  ink(ctx, strokes, size);
+  ctx.fillStyle = INKS[0];
+  ctx.font = "bold 80px cursive";
+  ctx.textAlign = "center";
+  ctx.fillText(word, w / 2, size + 90, w - 80);
+  return new Promise((r) => c.toBlob(r, "image/png"));
+}
+
 /** the whole paper at once (drawer, and watchers after a resize) */
 function paint(c: HTMLCanvasElement, strokes: Stroke[]) {
   const ctx = c.getContext("2d")!;

@@ -318,6 +318,7 @@ test("heckle: the other team disturbs the describer twice, then the button is us
   await expect(others[0].getByText("Störmodus: Stör-Bonus fürs Team, das zurückliegt")).toBeVisible(); // auto by default
   await expect(host.getByRole("button", { name: "Stören pro Person und Zug mehr" })).toHaveCount(0);
   await host.getByRole("button", { name: "Fix", exact: true }).click(); // a fixed number per player instead
+  for (let k = 0; k < 7; k++) await host.getByRole("button", { name: "Sekunden pro Stören weniger" }).click(); // 10 s by default; 3 s fits two in a 30 s turn
   await expect(host.getByRole("button", { name: "Stören pro Person und Zug mehr" })).toBeVisible();
   await expect(others[0].getByText("Störmodus: 2× pro Person und Zug")).toBeVisible();
   for (let i = 0; i < 3; i++) await host.getByRole("button", { name: "Zetteli pro Person weniger" }).click();

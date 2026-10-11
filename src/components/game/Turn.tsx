@@ -5,7 +5,8 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useHints, useT } from "@/lib/prefs";
 import { secondsFor } from "@/lib/settings";
 import { useCountdown } from "@/lib/useCountdown";
-import { Bowl, btn, btn2, buzz, fitLine, press, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
+import { FitWord } from "./FitWord";
+import { Bowl, btn, btn2, buzz, press, RoundIcon, Slip, TEAM, TimerRing } from "@/lib/ui";
 import { DrawPad, DrawView, INKS } from "../DrawBoard";
 import { ruleOf, type P } from "./common";
 import { HeckleFx, useHeckle } from "./Heckle";
@@ -19,9 +20,7 @@ function SlipFace({ text, hint, compact, locked = false, got, skip, skipLabel, l
   const showHint = useHints();
   return (
     <Slip tilt={-1.5} className={`${live ? "unfold" : ""} relative @container px-5 text-center ${compact ? "pt-6 pb-7" : "pt-10 pb-12 [@media(max-height:640px)]:pt-6 [@media(max-height:640px)]:pb-8"} ${locked ? "opacity-70 grayscale" : ""}`}>
-      <p data-testid={live ? "word" : undefined} className="font-hand leading-tight font-bold" style={fitLine(text)}>
-        {text}
-      </p>
+      <FitWord as="p" text={text} data-testid={live ? "word" : undefined} className="font-hand leading-tight font-bold" />
       {showHint && hint && <p className="mt-3 text-base text-paper-ink/60">{hint}</p>}
       {/* stamps that fade in while dragging, and show in full on a throw */}
       <span className="absolute top-3 left-4 -rotate-12 rounded-md border-2 border-stamp px-2 text-sm font-extrabold text-stamp" style={{ opacity: got }}>
@@ -95,6 +94,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   const total = v.carryMs || secondsFor(v.settings, v.settings.rounds[v.round]) * 1000;
   const shownLeft = left === Infinity ? total : left;
   const up = left <= 0;
+  const late = left <= -500; // "got" stays tappable half a second after 0:00; the server counts it (GRACE)
   const [fling, setFling] = useState<"r" | "l" | null>(null);
   const [shown, setShown] = useState(v.word?.id);
   // new Zetteli arrived: clear the fling so it unfolds fresh
@@ -111,7 +111,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   // out before the throw could be seen
   const [thrown, setThrown] = useState<{ id: number; text: string; hint: string; dir: "r" | "l"; dx: number } | null>(null);
   const act = async (dir: "r" | "l", dx = 0) => {
-    if (!v.word || up || fling) return;
+    if (!v.word || late || fling || (up && dir === "l")) return; // after 0:00 only "got" still counts
     const w = v.word;
     setThrown({ id: w.id, text: w.text, hint: w.hint, dir, dx });
     setTimeout(() => setThrown((g) => (g?.id === w.id ? null : g)), 450);
@@ -133,7 +133,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
     setTeamBusy(false);
   };
   const teamButton = mode === "online" && !me && v.players[v.me]?.team === p.team && (
-    <button onClick={teamGot} disabled={up || teamBusy || v.pausedLeft > 0} className={btn}>
+    <button onClick={teamGot} disabled={late || teamBusy || v.pausedLeft > 0} className={btn}>
       <Check className="size-5" aria-hidden /> {t.got}
     </button>
   );
@@ -165,7 +165,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
         {t.next}
         {v.settings.skips !== -1 && <span className="text-xs font-medium text-muted">{t.left(v.settings.skips - v.held.length)}</span>}
       </button>
-      <button onClick={() => act("r")} disabled={up || !!fling} className={`${btn} ${side ? "px-2" : ""}`}>
+      <button onClick={() => act("r")} disabled={late || !!fling} className={`${btn} ${side ? "px-2" : ""}`}>
         <Check className="size-5" aria-hidden /> {t.got}
       </button>
     </div>
@@ -200,7 +200,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
     // what lies under the notch and the home bar; turned, the view's left edge is the phone's top and its right the bottom
     const [inL, inR] = turnedNow ? ["env(safe-area-inset-top)", "env(safe-area-inset-bottom)"] : ["env(safe-area-inset-left)", "env(safe-area-inset-right)"];
     const fullCls = full
-      ? `fixed top-0 left-0 z-30 gap-2 overflow-hidden bg-canvas ${side ? "draw-side gap-y-1.5 p-2 [&>*:not([data-paper])]:col-start-2" : "flex flex-col p-3"} ${turnedNow || side ? "" : "pt-safe-4 pb-safe-4"}`
+      ? `fixed top-0 left-0 z-30 gap-2 overflow-hidden select-none bg-canvas ${side ? "draw-side gap-y-1.5 p-2 [&>*:not([data-paper])]:col-start-2" : "flex flex-col p-3"} ${turnedNow || side ? "" : "pt-safe-4 pb-safe-4"}`
       : "flex flex-1 flex-col gap-2";
     const fullStyle: CSSProperties | undefined = full
       ? {
@@ -217,9 +217,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
           <div data-paper={side ? "" : undefined} className={side ? "pointer-events-none absolute top-3 z-10 w-36 opacity-95 drop-shadow-lg" : "contents"} style={side ? { left: `calc(max(0.5rem, ${inL}) + 0.25rem)` } : undefined}>
           <HeckleFx fx={heckleSlip} className={side ? "w-full" : "w-full max-w-xs self-center"}>
             <Slip key={word.id} tilt={-1} className={`unfold @container w-full text-center ${side ? "px-2 pt-0.5" : "px-5 pt-1.5"}`}>
-              <span data-testid="word" className="font-hand block font-bold" style={fitLine(word.text, side ? "1.375rem" : "2.25rem")}>
-                {word.text}
-              </span>
+              <FitWord text={word.text} max={side ? "1.375rem" : "2.25rem"} data-testid="word" className="font-hand block font-bold" />
               {showHint && word.hint && <span className={`block text-center text-paper-ink/60 ${side ? "text-xs" : "text-sm"}`}>{word.hint}</span>}
             </Slip>
           </HeckleFx>
@@ -351,7 +349,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
             never slide off the screen mid-turn */}
         <div className="relative w-full">
           {/* keys prefixed: the live slip and the flying copy of the same Zetteli are siblings for a moment */}
-          {v.word && <SwipeSlip key={`w${v.word.id}`} text={v.word.text} hint={v.word.hint} locked={up} canSkip={v.canSkip} fling={fling} onSwipe={act} heckle={heckleSlip} compact={v.held.length > 0} />}
+          {v.word && <SwipeSlip key={`w${v.word.id}`} text={v.word.text} hint={v.word.hint} locked={late} canSkip={v.canSkip} fling={fling} onSwipe={act} heckle={heckleSlip} compact={v.held.length > 0} />}
           {thrown && (
             <div key={`t${thrown.id}`} aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-10">
               <div className={thrown.dir === "r" ? "fling-r" : "fling-l"} style={{ transformOrigin: "50% 130%", "--dx": `${thrown.dx}px`, "--rot": `${thrown.dx / 14}deg` } as CSSProperties}>
