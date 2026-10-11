@@ -94,6 +94,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   const total = v.carryMs || secondsFor(v.settings, v.settings.rounds[v.round]) * 1000;
   const shownLeft = left === Infinity ? total : left;
   const up = left <= 0;
+  const late = left <= -500; // "got" stays tappable half a second after 0:00; the server counts it (GRACE)
   const [fling, setFling] = useState<"r" | "l" | null>(null);
   const [shown, setShown] = useState(v.word?.id);
   // new Zetteli arrived: clear the fling so it unfolds fresh
@@ -110,7 +111,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
   // out before the throw could be seen
   const [thrown, setThrown] = useState<{ id: number; text: string; hint: string; dir: "r" | "l"; dx: number } | null>(null);
   const act = async (dir: "r" | "l", dx = 0) => {
-    if (!v.word || up || fling) return;
+    if (!v.word || late || fling || (up && dir === "l")) return; // after 0:00 only "got" still counts
     const w = v.word;
     setThrown({ id: w.id, text: w.text, hint: w.hint, dir, dx });
     setTimeout(() => setThrown((g) => (g?.id === w.id ? null : g)), 450);
@@ -132,7 +133,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
     setTeamBusy(false);
   };
   const teamButton = mode === "online" && !me && v.players[v.me]?.team === p.team && (
-    <button onClick={teamGot} disabled={up || teamBusy || v.pausedLeft > 0} className={btn}>
+    <button onClick={teamGot} disabled={late || teamBusy || v.pausedLeft > 0} className={btn}>
       <Check className="size-5" aria-hidden /> {t.got}
     </button>
   );
@@ -164,7 +165,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
         {t.next}
         {v.settings.skips !== -1 && <span className="text-xs font-medium text-muted">{t.left(v.settings.skips - v.held.length)}</span>}
       </button>
-      <button onClick={() => act("r")} disabled={up || !!fling} className={`${btn} ${side ? "px-2" : ""}`}>
+      <button onClick={() => act("r")} disabled={late || !!fling} className={`${btn} ${side ? "px-2" : ""}`}>
         <Check className="size-5" aria-hidden /> {t.got}
       </button>
     </div>
@@ -348,7 +349,7 @@ export function Turn({ v, offset, send, live, mode }: P & { offset: number }) {
             never slide off the screen mid-turn */}
         <div className="relative w-full">
           {/* keys prefixed: the live slip and the flying copy of the same Zetteli are siblings for a moment */}
-          {v.word && <SwipeSlip key={`w${v.word.id}`} text={v.word.text} hint={v.word.hint} locked={up} canSkip={v.canSkip} fling={fling} onSwipe={act} heckle={heckleSlip} compact={v.held.length > 0} />}
+          {v.word && <SwipeSlip key={`w${v.word.id}`} text={v.word.text} hint={v.word.hint} locked={late} canSkip={v.canSkip} fling={fling} onSwipe={act} heckle={heckleSlip} compact={v.held.length > 0} />}
           {thrown && (
             <div key={`t${thrown.id}`} aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-10">
               <div className={thrown.dir === "r" ? "fling-r" : "fling-l"} style={{ transformOrigin: "50% 130%", "--dx": `${thrown.dx}px`, "--rot": `${thrown.dx / 14}deg` } as CSSProperties}>
